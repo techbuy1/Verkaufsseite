@@ -1,0 +1,1015 @@
+@import "tailwindcss";
+
+@source "../components/**/*.{js,ts,jsx,tsx}";
+@source "../app/**/*.{js,ts,jsx,tsx}";
+@source "../context/**/*.{js,ts,jsx,tsx}";
+@source "../lib/**/*.{js,ts,jsx,tsx}";
+@source "../hooks/**/*.{js,ts,jsx,tsx}";
+@source "../data/**/*.{js,ts,jsx,tsx}";
+@source "../types/**/*.{js,ts,jsx,tsx}";
+
+@theme {
+  /* ——— Warm Grey / Off-White premium palette ——— */
+  --color-techbuy-green: #20a968;
+  --color-techbuy-green-dark: #18965c;
+  --color-techbuy-green-soft: #e8f6ef;
+  --color-techbuy-black: #171717;
+  --color-techbuy-charcoal: #1c1c1c;
+
+  /* Semantic shop tokens */
+  --color-background: #f5f5f3;
+  --color-background-secondary: #f5f5f3;
+  --color-surface-hero: #f7f7f5;
+  --color-surface-card: #ffffff;
+  --color-surface-page: #f5f5f3;
+  --color-surface-soft: #ececea;
+  --color-surface-hover: #f0f0ee;
+  --color-text-primary: #171717;
+  --color-text-secondary: #6b6b6b;
+  --color-text-muted: #9a9a96;
+  --color-accent: #20a968;
+  --color-accent-hover: #18965c;
+  --color-accent-soft: #e8f6ef;
+  --color-border: #dadad7;
+  --color-dark: #1c1c1c;
+  --color-sale: #c9783a;
+
+  /* Explicit aliases (for non-Tailwind / future theming) */
+  --bg-main: var(--color-background);
+  --bg-card: var(--color-surface-card);
+  --bg-soft: var(--color-surface-soft);
+  --bg-hover: var(--color-surface-hover);
+  --text-main: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --border-soft: var(--color-border);
+  --accent: var(--color-accent);
+  --button-dark: var(--color-dark);
+
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial,
+    sans-serif;
+
+  --radius-card: 22px;
+  --radius-pill: 980px;
+
+  --shadow-card: 0 2px 18px rgba(23, 23, 23, 0.035);
+  --shadow-card-hover: 0 14px 36px rgba(23, 23, 23, 0.07);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    color: var(--color-text-primary);
+    background-color: var(--color-background);
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button {
+    font-family: inherit;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--color-accent) 16%, transparent);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tap-feedback {
+    transition: transform 0.15s ease;
+  }
+
+  .tap-feedback:active {
+    transform: scale(0.97);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.7s ease-out forwards;
+}
+
+/* ——— Premium motion primitives ——— */
+
+@keyframes orb-drift-a {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(3%, -4%, 0) scale(1.06);
+  }
+}
+
+@keyframes orb-drift-b {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-4%, 3%, 0) scale(1.04);
+  }
+}
+
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -10px, 0);
+  }
+}
+
+@keyframes hero-shell-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.parallax-orb {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(60px);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.parallax-orb-a {
+  animation: orb-drift-a 16s ease-in-out infinite;
+}
+
+.parallax-orb-b {
+  animation: orb-drift-b 19s ease-in-out infinite;
+}
+
+.float-idle {
+  animation: float-y 5s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes bridge-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -5px, 0);
+  }
+}
+
+.bridge-reason-float {
+  animation: bridge-float 5.2s ease-in-out infinite;
+  animation-delay: var(--bridge-float-delay, 0s);
+  will-change: transform;
+}
+
+.hero-shell-in {
+  animation: hero-shell-in 0.9s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .parallax-orb-a,
+  .parallax-orb-b,
+  .float-idle,
+  .bridge-reason-float {
+    animation: none !important;
+  }
+
+  * {
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .parallax-orb-a,
+  .parallax-orb-b {
+    animation-duration: 28s;
+    opacity: 0.7;
+  }
+}
+
+/* ——— CatalogBridgeSection reason cards ——— */
+
+@keyframes bridge-ping {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+@keyframes bridge-ring-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.bridge-icon-ping {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1.5px solid color-mix(in oklab, var(--color-accent) 65%, transparent);
+  opacity: 0;
+}
+
+.group:hover .bridge-icon-ping {
+  animation: bridge-ping 1.1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.group:hover .bridge-icon-ping-delay {
+  animation-delay: 0.35s;
+}
+
+/** Slim traveling-light border, revealed on card hover — the light-theme counterpart to wtb-glow-ring. */
+.bridge-card-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  opacity: 0;
+  pointer-events: none;
+  background: conic-gradient(
+    from 0deg,
+    transparent,
+    transparent 78%,
+    color-mix(in oklab, var(--color-accent) 80%, transparent) 92%,
+    color-mix(in oklab, var(--color-accent) 95%, white) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: bridge-ring-spin 2.6s linear infinite;
+  animation-play-state: paused;
+  transition: opacity 0.35s ease;
+}
+
+.bridge-reason-card:hover .bridge-card-ring {
+  opacity: 1;
+  animation-play-state: running;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bridge-icon-ping,
+  .group:hover .bridge-icon-ping,
+  .bridge-card-ring {
+    animation: none !important;
+  }
+}
+
+@layer components {
+  /* ——— Layout ——— */
+  .shop-media-frame {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    height: 320px;
+    background: transparent;
+  }
+
+  @media (min-width: 640px) {
+    .shop-media-frame {
+      height: 400px;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .shop-media-frame {
+      height: 480px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .shop-media-frame {
+      height: 560px;
+    }
+  }
+
+  .shop-media-frame-sm {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    height: 180px;
+    background: transparent;
+  }
+
+  @media (min-width: 768px) {
+    .shop-media-frame-sm {
+      height: 220px;
+    }
+  }
+
+  .shop-hero-frame {
+    position: relative;
+    overflow: visible;
+    width: 100%;
+    height: 240px;
+    background: transparent;
+  }
+
+  /* Nahtlose Bilddarstellung — kein sichtbarer Kasten */
+  .shop-image-seamless {
+    background: transparent !important;
+  }
+
+  img.shop-image-seamless {
+    background: transparent !important;
+  }
+
+  @media (min-width: 640px) {
+    .shop-hero-frame {
+      height: 300px;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .shop-hero-frame {
+      height: 360px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .shop-hero-frame {
+      height: 420px;
+    }
+  }
+
+  /* ——— Logo ——— */
+  .shop-logo-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    min-height: 40px;
+  }
+
+  .shop-logo-link:hover {
+    opacity: 0.92;
+  }
+
+  /* ——— Navigation ——— */
+  .shop-nav-link {
+    position: relative;
+    border-radius: 4px;
+    padding: 0.25rem 0.25rem;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--color-text-primary);
+    transition: color 0.2s ease;
+  }
+
+  .shop-nav-link:hover,
+  .shop-nav-link[aria-expanded="true"] {
+    color: var(--color-techbuy-black);
+    font-weight: 500;
+  }
+
+  .shop-nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0.25rem;
+    right: 0.25rem;
+    bottom: -2px;
+    height: 2px;
+    border-radius: 999px;
+    background: var(--color-accent);
+    transform: scaleX(0);
+    transition: transform 0.2s ease;
+  }
+
+  .shop-nav-link:hover::after,
+  .shop-nav-link[aria-expanded="true"]::after,
+  .shop-nav-link-active::after {
+    transform: scaleX(1);
+  }
+
+  .shop-nav-link-active {
+    color: var(--color-techbuy-black);
+    font-weight: 500;
+  }
+
+  @media (min-width: 1280px) {
+    .shop-nav-link {
+      font-size: 14px;
+    }
+  }
+
+  /* ——— Buttons ——— */
+  .btn-techbuy-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    border-radius: var(--radius-pill);
+    background: var(--color-accent);
+    padding: 0 1.5rem;
+    font-size: 14px;
+    font-weight: 500;
+    color: #ffffff;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+  }
+
+  .btn-techbuy-primary:hover {
+    background: var(--color-accent-hover);
+  }
+
+  .btn-techbuy-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-card);
+    padding: 0 1.5rem;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .btn-techbuy-secondary:hover {
+    border-color: color-mix(in oklab, var(--color-border) 70%, #9a9a96);
+    background: var(--color-surface-hover);
+  }
+
+  /* ——— Cards ——— */
+  .card-shop {
+    border-radius: var(--radius-card);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-card);
+    box-shadow: var(--shadow-card);
+  }
+
+  .badge-techbuy {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    background: var(--color-accent);
+    padding: 0.125rem 0.625rem;
+    font-size: 11px;
+    font-weight: 600;
+    color: #ffffff;
+  }
+
+  /* ——— Forms ——— */
+  .field-input {
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid color-mix(in oklab, var(--color-border) 80%, transparent);
+    padding: 0.625rem 1rem;
+    font-size: 14px;
+    outline: none;
+  }
+
+  .field-input:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-accent) 20%, transparent);
+  }
+
+  /* Light catalog / filter controls */
+  .shop-filter-control {
+    width: 100%;
+    appearance: none;
+    border-radius: 12px;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-surface-card);
+    padding: 0.625rem 2rem 0.625rem 0.75rem;
+    font-size: 13px;
+    color: var(--color-text-primary);
+    outline: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236B6B6B' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+  }
+
+  .shop-filter-control:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-accent) 18%, transparent);
+  }
+
+  .shop-filter-control option {
+    color: var(--color-text-primary);
+    background-color: var(--color-surface-card);
+  }
+
+  .shop-filter-input {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-surface-card);
+    padding: 0.625rem 0.75rem;
+    font-size: 13px;
+    color: var(--color-text-primary);
+    outline: none;
+  }
+
+  .shop-filter-input::placeholder {
+    color: var(--color-text-secondary);
+  }
+
+  .shop-filter-input:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-accent) 18%, transparent);
+  }
+
+  /* Admin toolbar controls — see src/app/admin/admin.css */
+  .shop-admin-control {
+    width: 100%;
+    appearance: none;
+    border-radius: 12px;
+    border: 1px solid color-mix(in oklab, var(--color-border) 80%, transparent);
+    background-color: #ffffff;
+    padding: 0.625rem 0.75rem;
+    font-size: 14px;
+    color: var(--color-text-primary);
+    outline: none;
+  }
+
+  .shop-admin-control:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-accent) 18%, transparent);
+  }
+
+  .shop-admin-control option {
+    color: var(--color-text-primary);
+    background-color: #ffffff;
+  }
+
+  /* Product description rich text */
+  .prose-shop {
+    color: var(--color-text-primary);
+  }
+
+  .prose-shop h2,
+  .prose-shop h3 {
+    color: var(--color-text-primary);
+    font-weight: 600;
+  }
+
+  .prose-shop a {
+    color: var(--color-accent-hover);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .prose-shop strong {
+    font-weight: 600;
+  }
+
+  /* Brand filter chips */
+  .brand-chip {
+    display: inline-flex;
+    shrink: 0;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+    background: #ffffff;
+    padding: 0.5rem 1rem;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    transition: all 0.2s ease;
+  }
+
+  .brand-chip:hover {
+    border-color: color-mix(in oklab, var(--color-accent) 40%, var(--color-border));
+    color: var(--color-text-primary);
+  }
+
+  .brand-chip-active {
+    border-color: var(--color-accent);
+    background: var(--color-accent);
+    color: #ffffff;
+  }
+
+  .brand-chip-active:hover {
+    background: var(--color-accent-hover);
+    color: #ffffff;
+  }
+
+  /* Active color swatch ring */
+  .swatch-ring-active {
+    box-shadow:
+      0 0 0 2px var(--color-surface-card),
+      0 0 0 3.5px var(--color-accent);
+  }
+
+  /* Unified product image stage — transparent, no visible box */
+  .product-image-stage {
+    position: relative;
+    overflow: hidden;
+    background: transparent;
+  }
+
+  .product-image-stage--on-card {
+    background: var(--color-surface-card);
+  }
+
+  .shop-product-thumb {
+    position: relative;
+    overflow: hidden;
+    background: var(--color-surface-card);
+  }
+
+  .product-image-stage img {
+    object-fit: contain;
+    object-position: center;
+  }
+
+  .product-card-hover {
+    transition:
+      transform 0.28s ease,
+      box-shadow 0.28s ease,
+      border-color 0.28s ease;
+  }
+
+  .product-card-hover:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in oklab, var(--color-border) 55%, #9a9a96);
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  .product-card-hover:hover .product-image-float {
+    transform: scale(1.02);
+  }
+
+  .product-image-float {
+    transition: transform 0.25s ease;
+  }
+}
+
+/* ——— WhyTechBuy dark premium section ——— */
+
+@keyframes wtb-particle-rise {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  10% {
+    opacity: var(--wtb-particle-opacity, 0.6);
+  }
+  90% {
+    opacity: var(--wtb-particle-opacity, 0.6);
+  }
+  100% {
+    transform: translate3d(0, -140px, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes wtb-orbit {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes wtb-shine-sweep {
+  0%,
+  60% {
+    transform: translateX(-130%) skewX(-12deg);
+  }
+  100% {
+    transform: translateX(130%) skewX(-12deg);
+  }
+}
+
+@keyframes wtb-gradient-wander {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes wtb-wave-drift {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes wtb-float-soft {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(var(--wtb-rot-from, -3deg));
+  }
+  50% {
+    transform: translate3d(0, -6px, 0) rotate(var(--wtb-rot-to, 2deg));
+  }
+}
+
+@keyframes wtb-blink-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.85);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.wtb-noise {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+
+.wtb-gradient-text {
+  background: linear-gradient(
+    100deg,
+    color-mix(in oklab, var(--color-accent) 70%, white) 0%,
+    #ffffff 35%,
+    color-mix(in oklab, var(--color-accent) 70%, white) 70%
+  );
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: wtb-gradient-wander 5s ease-in-out infinite;
+}
+
+.wtb-glass-card {
+  position: relative;
+  border-radius: 26px;
+  background: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.06),
+    rgba(255, 255, 255, 0.015) 40%,
+    rgba(255, 255, 255, 0.03)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 1px 0 rgba(255, 255, 255, 0.02),
+    0 20px 50px -20px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(14px);
+}
+
+.wtb-glass-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    140deg,
+    color-mix(in oklab, var(--color-accent) 55%, transparent),
+    transparent 30%,
+    transparent 70%,
+    color-mix(in oklab, #7dd3c0 45%, transparent)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.5;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+
+.wtb-glass-card:hover::before {
+  opacity: 0.9;
+}
+
+.wtb-spotlight {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  background: radial-gradient(
+    240px circle at var(--wtb-mx, 50%) var(--wtb-my, 50%),
+    color-mix(in oklab, var(--color-accent) 22%, transparent),
+    transparent 65%
+  );
+  pointer-events: none;
+}
+
+.wtb-glass-card:hover .wtb-spotlight {
+  opacity: 1;
+}
+
+@keyframes wtb-ring-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes wtb-sweep-x {
+  0% {
+    transform: translateX(0%);
+  }
+  30% {
+    transform: translateX(100%);
+  }
+  50% {
+    transform: translateX(200%);
+  }
+  80% {
+    transform: translateX(300%);
+  }
+  100% {
+    transform: translateX(0%);
+  }
+}
+
+/**
+ * Animated "energy ring" border — a spinning conic gradient masked down to a
+ * 1.5px stroke, revealed on card hover. Sits on its own layer above
+ * `.wtb-glass-card::before` (the static gradient border) so both can coexist.
+ */
+.wtb-glow-ring {
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1.5px;
+  opacity: 0;
+  pointer-events: none;
+  background: conic-gradient(
+    from 0deg,
+    color-mix(in oklab, var(--color-accent) 90%, transparent),
+    transparent 22%,
+    transparent 50%,
+    color-mix(in oklab, #5eead4 85%, transparent) 72%,
+    transparent 92%,
+    color-mix(in oklab, var(--color-accent) 90%, transparent)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: wtb-ring-spin 3.2s linear infinite;
+  animation-play-state: paused;
+  transition: opacity 0.4s ease;
+}
+
+.wtb-glass-card:hover .wtb-glow-ring {
+  opacity: 1;
+  animation-play-state: running;
+}
+
+/** Roaming highlight that sweeps across the 4 PremiumBenefitBar items, one at a time. */
+.wtb-bar-sweep {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 25%;
+  border-radius: 18px;
+  background: radial-gradient(
+    100% 100% at 50% 50%,
+    color-mix(in oklab, var(--color-accent) 16%, transparent),
+    transparent 75%
+  );
+  animation: wtb-sweep-x 9s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wtb-particle,
+  .wtb-orbit,
+  .wtb-shine,
+  .wtb-gradient-text,
+  .wtb-gradient-bar,
+  .wtb-wave,
+  .wtb-glow-ring,
+  .wtb-bar-sweep {
+    animation: none !important;
+  }
+}
+
+/* ——— TechBuy Services: Ankauf/trade-in card ——— */
+
+@keyframes service-ring-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes service-cta-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-accent) 45%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 10px color-mix(in oklab, var(--color-accent) 0%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-accent) 0%, transparent);
+  }
+}
+
+.service-card-ring {
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1.5px;
+  opacity: 0;
+  pointer-events: none;
+  background: conic-gradient(
+    from 0deg,
+    transparent,
+    transparent 75%,
+    color-mix(in oklab, var(--color-accent) 85%, transparent) 92%,
+    color-mix(in oklab, var(--color-accent) 95%, white) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: service-ring-spin 3.4s linear infinite;
+  animation-play-state: paused;
+  transition: opacity 0.4s ease;
+}
+
+.group:hover .service-card-ring {
+  opacity: 1;
+  animation-play-state: running;
+}
+
+.service-cta-pulse {
+  animation: service-cta-pulse 2.6s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .service-card-ring,
+  .service-cta-pulse {
+    animation: none !important;
+  }
+}
+
+/* ——— TrustBar icon badges ——— */
+
+@keyframes trust-icon-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-accent) 22%, transparent);
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow: 0 0 0 5px color-mix(in oklab, var(--color-accent) 0%, transparent);
+  }
+}
+
+.trust-icon-breathe {
+  animation: trust-icon-breathe 3.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trust-icon-breathe {
+    animation: none !important;
+  }
+}

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640" fill="none">
+  <rect width="640" height="640" rx="48" fill="#F5F5F7"/>
+  <rect x="120" y="160" width="400" height="320" rx="32" stroke="#D2D2D7" stroke-width="4" stroke-dasharray="12 12"/>
+  <path d="M220 420 L320 300 L380 360 L420 310 L480 420 Z" fill="#E8E8ED"/>
+  <circle cx="260" cy="250" r="28" fill="#E8E8ED"/>
+  <text x="320" y="530" text-anchor="middle" fill="#86868B" font-family="system-ui, sans-serif" font-size="22" font-weight="500">Produktbild fehlt</text>
+</svg>
