@@ -19,6 +19,7 @@ import {
   updateProduct as persistProduct,
   updateProducts as persistProducts,
 } from "@/lib/productStore";
+import { invalidateSearchIndex } from "@/lib/searchProducts";
 
 interface ProductStoreContextValue {
   products: PremiumProduct[];
@@ -55,15 +56,18 @@ export function ProductStoreProvider({ children }: { children: ReactNode }) {
 
   const updateProduct = useCallback((product: PremiumProduct) => {
     setProducts(persistProduct(product));
+    invalidateSearchIndex();
   }, []);
 
   const updateProducts = useCallback((next: PremiumProduct[]) => {
     setProducts(persistProducts(next));
+    invalidateSearchIndex();
   }, []);
 
   const setProductsState = useCallback((next: PremiumProduct[]) => {
     saveProducts(next);
     setProducts(next);
+    invalidateSearchIndex();
   }, []);
 
   const deductStockForOrder = useCallback(

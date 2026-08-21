@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SearchIcon } from "./Icons";
 import { SearchResults } from "./SearchResults";
 import { searchProducts } from "@/lib/searchProducts";
@@ -25,7 +25,7 @@ export function SearchBar({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const results = searchProducts(query, 6);
+  const results = useMemo(() => searchProducts(query, 6), [query]);
 
   const inputStyles =
     variant === "header"

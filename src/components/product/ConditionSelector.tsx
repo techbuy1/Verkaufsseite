@@ -87,7 +87,7 @@ export function ConditionSelector({
                 !isAvailable
                   ? "cursor-not-allowed border-border bg-surface-hover text-text-muted opacity-70"
                   : isSelected
-                    ? "border-accent bg-surface-card text-text-primary shadow-[0_8px_24px_rgba(32,169,104,0.12)] ring-1 ring-accent/30"
+                    ? "border-accent bg-surface-card text-text-primary shadow-[0_8px_24px_rgba(232,98,42,0.16)] ring-1 ring-accent/30"
                     : "border-border bg-surface-card text-text-primary shadow-[var(--shadow-card)] hover:border-text-muted/50"
               }`}
             >

@@ -23,7 +23,7 @@ const variants = {
     "bg-transparent text-accent border border-accent hover:bg-accent-soft px-6 text-[14px] tracking-tight",
   ghost: "bg-transparent text-text-secondary hover:text-accent px-2 text-[14px]",
   "hero-primary":
-    "bg-accent text-white hover:bg-accent-hover px-6 text-[14px] tracking-tight shadow-[0_8px_24px_rgba(22,198,106,0.25)]",
+    "bg-accent text-white hover:bg-accent-hover px-6 text-[14px] tracking-tight shadow-[0_8px_24px_rgba(232,98,42,0.3)]",
   "hero-secondary":
     "bg-transparent text-text-primary border border-border hover:border-accent hover:bg-accent-soft px-6 text-[14px] tracking-tight",
   "hero-secondary-dark":

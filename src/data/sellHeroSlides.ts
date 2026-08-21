@@ -7,6 +7,11 @@ export interface SellHeroDevice {
   fallbackImage: string;
   alt: string;
   glowColor: string;
+  /** Pre-rendered front/back/side stills used for the static hero collage (no WebGL on the homepage). */
+  collage: {
+    front: string;
+    angles: string[];
+  };
 }
 
 export interface SellHeroContent {
@@ -48,6 +53,13 @@ export const SELL_HERO: SellHeroContent = {
     fallbackImage: assetPath(`${APPLE_17}/Apple_iPhone17Pro_Orange.png`),
     alt: "iPhone 17 Pro Cosmic Orange",
     glowColor: "#e8622a",
+    collage: {
+      front: assetPath("images/hero/collage/iphone-17-pro-cosmic-orange/front.png"),
+      angles: [
+        assetPath("images/hero/collage/iphone-17-pro-cosmic-orange/back.png"),
+        assetPath("images/hero/collage/iphone-17-pro-cosmic-orange/side.png"),
+      ],
+    },
   },
 };
 

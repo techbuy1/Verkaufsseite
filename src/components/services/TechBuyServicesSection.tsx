@@ -143,7 +143,7 @@ function ServiceCard({
                   width: particle.size,
                   height: particle.size,
                   ["--wtb-particle-opacity" as string]: 0.45,
-                  boxShadow: "0 0 6px 1px rgba(22,198,106,0.45)",
+                  boxShadow: "0 0 6px 1px rgba(232,98,42,0.45)",
                   animation: `wtb-particle-rise ${particle.duration}s ease-in-out ${particle.delay}s infinite`,
                 }}
                 aria-hidden="true"

@@ -1,32 +1,19 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { formatPrice } from "@/data/products";
 import { getColorDefinitionsForSlug } from "@/data/productImageMap";
+import { getDealImageCollage } from "@/data/dealImageCollages";
 import { resolvePremiumProduct } from "@/lib/catalog";
 import { getProductPrice, getStorageOptionsForColor } from "@/lib/productVariants";
 import { TOP_DEAL_PRODUCT_OPTIONS } from "@/lib/topDealStore";
 import { useTopDeal } from "@/context/TopDealContext";
+import { DeviceImageCollage } from "./hero/DeviceImageCollage";
 import { Reveal } from "./motion/Reveal";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
-
-// Three.js/R3F only ever load once this section actually needs a 3D-capable
-// product, keeping the bundle lean for the common case.
-const DeviceViewer3D = dynamic(
-  () => import("@/components/product3d/DeviceViewer3D").then((mod) => mod.DeviceViewer3D),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex aspect-square w-full max-w-[340px] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-accent" />
-      </div>
-    ),
-  },
-);
 
 function useCountdown(endsAt: string) {
   const [remainingMs, setRemainingMs] = useState(() => Math.max(0, Date.parse(endsAt) - Date.now()));
@@ -82,6 +69,7 @@ export function TopDealSection() {
 
   const originalPrice = getProductPrice(product, storage.storage, selectedColor.id);
   const dealPrice = Math.round(originalPrice * (1 - config.discountPercent / 100));
+  const collage = getDealImageCollage(config.productId, selectedColor.id);
 
   return (
     <section className="relative overflow-hidden bg-[#0b0f1a] py-16 text-white md:py-20">
@@ -119,7 +107,7 @@ export function TopDealSection() {
                 <span className="text-[34px] font-bold tracking-tight text-white md:text-[40px]">
                   {formatPrice(dealPrice)}
                 </span>
-                <span className="mb-1.5 rounded-full bg-[#16c66a]/15 px-2.5 py-1 text-[12px] font-semibold text-[#16c66a]">
+                <span className="mb-1.5 rounded-full bg-accent/15 px-2.5 py-1 text-[12px] font-semibold text-accent">
                   -{config.discountPercent}%
                 </span>
               </div>
@@ -157,15 +145,17 @@ export function TopDealSection() {
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.7, ease: EASE }}
           >
-            <DeviceViewer3D
-              modelPath={modelOption.modelPath}
-              colorHex={selectedColor.hex}
-              accentColor="#e8622a"
-              fallbackImage={selectedColor.image}
-              fallbackImageAlt={`${product.name} – ${selectedColor.name}`}
-              screenTextureUrl={selectedColor.wallpaper}
-              className="h-full w-full"
-              autoRotateSpeed={3}
+            <DeviceImageCollage
+              front={{
+                src: collage?.front ?? selectedColor.image,
+                alt: `${product.name} – ${selectedColor.name}`,
+              }}
+              angles={(collage?.angles ?? []).map((src) => ({
+                src,
+                alt: `${product.name} – ${selectedColor.name} – weitere Ansicht`,
+              }))}
+              href={`/products/${product.slug}`}
+              ariaLabel={`${product.name} – ${selectedColor.name} jetzt bei TechBuy kaufen`}
             />
           </motion.div>
         </div>

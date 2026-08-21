@@ -64,7 +64,7 @@ export function CreditsPageContent() {
             href={credit.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="group flex items-center justify-between gap-4 rounded-[16px] border border-border bg-surface-card px-5 py-4 shadow-[var(--shadow-card)] transition-all duration-200 hover:border-accent/40 hover:shadow-[0_8px_24px_rgba(32,169,104,0.1)]"
+            className="group flex items-center justify-between gap-4 rounded-[16px] border border-border bg-surface-card px-5 py-4 shadow-[var(--shadow-card)] transition-all duration-200 hover:border-accent/40 hover:shadow-[0_8px_24px_rgba(232,98,42,0.14)]"
           >
             <div className="min-w-0">
               <p className="text-[15px] font-semibold text-text-primary">{credit.title}</p>

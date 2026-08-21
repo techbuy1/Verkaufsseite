@@ -1,11 +1,8 @@
 "use client";
 
-import { useEffect, type PointerEvent as ReactPointerEvent } from "react";
-import { useMotionValue, useReducedMotion } from "motion/react";
-import { useGLTF } from "@react-three/drei";
 import { Button } from "@/components/Button";
 import { ChevronRightIcon } from "@/components/Icons";
-import { HeroDeviceModel } from "@/components/hero/HeroDeviceModel";
+import { DeviceImageCollage } from "@/components/hero/DeviceImageCollage";
 import { SELL_HERO } from "@/data/sellHeroSlides";
 import { Reveal } from "@/components/motion/Reveal";
 import { SplitHeadline } from "@/components/motion/SplitHeadline";
@@ -13,11 +10,11 @@ import { WordCarousel } from "@/components/motion/WordCarousel";
 
 /**
  * Shop hero — Cosmic Orange iPhone 17 Pro with buy-focused copy (no Ankauf).
+ * Uses a static front/back/side image collage instead of the interactive 3D
+ * viewer: the homepage doesn't need to load three.js/@react-three just to
+ * show its very first section.
  */
 export function SellHeroCarousel() {
-  const prefersReducedMotion = Boolean(useReducedMotion());
-  const pointerX = useMotionValue(0);
-  const pointerY = useMotionValue(0);
   const {
     device,
     eyebrow,
@@ -29,22 +26,6 @@ export function SellHeroCarousel() {
     ctaHref,
     secondaryCtaHref,
   } = SELL_HERO;
-
-  useEffect(() => {
-    useGLTF.preload(device.colorModelPath ?? device.modelPath);
-  }, [device.colorModelPath, device.modelPath]);
-
-  function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
-    if (prefersReducedMotion) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    pointerX.set(((event.clientX - rect.left) / rect.width - 0.5) * 2);
-    pointerY.set(((event.clientY - rect.top) / rect.height - 0.5) * 2);
-  }
-
-  function handlePointerLeave() {
-    pointerX.set(0);
-    pointerY.set(0);
-  }
 
   return (
     <section
@@ -104,33 +85,13 @@ export function SellHeroCarousel() {
           </Reveal>
         </div>
 
-        <div
-          className="order-2 relative h-[400px] select-none touch-pan-y sm:h-[460px] md:h-[560px] lg:h-[620px] xl:h-[680px]"
-          style={{ perspective: 1400, touchAction: "pan-y" }}
-          onPointerMove={handlePointerMove}
-          onPointerLeave={handlePointerLeave}
-        >
-          <div className="absolute" style={{ left: "50%", top: "50%" }}>
-            <HeroDeviceModel
-              slug="iphone-17-pro"
-              href={ctaHref}
-              ariaLabel={`${device.alt} jetzt bei TechBuy kaufen`}
-              modelPath={device.modelPath}
-              colorModelPath={device.colorModelPath}
-              colorHex={device.colorHex}
-              fallbackImage={device.fallbackImage}
-              fallbackImageAlt={device.alt}
-              glowColor={device.glowColor}
-              floatDuration={9}
-              floatDelay={0}
-              sizeClassName="w-[210px] sm:w-[250px] md:w-[300px] lg:w-[340px] xl:w-[380px]"
-              zIndex={10}
-              reducedMotion={prefersReducedMotion}
-              pointerX={pointerX}
-              pointerY={pointerY}
-              tiltStrength={7}
-            />
-          </div>
+        <div className="order-2 mx-auto w-full max-w-[420px] select-none md:max-w-none">
+          <DeviceImageCollage
+            front={{ src: device.collage.front, alt: device.alt }}
+            angles={device.collage.angles.map((src) => ({ src, alt: `${device.alt} – weitere Ansicht` }))}
+            href={ctaHref}
+            ariaLabel={`${device.alt} jetzt bei TechBuy kaufen`}
+          />
         </div>
       </div>
     </section>

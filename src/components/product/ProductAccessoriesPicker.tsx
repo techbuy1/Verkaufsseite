@@ -146,7 +146,7 @@ export function ProductAccessoriesPicker({
         {showSilicone ? (
           <OptionRow
             checked={selection.siliconeCase}
-            title={`${DEVICE_ACCESSORY.caseSiliconeApple.name} (Apple)`}
+            title={DEVICE_ACCESSORY.caseSiliconeApple.name}
             price={formatPrice(DEVICE_ACCESSORY.caseSiliconeApple.price)}
             onToggle={() => patch({ siliconeCase: !selection.siliconeCase })}
           >

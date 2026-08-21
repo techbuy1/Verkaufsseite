@@ -10,9 +10,9 @@
 
 @theme {
   /* ——— Warm Grey / Off-White premium palette ——— */
-  --color-techbuy-green: #20a968;
-  --color-techbuy-green-dark: #18965c;
-  --color-techbuy-green-soft: #e8f6ef;
+  --color-techbuy-green: #e8622a;
+  --color-techbuy-green-dark: #cf531f;
+  --color-techbuy-green-soft: #fbe4d7;
   --color-techbuy-black: #171717;
   --color-techbuy-charcoal: #1c1c1c;
 
@@ -27,9 +27,9 @@
   --color-text-primary: #171717;
   --color-text-secondary: #6b6b6b;
   --color-text-muted: #9a9a96;
-  --color-accent: #20a968;
-  --color-accent-hover: #18965c;
-  --color-accent-soft: #e8f6ef;
+  --color-accent: #e8622a;
+  --color-accent-hover: #cf531f;
+  --color-accent-soft: #fbe4d7;
   --color-border: #dadad7;
   --color-dark: #1c1c1c;
   --color-sale: #c9783a;
@@ -79,7 +79,8 @@
   }
 
   ::selection {
-    background-color: color-mix(in oklab, var(--color-accent) 16%, transparent);
+    background-color: color-mix(in oklab, var(--color-accent) 55%, transparent);
+    color: var(--color-techbuy-black);
   }
 }
 

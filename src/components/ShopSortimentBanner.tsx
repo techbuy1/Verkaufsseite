@@ -10,7 +10,7 @@ export function ShopSortimentBanner() {
         <Reveal variant="up-soft" duration={0.6} amount={0.4}>
           <Link
             href="/store"
-            className="group flex flex-col items-start justify-between gap-3 rounded-[20px] border border-border bg-surface-card px-6 py-5 shadow-[var(--shadow-card)] transition-all duration-300 hover:border-accent/40 hover:shadow-[0_10px_28px_rgba(32,169,104,0.1)] sm:flex-row sm:items-center"
+            className="group flex flex-col items-start justify-between gap-3 rounded-[20px] border border-border bg-surface-card px-6 py-5 shadow-[var(--shadow-card)] transition-all duration-300 hover:border-accent/40 hover:shadow-[0_10px_28px_rgba(232,98,42,0.14)] sm:flex-row sm:items-center"
           >
             <p className="text-[16px] font-semibold text-text-primary md:text-[18px]">
               Schau dir hier unser komplettes Sortiment an.

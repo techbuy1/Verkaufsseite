@@ -60,7 +60,7 @@ export function ColorSelector({
                 !isAvailable
                   ? "cursor-not-allowed border-border bg-surface-hover opacity-55"
                   : isSelected
-                    ? "border-accent bg-surface-card shadow-[0_8px_24px_rgba(32,169,104,0.12)] ring-1 ring-accent/30"
+                    ? "border-accent bg-surface-card shadow-[0_8px_24px_rgba(232,98,42,0.16)] ring-1 ring-accent/30"
                     : "border-border bg-surface-card shadow-[var(--shadow-card)] hover:border-text-muted/50 hover:shadow-[var(--shadow-card-hover)]"
               }`}
             >
