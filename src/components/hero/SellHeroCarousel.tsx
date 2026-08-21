@@ -9,6 +9,7 @@ import { HeroDeviceModel } from "@/components/hero/HeroDeviceModel";
 import { SELL_HERO } from "@/data/sellHeroSlides";
 import { Reveal } from "@/components/motion/Reveal";
 import { SplitHeadline } from "@/components/motion/SplitHeadline";
+import { WordCarousel } from "@/components/motion/WordCarousel";
 
 /**
  * Shop hero — Cosmic Orange iPhone 17 Pro with buy-focused copy (no Ankauf).
@@ -20,7 +21,8 @@ export function SellHeroCarousel() {
   const {
     device,
     eyebrow,
-    headline,
+    headlinePrefix,
+    carouselWords,
     subheadline,
     ctaLabel,
     secondaryCtaLabel,
@@ -72,12 +74,16 @@ export function SellHeroCarousel() {
             </span>
           </Reveal>
 
-          <SplitHeadline
-            as="h1"
-            text={headline}
-            wordDelay={0.05}
-            className="mb-4 text-[32px] font-bold leading-[1.08] tracking-[-0.03em] text-balance text-white md:text-[42px] lg:text-[48px]"
-          />
+          <h1 className="mb-4 text-[32px] font-bold leading-[1.08] tracking-[-0.03em] text-balance text-white md:text-[42px] lg:text-[48px]">
+            <SplitHeadline
+              as="span"
+              text={headlinePrefix}
+              wordDelay={0.05}
+              mode="mount"
+              className="mr-2"
+            />{" "}
+            <WordCarousel words={carouselWords} style={{ color: device.glowColor }} />
+          </h1>
 
           <Reveal variant="up-soft" duration={0.6} delay={0.2}>
             <p className="mb-7 max-w-[420px] text-[15px] leading-relaxed text-white/60 md:text-[17px]">

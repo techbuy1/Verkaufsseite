@@ -181,7 +181,6 @@ const samsungSeeds: SamsungModelSeed[] = [
       { name: "Titanium Gray", hex: "#8e8e93" },
       { name: "Titanium Silverblue", hex: "#7f8fa3" },
       { name: "Titanium WhiteSilver", hex: "#e3e4e5" },
-      { name: "Titanium Jetblack", hex: "#0a0a0a" },
       { name: "Titanium Jadegreen", hex: "#5f8f7a" },
       { name: "Titanium Pinkgold", hex: "#d4a59a" },
     ],

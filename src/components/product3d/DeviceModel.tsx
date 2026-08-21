@@ -34,11 +34,12 @@ interface DeviceModelProps {
 const TARGET_HEIGHT = 1.65;
 
 /**
- * Applies a complete colour variant to the device:
+ * Applies a complete colour variant to the device's housing:
  * - Frame / side rails
  * - Glass back / rear cover
  * - S Pen / pens
- * - Soft wallpaper wash on the screen texture
+ *
+ * The screen is deliberately left alone here — see applyNeutralScreen.
  *
  * Previously only meshes matching "frame" were tinted because "Glass back"
  * was excluded by a bare "glass" non-housing hint.
@@ -48,17 +49,10 @@ function isOffStateMaterial(materialName: string): boolean {
   return materialName.toLowerCase().includes("off");
 }
 
-function applyDeviceColorVariant(
-  root: THREE.Object3D,
-  colorHex: string,
-  screenTexture?: THREE.Texture | null,
-) {
+function applyDeviceColorVariant(root: THREE.Object3D, colorHex: string) {
   const color = new THREE.Color(colorHex);
   const accent = color.clone().lerp(new THREE.Color("#ffffff"), 0.12);
   const depth = color.clone().lerp(new THREE.Color("#000000"), 0.22);
-  // Lifted well past the housing tint (was 0.42) — a screen wallpaper multiplied
-  // by a strong colour wash reads muddy/dark, especially on deeper housing colours.
-  const wallpaperWash = color.clone().lerp(new THREE.Color("#ffffff"), 0.72);
 
   root.traverse((child) => {
     if (!(child instanceof THREE.Mesh)) return;
@@ -73,24 +67,11 @@ function applyDeviceColorVariant(
 
       if (isProtectedPart(child.name, materialName)) continue;
 
-      if (isScreenPart(child.name, materialName)) {
-        // The "screen off" mesh sits directly over the real screen mesh —
-        // hide it or it blocks any wallpaper/tint from ever being visible.
-        if (isOffStateMaterial(materialName)) {
-          child.visible = false;
-          continue;
-        }
-        if (screenTexture) {
-          standardMaterial.map = screenTexture;
-          screenTexture.colorSpace = THREE.SRGBColorSpace;
-          screenTexture.needsUpdate = true;
-          brightenScreenMaterial(standardMaterial, screenTexture);
-        }
-        // Multiply wash so the baked wallpaper shifts toward the selected colour
-        standardMaterial.color.copy(wallpaperWash);
-        standardMaterial.needsUpdate = true;
-        continue;
-      }
+      // Screen material is handled by applyNeutralScreen — a colour wash on
+      // the baked-in wallpaper photo reads as a mismatched tint, not a
+      // deliberate colour, so the screen always stays neutral regardless of
+      // the housing colour.
+      if (isScreenPart(child.name, materialName)) continue;
 
       if (isColorableHousingPart(child.name, materialName)) {
         const combined = `${child.name} ${materialName}`.toLowerCase();
@@ -110,11 +91,12 @@ function applyDeviceColorVariant(
 }
 
 /**
- * The iPhone 17 Pro's Camera Control button ("Glass tint" material) isn't
- * matched by either isColorableHousingPart or isProtectedPart, so it never
- * gets touched by the tinting pass above and keeps whichever colour the
- * source GLB happened to bake in — visibly wrong on the pre-coloured
- * per-colour exports, which were baked correctly everywhere else. Runs as
+ * The iPhone 17 Pro's Camera Control button and Apple logo cutout share one
+ * untextured material ("PaletteMaterial001" in every export, plus "Glass
+ * tint" on other devices) with no baseColorFactor baked in, so it renders
+ * default white/grey and is matched by neither isColorableHousingPart nor
+ * isProtectedPart — visibly wrong (a pale button) on every per-colour export,
+ * including the pre-coloured ones that got everything else right. Runs as
  * its own always-on pass, independent of whether the rest of the model is
  * being dynamically tinted or is already pre-coloured.
  */
@@ -127,12 +109,56 @@ function applyCameraControlButtonColor(root: THREE.Object3D, colorHex: string) {
     for (const material of materials) {
       if (!material) continue;
       const materialName = "name" in material ? String(material.name ?? "") : "";
-      if (!/glass tint/i.test(materialName)) continue;
+      if (!/glass tint|palettematerial001/i.test(materialName)) continue;
       const standardMaterial = material as THREE.MeshStandardMaterial;
       if ("color" in standardMaterial && standardMaterial.color) {
         standardMaterial.color.copy(accent);
         standardMaterial.needsUpdate = true;
       }
+    }
+  });
+}
+
+/**
+ * Every device GLB bakes its own busy marketing-shot wallpaper into the
+ * screen material, in whatever colour that particular photo happened to be
+ * (e.g. the Cosmic Orange export's screen art is blue) — never the selected
+ * housing colour, and never a plain neutral look. Strips that baked image
+ * and the "screen off" overlay mesh, leaving a flat, neutral dark panel that
+ * reads as a real (asleep) display regardless of which colour is active.
+ */
+function applyNeutralScreen(root: THREE.Object3D, screenTexture?: THREE.Texture | null) {
+  root.traverse((child) => {
+    if (!(child instanceof THREE.Mesh)) return;
+    const materials = Array.isArray(child.material) ? child.material : [child.material];
+    for (const material of materials) {
+      if (!material) continue;
+      const materialName = "name" in material ? String(material.name ?? "") : "";
+      if (!isScreenPart(child.name, materialName)) continue;
+
+      if (isOffStateMaterial(materialName)) {
+        child.visible = false;
+        continue;
+      }
+
+      const standardMaterial = material as THREE.MeshStandardMaterial;
+      if (screenTexture) {
+        standardMaterial.map = screenTexture;
+        screenTexture.colorSpace = THREE.SRGBColorSpace;
+        screenTexture.needsUpdate = true;
+        brightenScreenMaterial(standardMaterial, screenTexture);
+        if ("color" in standardMaterial && standardMaterial.color) {
+          standardMaterial.color.set("#ffffff");
+        }
+      } else {
+        standardMaterial.map = null;
+        if ("emissiveMap" in standardMaterial) standardMaterial.emissiveMap = null;
+        if ("emissive" in standardMaterial) standardMaterial.emissive.set("#000000");
+        if ("color" in standardMaterial && standardMaterial.color) {
+          standardMaterial.color.set("#1c1c1e");
+        }
+      }
+      standardMaterial.needsUpdate = true;
     }
   });
 }
@@ -293,10 +319,11 @@ export function DeviceModel({
     const apply = (texture?: THREE.Texture | null) => {
       if (cancelled) return;
       if (colorHex) {
-        applyDeviceColorVariant(cloned, colorHex, texture);
-      } else if (texture) {
-        applyScreenTextureOnly(cloned, texture);
+        applyDeviceColorVariant(cloned, colorHex);
       }
+      // Always neutral, whether the housing is dynamically tinted or a
+      // pre-coloured export — see applyNeutralScreen.
+      applyNeutralScreen(cloned, texture);
       // Always runs, even when the rest of the model is a pre-coloured
       // export (colorHex omitted) — see applyCameraControlButtonColor.
       if (resolvedButtonColorHex) {
@@ -315,7 +342,7 @@ export function DeviceModel({
         undefined,
         () => apply(null),
       );
-    } else if (colorHex || resolvedButtonColorHex) {
+    } else {
       apply(null);
     }
 
@@ -341,29 +368,3 @@ function brightenScreenMaterial(material: THREE.MeshStandardMaterial, texture: T
   material.needsUpdate = true;
 }
 
-function applyScreenTextureOnly(root: THREE.Object3D, screenTexture: THREE.Texture) {
-  screenTexture.colorSpace = THREE.SRGBColorSpace;
-  screenTexture.needsUpdate = true;
-  root.traverse((child) => {
-    if (!(child instanceof THREE.Mesh)) return;
-    const materials = Array.isArray(child.material) ? child.material : [child.material];
-    for (const material of materials) {
-      if (!material) continue;
-      const materialName = "name" in material ? String(material.name ?? "") : "";
-      if (!isScreenPart(child.name, materialName)) continue;
-      if (isOffStateMaterial(materialName)) {
-        child.visible = false;
-        continue;
-      }
-      const standardMaterial = material as THREE.MeshStandardMaterial;
-      if ("map" in standardMaterial) {
-        standardMaterial.map = screenTexture;
-        if ("color" in standardMaterial && standardMaterial.color) {
-          standardMaterial.color.set("#ffffff");
-        }
-        standardMaterial.needsUpdate = true;
-        brightenScreenMaterial(standardMaterial, screenTexture);
-      }
-    }
-  });
-}

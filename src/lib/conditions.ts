@@ -134,8 +134,12 @@ function abbreviateToken(value: string, max = 4): string {
 
 function abbreviateStorage(storage: string): string {
   const match = storage.match(/(\d+)\s*(GB|TB)/i);
-  if (!match) return abbreviateToken(storage, 6);
-  return `${match[1]}${(match[2] ?? "GB").toUpperCase()}`;
+  const size = match ? `${match[1]}${(match[2] ?? "GB").toUpperCase()}` : abbreviateToken(storage, 6);
+  // Connectivity-enabled products (iPads) list "128 GB · WLAN" and
+  // "128 GB · WLAN + Cellular" as separate storage rows with the same size —
+  // without this suffix both collapse to the same SKU ("128GB") and get
+  // flagged as duplicates even though they're genuinely different variants.
+  return /cellular/i.test(storage) ? `${size}CELL` : size;
 }
 
 /**

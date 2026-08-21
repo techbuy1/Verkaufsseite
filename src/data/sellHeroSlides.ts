@@ -12,6 +12,10 @@ export interface SellHeroDevice {
 export interface SellHeroContent {
   eyebrow: string;
   headline: string;
+  /** Static lead-in words before the cycling word in the hero title. */
+  headlinePrefix: string;
+  /** Words the hero title cycles through, one at a time. */
+  carouselWords: string[];
   subheadline: string;
   ctaLabel: string;
   secondaryCtaLabel: string;
@@ -29,6 +33,8 @@ export const HERO_PRODUCT_HREF = "/products/iphone-17-pro";
 export const SELL_HERO: SellHeroContent = {
   eyebrow: "iPhone 17 Pro",
   headline: "iPhone 17 Pro. In Cosmic Orange.",
+  headlinePrefix: "iPhone 17 Pro ist",
+  carouselWords: ["Kraftvoll.", "Brillant.", "Episch.", "Revolutionär.", "Cosmic Orange."],
   subheadline:
     "Pro-Kamera, A19 Pro und Titanium Design — jetzt bei TechBuy bestellen.",
   ctaLabel: "Jetzt kaufen",

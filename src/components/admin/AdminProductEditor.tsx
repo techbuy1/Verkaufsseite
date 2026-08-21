@@ -61,6 +61,7 @@ export function AdminProductEditor({ productId }: AdminProductEditorProps) {
   const [draft, setDraft] = useState<PremiumProduct | null>(source ?? null);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveWarning, setSaveWarning] = useState<string | null>(null);
   const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -347,15 +348,28 @@ export function AdminProductEditor({ productId }: AdminProductEditorProps) {
 
     const priceErrors = validateVariantPrices(synced);
     const imageErrors = validateVariantImagePaths(synced);
-    const errors = [...priceErrors, ...imageErrors];
-    if (errors.length > 0) {
-      setSaveError(errors.join(" "));
+
+    // Duplicate SKUs and placeholder images are data-quality issues, not
+    // reasons to throw away a price edit — both already surface their own
+    // persistent warning elsewhere (the SKU under each condition row, the
+    // "Produktbild fehlt" banner above). Only genuinely broken pricing
+    // (missing storage, no active condition, price <= 0) blocks the save.
+    const blockingErrors = priceErrors.filter((error) => !error.startsWith("Doppelte SKU:"));
+    const warnings = [
+      ...priceErrors.filter((error) => error.startsWith("Doppelte SKU:")),
+      ...imageErrors,
+    ];
+
+    if (blockingErrors.length > 0) {
+      setSaveError(blockingErrors.join(" "));
+      setSaveWarning(null);
       setSaved(false);
       return;
     }
 
     updateProduct(synced);
     setSaveError(null);
+    setSaveWarning(warnings.length > 0 ? warnings.join(" ") : null);
     setSaved(true);
   }
 
@@ -409,6 +423,8 @@ export function AdminProductEditor({ productId }: AdminProductEditorProps) {
       {saved && (
         <div className="admin-alert-success">Änderungen gespeichert — sichtbar im Shop nach Reload.</div>
       )}
+
+      {saveWarning && <div className="admin-alert-warning">{saveWarning}</div>}
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
@@ -592,11 +608,6 @@ export function AdminProductEditor({ productId }: AdminProductEditorProps) {
                               („Bild hinzufügen“).
                             </p>
                           </div>
-                        )}
-                        {!variant.imageMissing && !brokenImages[variant.id] && (
-                          <p className="mb-2 text-[11px] text-text-secondary">
-                            Vorschau · {variant.image}
-                          </p>
                         )}
                       </div>
                       <input

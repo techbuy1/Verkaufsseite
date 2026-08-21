@@ -7,7 +7,7 @@ interface SplitHeadlineProps {
   className?: string;
   delay?: number;
   wordDelay?: number;
-  as?: "h1" | "h2" | "h3" | "p";
+  as?: "h1" | "h2" | "h3" | "p" | "span";
   /** "view" (default) animates when scrolled into view; "mount" animates immediately on mount. */
   mode?: "view" | "mount";
 }
