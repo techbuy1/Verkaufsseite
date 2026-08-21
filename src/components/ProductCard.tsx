@@ -62,8 +62,14 @@ export function ProductCard({
           <HeartIcon filled={wishlisted} />
         </button>
 
-        {product.badge && (
-          <span className="badge-techbuy mb-0.5 !px-1.5 !py-0 text-[8px]">{product.badge}</span>
+        {(product.badge || product.soldOut) && (
+          <span
+            className={`mb-0.5 inline-block w-fit !px-1.5 !py-0 text-[8px] ${
+              product.soldOut ? "badge-techbuy bg-text-secondary/10 text-text-secondary" : "badge-techbuy"
+            }`}
+          >
+            {product.soldOut ? "Ausverkauft" : product.badge}
+          </span>
         )}
 
         <p className="mb-0 text-[8px] font-medium uppercase tracking-wide text-text-secondary">
@@ -127,9 +133,13 @@ export function ProductCard({
         <div className="mt-auto flex items-center gap-1">
           <Link
             href={productHref}
-            className="btn-techbuy-primary !min-h-6 h-6 min-w-0 flex-1 !px-1.5 !text-[10px]"
+            className={
+              product.soldOut
+                ? "btn-techbuy-secondary !min-h-6 h-6 min-w-0 flex-1 !px-1.5 !text-[10px]"
+                : "btn-techbuy-primary !min-h-6 h-6 min-w-0 flex-1 !px-1.5 !text-[10px]"
+            }
           >
-            Kaufen
+            {product.soldOut ? "Ausverkauft" : "Kaufen"}
           </Link>
           <Link
             href={productHref}
@@ -173,7 +183,13 @@ export function ProductCard({
 
       <div className="flex flex-1 flex-col">
         <div className="mb-2 flex items-center gap-2">
-          {product.badge && <span className="badge-techbuy">{product.badge}</span>}
+          {product.soldOut ? (
+            <span className="badge-techbuy bg-text-secondary/10 text-text-secondary">
+              Ausverkauft
+            </span>
+          ) : (
+            product.badge && <span className="badge-techbuy">{product.badge}</span>
+          )}
           {product.discount && (
             <span className="text-[12px] font-medium text-sale">{product.discount}</span>
           )}
@@ -223,8 +239,8 @@ export function ProductCard({
         )}
 
         <div className="mt-auto flex flex-col gap-2 pt-2">
-          <Button variant="primary" size="sm" href={productHref}>
-            Kaufen
+          <Button variant={product.soldOut ? "secondary" : "primary"} size="sm" href={productHref}>
+            {product.soldOut ? "Ausverkauft" : "Kaufen"}
           </Button>
           <Button variant="ghost" size="sm" href={productHref}>
             Mehr erfahren

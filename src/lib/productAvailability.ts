@@ -152,10 +152,15 @@ export function getProductAvailabilityStatus(
   return getTotalStock(product) > 0 ? "available" : "out_of_stock";
 }
 
+/**
+ * A product stays visible in the shop (catalog listings and its own detail
+ * page) as long as it isn't manually archived — running out of stock marks
+ * it "Ausverkauft" (see getAdminStatusLabel / PurchaseBox) rather than
+ * removing it from the catalog or 404ing its page. Only a deliberate
+ * archive should make a product disappear entirely.
+ */
 export function isProductVisibleInShop(product: PremiumProduct): boolean {
-  if (product.manualArchive) return false;
-  if (isPresaleProduct(product)) return true;
-  return getTotalStock(product) > 0;
+  return !product.manualArchive;
 }
 
 export function isProductAvailable(product: PremiumProduct): boolean {
@@ -174,20 +179,27 @@ export function getAvailablePremiumProducts(products: PremiumProduct[]): Premium
 export function getProductMinAvailablePrice(product: PremiumProduct): number {
   const variants = getProductVariants(syncProductVariants(product));
   let min = Infinity;
-  const allowZero = isPresaleProduct(product);
 
   for (const variant of variants) {
     for (const option of variant.storageOptions) {
-      if (allowZero) {
+      const price = getStorageMinAvailablePrice(option);
+      if (price !== null && price > 0 && price < min) {
+        min = price;
+      }
+    }
+  }
+
+  // Nothing currently has stock (out of stock, or a presale that's always
+  // zero-stock by definition) — fall back to the lowest listed price,
+  // ignoring stock, so the catalog shows a real "Ab X €" next to the
+  // Ausverkauft/Vorverkauf badge instead of "Ab 0,00 €".
+  if (min === Infinity) {
+    for (const variant of variants) {
+      for (const option of variant.storageOptions) {
         for (const condition of ensureStorageConditions(option).conditions ?? []) {
           if (condition.active && condition.price > 0 && condition.price < min) {
             min = condition.price;
           }
-        }
-      } else {
-        const price = getStorageMinAvailablePrice(option);
-        if (price !== null && price > 0 && price < min) {
-          min = price;
         }
       }
     }
@@ -522,7 +534,7 @@ export function getAdminStatusLabel(product: PremiumProduct): {
     return { emoji: "🔵", label: "Vorverkauf", shopVisible: true };
   }
   if (status === "out_of_stock") {
-    return { emoji: "⚫", label: "Ausverkauft", shopVisible: false };
+    return { emoji: "⚫", label: "Ausverkauft", shopVisible: true };
   }
   if (isLowStockProduct(product)) {
     return { emoji: "🟠", label: "Niedriger Bestand", shopVisible: true };

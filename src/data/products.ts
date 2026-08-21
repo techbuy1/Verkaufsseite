@@ -57,6 +57,8 @@ export interface Product {
   storageOptions?: string[];
   /** Optional: Zustand des günstigsten verfügbaren Preises */
   priceFromConditionLabel?: string;
+  /** Derzeit ohne Bestand — bleibt im Katalog sichtbar, aber als „Ausverkauft“ markiert. */
+  soldOut?: boolean;
 }
 
 export type ProductImageType =

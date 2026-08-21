@@ -60,7 +60,7 @@ export function StickyCartBar({
           onClick={onAddToCart}
           className="btn-techbuy-primary shrink-0 px-5 py-2.5 text-[14px] disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {isUnavailable ? "Nicht verfügbar" : "In den Warenkorb"}
+          {isUnavailable ? "Ausverkauft" : "In den Warenkorb"}
         </button>
       </div>
     </div>

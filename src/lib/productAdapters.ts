@@ -3,9 +3,9 @@ import type { Product, ProductColorOption, ProductImageType } from "@/data/produ
 import {
   getDefaultAvailableColorId,
   getDefaultAvailableStorage,
+  getProductAvailabilityStatus,
   getProductMinAvailableConditionLabel,
   getProductMinAvailablePrice,
-  isColorAvailable,
 } from "@/lib/productAvailability";
 import {
   getDefaultColor,
@@ -33,8 +33,10 @@ export function premiumToLegacyProduct(product: PremiumProduct): Product {
   const minPrice = getProductMinAvailablePrice(product);
   const defaultStorage = getDefaultAvailableStorage(product, defaultColorId);
 
+  // Swatches are a browsing aid, not a purchase gate — show every real
+  // colour even when the product is fully sold out, so an out-of-stock
+  // product doesn't also look broken (no colours, no picker) in the catalog.
   const colors: ProductColorOption[] = product.images
-    .filter((image) => isColorAvailable(product, image.id))
     .map((image) => ({
       id: image.id,
       label: image.colorName,
@@ -60,5 +62,6 @@ export function premiumToLegacyProduct(product: PremiumProduct): Product {
     colors,
     storageOptions: product.storageOptions.map((option) => option.storage),
     priceFromConditionLabel: getProductMinAvailableConditionLabel(product),
+    soldOut: getProductAvailabilityStatus(product) === "out_of_stock",
   };
 }

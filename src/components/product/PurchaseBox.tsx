@@ -72,7 +72,7 @@ export function PurchaseBox({
   const outOfStock = stock !== undefined && stock <= 0;
   const isUnavailable = !canPurchase || (outOfStock && !isPresale);
   const buttonLabel = isUnavailable
-    ? "Nicht verfügbar"
+    ? "Ausverkauft"
     : isPresale && outOfStock
       ? "Jetzt vorbestellen"
       : "In den Warenkorb";
@@ -98,7 +98,7 @@ export function PurchaseBox({
                   ? presaleShipLabel
                     ? `Vorverkauf · ${presaleShipLabel}`
                     : "Vorverkauf · Lieferung nach Verfügbarkeit"
-                  : "Derzeit nicht verfügbar"}
+                  : "Ausverkauft"}
             </p>
           )}
           {isPresale && (
