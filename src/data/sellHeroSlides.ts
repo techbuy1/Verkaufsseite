@@ -14,20 +14,27 @@ export interface SellHeroContent {
   headline: string;
   subheadline: string;
   ctaLabel: string;
+  secondaryCtaLabel: string;
+  ctaHref: string;
+  secondaryCtaHref: string;
   device: SellHeroDevice;
 }
 
 const APPLE_17 = "images/products/Apple/iPhones /iPhone 17/iPhone 17 Pro ";
 
-/** Ankauf/trade-in flow lives on the sister site — same link the rest of TechBuy already uses. */
-export const ANKAUF_URL = "https://www.techbuy-ankauf.de/";
+/** Product page for the hero device. */
+export const HERO_PRODUCT_HREF = "/products/iphone-17-pro";
 
-/** Single static hero device: iPhone 17 Pro Cosmic Orange. */
+/** Single static hero: iPhone 17 Pro Cosmic Orange — shop buy focus. */
 export const SELL_HERO: SellHeroContent = {
-  eyebrow: "Ankauf",
-  headline: "Verkaufe dein Smartphone. Einfach. Schnell. Sicher.",
-  subheadline: "Faire Preise für dein iPhone, Samsung & Co.",
-  ctaLabel: "Jetzt verkaufen",
+  eyebrow: "iPhone 17 Pro",
+  headline: "iPhone 17 Pro. In Cosmic Orange.",
+  subheadline:
+    "Pro-Kamera, A19 Pro und Titanium Design — jetzt bei TechBuy bestellen.",
+  ctaLabel: "Jetzt kaufen",
+  secondaryCtaLabel: "Alle Smartphones",
+  ctaHref: HERO_PRODUCT_HREF,
+  secondaryCtaHref: "/smartphones",
   device: {
     modelPath: "/models/optimized/iphone-17-pro.glb",
     colorModelPath: "/models/optimized/iphone-17-pro-cosmic-orange.glb",

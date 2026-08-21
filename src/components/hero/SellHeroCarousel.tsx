@@ -6,19 +6,27 @@ import { useGLTF } from "@react-three/drei";
 import { Button } from "@/components/Button";
 import { ChevronRightIcon } from "@/components/Icons";
 import { HeroDeviceModel } from "@/components/hero/HeroDeviceModel";
-import { ANKAUF_URL, SELL_HERO } from "@/data/sellHeroSlides";
+import { SELL_HERO } from "@/data/sellHeroSlides";
 import { Reveal } from "@/components/motion/Reveal";
 import { SplitHeadline } from "@/components/motion/SplitHeadline";
 
 /**
- * Trade-in hero — dark, Apple-keynote-style banner with a single static
- * Cosmic Orange iPhone 17 Pro (no carousel).
+ * Shop hero — Cosmic Orange iPhone 17 Pro with buy-focused copy (no Ankauf).
  */
 export function SellHeroCarousel() {
   const prefersReducedMotion = Boolean(useReducedMotion());
   const pointerX = useMotionValue(0);
   const pointerY = useMotionValue(0);
-  const { device, eyebrow, headline, subheadline, ctaLabel } = SELL_HERO;
+  const {
+    device,
+    eyebrow,
+    headline,
+    subheadline,
+    ctaLabel,
+    secondaryCtaLabel,
+    ctaHref,
+    secondaryCtaHref,
+  } = SELL_HERO;
 
   useEffect(() => {
     useGLTF.preload(device.colorModelPath ?? device.modelPath);
@@ -39,7 +47,7 @@ export function SellHeroCarousel() {
   return (
     <section
       className="relative overflow-hidden bg-[radial-gradient(ellipse_120%_80%_at_50%_-10%,#242430_0%,#0c0c0f_55%,#000000_100%)] pt-14"
-      aria-label="Smartphone verkaufen"
+      aria-label="iPhone 17 Pro kaufen"
     >
       <div
         className="pointer-events-none absolute left-1/2 top-[6%] h-[58vw] max-h-[560px] w-[58vw] max-w-[560px] -translate-x-1/2 rounded-full opacity-[0.22] blur-[110px]"
@@ -79,17 +87,12 @@ export function SellHeroCarousel() {
 
           <Reveal variant="up-soft" duration={0.6} delay={0.34}>
             <div className="flex flex-wrap items-center gap-3">
-              <Button
-                variant="hero-primary"
-                href={ANKAUF_URL}
-                target="_blank"
-                className="group"
-              >
+              <Button variant="hero-primary" href={ctaHref} className="group">
                 {ctaLabel}
                 <ChevronRightIcon className="ml-1.5 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
               </Button>
-              <Button variant="hero-secondary-dark" href="/smartphones">
-                Neues Gerät entdecken
+              <Button variant="hero-secondary-dark" href={secondaryCtaHref}>
+                {secondaryCtaLabel}
               </Button>
             </div>
           </Reveal>
@@ -103,9 +106,9 @@ export function SellHeroCarousel() {
         >
           <div className="absolute" style={{ left: "50%", top: "50%" }}>
             <HeroDeviceModel
-              slug=""
-              href={ANKAUF_URL}
-              ariaLabel={`${device.alt} bei TechBuy Ankauf verkaufen`}
+              slug="iphone-17-pro"
+              href={ctaHref}
+              ariaLabel={`${device.alt} jetzt bei TechBuy kaufen`}
               modelPath={device.modelPath}
               colorModelPath={device.colorModelPath}
               colorHex={device.colorHex}
