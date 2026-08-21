@@ -77,16 +77,18 @@ function buildSamsungProduct(seed: SamsungModelSeed): PremiumProduct {
     features: ["Galaxy AI", "5G", "IP68"],
     keywords: ["samsung", "galaxy", seed.model.toLowerCase(), seed.generation.toLowerCase()],
     recommendedAccessories: [
+      "acc-screen-protector-clear",
+      "acc-screen-protector-matte",
+      "acc-screen-protector-privacy",
+      "acc-case-clear",
+      "acc-cable-usbc",
       "catalog-galaxy-buds",
       "catalog-galaxy-watch",
-      "catalog-chargers",
-      "catalog-cases",
-      "catalog-screen-protector",
     ],
     similarProducts: [],
     bundleOffers: [],
     badge: seed.badge,
-    stock: seed.stock ?? 24,
+    stock: seed.stock ?? 0,
     operatingSystem: "Android",
     boxContents: ["Gerät", "USB-C Kabel", "SIM-Werkzeug", "Kurzanleitung"],
   });
@@ -113,7 +115,7 @@ const samsungSeeds: SamsungModelSeed[] = [
     description:
       "Das Galaxy S26 Ultra vereint Galaxy AI, Pro-Kamera und maximale Performance in einem Premium-Gehäuse.",
     badge: "Neu",
-    stock: 38,
+    stock: 0,
     colors: S26_ULTRA_COLORS,
     storages: [
       { storage: "256 GB", price: 1299 },

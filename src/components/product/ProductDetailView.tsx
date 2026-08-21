@@ -17,6 +17,7 @@ import {
   getDefaultAvailableConditionId,
   getStorageAvailabilityMap,
   getVariantStock,
+  isPresaleProduct,
   LOW_STOCK_THRESHOLD,
   validateVariantPurchase,
 } from "@/lib/productAvailability";
@@ -24,6 +25,13 @@ import { CONDITION_IDS } from "@/lib/conditions";
 import { getImageTypeForCategory } from "@/lib/productAdapters";
 import { getProductModelPath } from "@/lib/productModels";
 import { useShop } from "@/context/ShopContext";
+import {
+  DEVICE_ACCESSORY,
+  emptyDeviceAddonSelection,
+  screenProtectorIdFromChoice,
+  type DeviceAddonSelection,
+} from "@/data/deviceAccessories";
+import { ProductAccessoriesPicker } from "./ProductAccessoriesPicker";
 import { ProductDeliveryCard } from "./ProductDeliveryCard";
 import { ProductInfo } from "./ProductInfo";
 import { ProductMediaPanel } from "./ProductMediaPanel";
@@ -47,6 +55,8 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
     getDefaultAvailableConditionId(product, defaultColorId, defaultStorage),
   );
   const [taxAccepted, setTaxAccepted] = useState(false);
+  const [addons, setAddons] = useState<DeviceAddonSelection>(emptyDeviceAddonSelection);
+
   const [showStickyBar, setShowStickyBar] = useState(false);
 
   const purchaseRef = useRef<HTMLDivElement>(null);
@@ -99,6 +109,8 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
           active: entry.active,
           available: entry.available,
           note: entry.note,
+          savings: entry.savings,
+          basePrice: entry.basePrice,
         };
       }),
     [conditionAvailability],
@@ -108,6 +120,13 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
     () => getProductPrice(product, selectedStorage, selectedColorId, selectedCondition),
     [product, selectedStorage, selectedColorId, selectedCondition],
   );
+
+  const newBasePrice = useMemo(
+    () => getProductPrice(product, selectedStorage, selectedColorId, "new"),
+    [product, selectedStorage, selectedColorId],
+  );
+
+  const savingsVsNew = Math.max(0, Math.round((newBasePrice - price) * 100) / 100);
 
   const variantStock = useMemo(
     () => getVariantStock(product, selectedColorId, selectedStorage, selectedCondition),
@@ -208,6 +227,18 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
       storage: selectedStorage,
       condition: selectedCondition,
     });
+
+    const foilId = screenProtectorIdFromChoice(addons.screenProtector);
+    if (foilId) addToCart({ productId: foilId });
+    if (addons.clearCase) addToCart({ productId: DEVICE_ACCESSORY.caseClear.id });
+    if (addons.usbCable) addToCart({ productId: DEVICE_ACCESSORY.cableUsbc.id });
+    if (addons.siliconeCase) {
+      addToCart({
+        productId: DEVICE_ACCESSORY.caseSiliconeApple.id,
+        colorId: addons.siliconeColorId,
+      });
+    }
+
     openCart();
   }
 
@@ -229,6 +260,8 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
     onTaxChange: setTaxAccepted,
     onAddToCart: handleAddToCart,
     canPurchase: purchaseValidation.ok,
+    isPresale: isPresaleProduct(product),
+    presaleShipLabel: product.presaleShipLabel,
     lowStockHint:
       variantStock > 0 && variantStock <= LOW_STOCK_THRESHOLD
         ? `Nur noch ${variantStock} verfügbar`
@@ -250,6 +283,16 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
   const titleLine = `${product.brand} ${product.name}${
     selectedStorage ? ` ${selectedStorage}` : ""
   }${selectedColor.colorName ? ` ${selectedColor.colorName}` : ""}`;
+
+  const selectedConditionLabel =
+    conditionAvailability[selectedCondition]?.label ?? selectedCondition;
+
+  const savingsHint =
+    savingsVsNew > 0 ? (
+      <p className="mt-1 text-[12px] font-medium text-accent">
+        {formatPrice(savingsVsNew)} günstiger als Neu
+      </p>
+    ) : null;
 
   return (
     <>
@@ -287,11 +330,19 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
               <p className="text-[28px] font-semibold tracking-tight text-text-primary">
                 {formatPrice(price)}
               </p>
-              <p className="mt-1 text-[12px] text-text-secondary">inkl. MwSt.</p>
+              {savingsHint}
+              <p className="mt-1 text-[12px] text-text-secondary">
+                {selectedConditionLabel} · inkl. MwSt.
+              </p>
             </div>
 
-            <div ref={purchaseRef} className="mt-5">
+            <div ref={purchaseRef} className="mt-5 space-y-3">
               <PurchaseBox {...purchaseBoxProps} hidePrice compact />
+              <ProductAccessoriesPicker
+                product={product}
+                selection={addons}
+                onChange={setAddons}
+              />
             </div>
 
             <div className="mt-7 space-y-4">
@@ -324,12 +375,20 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
                   <p className="text-[30px] font-semibold tracking-tight text-text-primary xl:text-[34px]">
                     {formatPrice(price)}
                   </p>
-                  <p className="mt-1 text-[12px] text-text-secondary">inkl. MwSt.</p>
+                  {savingsHint}
+                  <p className="mt-1 text-[12px] text-text-secondary">
+                    {selectedConditionLabel} · inkl. MwSt.
+                  </p>
                 </div>
               </header>
 
-              <div ref={purchaseRef}>
+              <div ref={purchaseRef} className="space-y-3.5">
                 <PurchaseBox {...purchaseBoxProps} hidePrice />
+                <ProductAccessoriesPicker
+                  product={product}
+                  selection={addons}
+                  onChange={setAddons}
+                />
               </div>
 
               <div className="mt-5">

@@ -11,6 +11,8 @@ const DeviceViewer3D = dynamic(
 
 interface HeroDeviceModelProps {
   slug: string;
+  /** Overrides the default `/products/${slug}` destination — e.g. an external trade-in flow. */
+  href?: string;
   ariaLabel: string;
   modelPath: string;
   colorModelPath?: string;
@@ -18,6 +20,8 @@ interface HeroDeviceModelProps {
   fallbackImage: string;
   fallbackImageAlt: string;
   viewCycleSeconds?: number;
+  /** 60/speed = seconds per full turn. Hero context defaults faster than the product-page viewer so a complete rotation is clearly visible within a slide's dwell time. */
+  autoRotateSpeed?: number;
   glowColor: string;
   floatDuration: number;
   floatDelay: number;
@@ -38,6 +42,7 @@ interface HeroDeviceModelProps {
  */
 export function HeroDeviceModel({
   slug,
+  href,
   ariaLabel,
   modelPath,
   colorModelPath,
@@ -45,6 +50,7 @@ export function HeroDeviceModel({
   fallbackImage,
   fallbackImageAlt,
   viewCycleSeconds,
+  autoRotateSpeed = 10,
   glowColor,
   floatDuration,
   floatDelay,
@@ -61,7 +67,24 @@ export function HeroDeviceModel({
   const springTiltX = useSpring(tiltX, { stiffness: 80, damping: 16, mass: 0.5 });
 
   return (
-    <div className={`absolute aspect-[3/4] ${sizeClassName}`} style={{ zIndex }}>
+    // A real phone is much taller than 3:4 — a box that shape gives the
+    // camera-framing logic in Scene3D room to fit the full device (top to
+    // bottom) without the sides pushing outside the stage, since it fits
+    // the box's actual height rather than an approximated squarer one.
+    //
+    // `relative` (not `absolute`) is deliberate: callers position this
+    // component by wrapping it in an `absolute; left/top` anchor div — a
+    // zero-size point at the desired spot. Centering this element ON that
+    // point needs `-translate-x-1/2 -translate-y-1/2`, and CSS `translate`
+    // percentages resolve against the *translated element's own* box. If
+    // this div were `absolute` too, it would sit in that zero-size anchor's
+    // box and the translate would compute against a 0×0 reference — moving
+    // nothing — which is exactly the bug that let this render full-size but
+    // pinned at its untranslated top-left, overflowing past the stage.
+    <div
+      className={`relative aspect-[3/5] -translate-x-1/2 -translate-y-1/2 ${sizeClassName}`}
+      style={{ zIndex }}
+    >
       <div
         className="pointer-events-none absolute inset-[-35%] rounded-full opacity-[0.16] blur-[70px]"
         style={{ background: glowColor }}
@@ -86,7 +109,14 @@ export function HeroDeviceModel({
           whileHover={{ scale: 1.025 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
         >
-          <Link href={`/products/${slug}`} aria-label={ariaLabel} className="block h-full w-full">
+          <Link
+            href={href ?? `/products/${slug}`}
+            target={href?.startsWith("http") ? "_blank" : undefined}
+            rel={href?.startsWith("http") ? "noopener noreferrer" : undefined}
+            aria-label={ariaLabel}
+            className="block h-full w-full touch-pan-y"
+            style={{ touchAction: "pan-y" }}
+          >
             <DeviceViewer3D
               modelPath={modelPath}
               colorModelPath={colorModelPath}
@@ -95,7 +125,9 @@ export function HeroDeviceModel({
               fallbackImage={fallbackImage}
               fallbackImageAlt={fallbackImageAlt}
               viewCycleSeconds={viewCycleSeconds}
+              autoRotateSpeed={autoRotateSpeed}
               hideControls
+              presentationOnly
               className="h-full w-full"
             />
           </Link>

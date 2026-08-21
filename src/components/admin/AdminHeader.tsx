@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { AdminIcon } from "./AdminIcons";
 
 interface AdminHeaderProps {
@@ -7,6 +9,20 @@ interface AdminHeaderProps {
 }
 
 export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
+  const router = useRouter();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  async function handleLogout() {
+    setLoggingOut(true);
+    try {
+      await fetch("/api/admin/logout", { method: "POST" });
+    } finally {
+      router.replace("/admin/login");
+      router.refresh();
+      setLoggingOut(false);
+    }
+  }
+
   return (
     <header className="admin-header">
       <button
@@ -30,16 +46,27 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
         />
       </div>
 
-      <div className="hidden items-center gap-3 md:flex">
+      <div className="flex items-center gap-2 md:gap-3">
         <span
-          className="rounded-full px-3 py-1 text-[11px] font-medium"
-          style={{ background: "var(--color-accent-soft, #eafaf1)", color: "var(--color-accent-hover, #0fa858)" }}
+          className="hidden rounded-full px-3 py-1 text-[11px] font-medium sm:inline-flex"
+          style={{
+            background: "var(--color-accent-soft, #eafaf1)",
+            color: "var(--color-accent-hover, #0fa858)",
+          }}
         >
           Admin
         </span>
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#111111] text-[13px] font-semibold text-white">
           TB
         </div>
+        <button
+          type="button"
+          onClick={handleLogout}
+          disabled={loggingOut}
+          className="rounded-xl border border-border bg-white px-3 py-2 text-[12px] font-medium text-text-secondary transition-colors hover:border-accent/30 hover:text-text-primary disabled:opacity-60"
+        >
+          {loggingOut ? "…" : "Abmelden"}
+        </button>
       </div>
     </header>
   );

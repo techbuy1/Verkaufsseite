@@ -32,6 +32,8 @@ export interface CartItem {
   name: string;
   image: string;
   price: number;
+  /** Basispreis für Zustand „Neu“ der gewählten Variante */
+  basePrice?: number;
   quantity: number;
   slug?: string;
   brand?: string;
@@ -84,6 +86,12 @@ export function buildCartItem(payload: AddToCartPayload): CartItem | null {
       colorId,
       resolvedCondition,
     );
+    const basePrice = getProductPrice(
+      product,
+      storageOption.storage,
+      colorId,
+      "new",
+    );
     const requestedQuantity = payload.quantity ?? 1;
     const validation = validateVariantPurchase(
       product,
@@ -106,6 +114,7 @@ export function buildCartItem(payload: AddToCartPayload): CartItem | null {
       name: product.name,
       image: color.image,
       price,
+      basePrice,
       quantity: Math.min(requestedQuantity, validation.maxQuantity),
       slug: product.slug,
       brand: product.brand,
@@ -122,7 +131,11 @@ export function buildCartItem(payload: AddToCartPayload): CartItem | null {
   if (!legacy) return null;
 
   const storage = payload.storage ?? legacy.storage ?? "Standard";
-  const colorId = payload.colorId ?? legacy.color ?? "default";
+  const colorOption =
+    legacy.colors?.find((entry) => entry.id === payload.colorId) ??
+    legacy.colors?.[0];
+  const colorId = colorOption?.id ?? payload.colorId ?? legacy.color ?? "default";
+  const colorName = colorOption?.label ?? legacy.color;
   const condition: ConditionId = isConditionId(payload.condition)
     ? payload.condition
     : "new";
@@ -131,13 +144,13 @@ export function buildCartItem(payload: AddToCartPayload): CartItem | null {
     lineId: createCartLineId(legacy.id, colorId, storage, condition),
     productId: legacy.id,
     name: legacy.name,
-    image: legacy.imageSrc,
+    image: colorOption?.imageSrc ?? legacy.imageSrc,
     price: legacy.price,
     quantity: payload.quantity ?? 1,
     slug: legacy.slug,
     brand: legacy.brand,
     color: colorId,
-    colorName: legacy.color,
+    colorName,
     storage,
     condition,
     conditionLabel: getConditionLabel(condition),
@@ -156,19 +169,23 @@ export function getCartItemProductHref(item: CartItem): string {
   return "/zubehoer";
 }
 
-export const FREE_SHIPPING_THRESHOLD = 50;
-export const SHIPPING_COST = 4.99;
+export const FREE_SHIPPING_THRESHOLD = 0;
+export const SHIPPING_COST = 0;
 
-export function getShippingCost(subtotal: number): number {
-  return subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+export function getShippingCost(_subtotal: number): number {
+  return 0;
 }
 
-export function getCartTotal(subtotal: number): number {
-  return subtotal + getShippingCost(subtotal);
+export function getCartTotal(subtotal: number, discount = 0): number {
+  return Math.max(0, roundMoney(subtotal - discount + getShippingCost(subtotal)));
 }
 
 export function getCartSubtotal(items: CartItem[]): number {
   return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+}
+
+function roundMoney(value: number): number {
+  return Math.round(value * 100) / 100;
 }
 
 export function getCartItemCount(items: CartItem[]): number {
@@ -256,6 +273,7 @@ export function resolveCartItemPrice(item: CartItem): CartItem {
     ...item,
     image: color.image,
     price: getProductPrice(product, storage.storage, colorId, condition),
+    basePrice: getProductPrice(product, storage.storage, colorId, "new"),
     colorName: color.colorName,
     storage: storage.storage,
     condition,

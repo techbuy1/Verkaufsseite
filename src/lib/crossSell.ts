@@ -1,3 +1,4 @@
+import { getRecommendedDeviceAccessoryIds } from "@/data/deviceAccessories";
 import {
   crossSellRatings,
   DEFAULT_ACCESSORIES_BY_BRAND,
@@ -27,27 +28,20 @@ export interface CrossSellProduct {
 }
 
 function resolveAccessoryIds(product: PremiumProduct): string[] {
-  if (product.recommendedAccessories?.length) {
-    return product.recommendedAccessories;
-  }
+  const core = getRecommendedDeviceAccessoryIds(product);
+  const extras = product.recommendedAccessories?.length
+    ? product.recommendedAccessories
+    : product.brand === "Apple" && product.catalogCategory === "smartphones"
+      ? APPLE_PHONE_ACCESSORIES
+      : product.brand === "Samsung" && product.catalogCategory === "smartphones"
+        ? SAMSUNG_PHONE_ACCESSORIES
+        : product.catalogCategory === "macbooks"
+          ? MACBOOK_ACCESSORIES
+          : (DEFAULT_ACCESSORIES_BY_BRAND[product.brand] ??
+            DEFAULT_ACCESSORIES_BY_CATEGORY[product.catalogCategory] ??
+            DEFAULT_ACCESSORIES_BY_CATEGORY.smartphones);
 
-  if (product.brand === "Apple" && product.catalogCategory === "smartphones") {
-    return APPLE_PHONE_ACCESSORIES;
-  }
-
-  if (product.brand === "Samsung" && product.catalogCategory === "smartphones") {
-    return SAMSUNG_PHONE_ACCESSORIES;
-  }
-
-  if (product.catalogCategory === "macbooks") {
-    return MACBOOK_ACCESSORIES;
-  }
-
-  return (
-    DEFAULT_ACCESSORIES_BY_BRAND[product.brand] ??
-    DEFAULT_ACCESSORIES_BY_CATEGORY[product.catalogCategory] ??
-    DEFAULT_ACCESSORIES_BY_CATEGORY.smartphones
-  );
+  return Array.from(new Set([...core, ...extras]));
 }
 
 export function getCrossSellProduct(productId: string): CrossSellProduct | null {

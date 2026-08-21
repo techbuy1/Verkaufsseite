@@ -4,8 +4,10 @@ import { type ReactNode } from "react";
 interface ButtonProps {
   children: ReactNode;
   href?: string;
+  /** Passed straight to next/link — e.g. "_blank" for an external destination. */
+  target?: string;
   onClick?: () => void;
-  variant?: "primary" | "secondary" | "ghost" | "hero-primary" | "hero-secondary";
+  variant?: "primary" | "secondary" | "ghost" | "hero-primary" | "hero-secondary" | "hero-secondary-dark";
   size?: "sm" | "md";
   className?: string;
   type?: "button" | "submit";
@@ -24,6 +26,8 @@ const variants = {
     "bg-accent text-white hover:bg-accent-hover px-6 text-[14px] tracking-tight shadow-[0_8px_24px_rgba(22,198,106,0.25)]",
   "hero-secondary":
     "bg-transparent text-text-primary border border-border hover:border-accent hover:bg-accent-soft px-6 text-[14px] tracking-tight",
+  "hero-secondary-dark":
+    "bg-white/[0.06] text-white border border-white/25 backdrop-blur-sm hover:border-white/50 hover:bg-white/[0.1] px-6 text-[14px] tracking-tight",
 };
 
 const sizes = {
@@ -34,6 +38,7 @@ const sizes = {
 export function Button({
   children,
   href,
+  target,
   onClick,
   variant = "primary",
   size = "md",
@@ -44,7 +49,12 @@ export function Button({
 
   if (href) {
     return (
-      <Link href={href} className={classes}>
+      <Link
+        href={href}
+        target={target}
+        rel={target === "_blank" ? "noopener noreferrer" : undefined}
+        className={classes}
+      >
         {children}
       </Link>
     );

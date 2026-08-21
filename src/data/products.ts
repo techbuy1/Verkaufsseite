@@ -108,12 +108,17 @@ export function getProductsByCategory(category: string): Product[] {
 export { navLinks } from "./navigation";
 
 export function formatPrice(price: number): string {
-  return new Intl.NumberFormat("de-DE", {
+  const formatted = new Intl.NumberFormat("de-DE", {
     style: "currency",
     currency: "EUR",
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(price);
+  // Node's and the browser's ICU data can disagree on which whitespace
+  // character sits between the number and "€" (regular vs. non-breaking vs.
+  // narrow no-break space) — normalizing to a plain space keeps SSR and
+  // client output byte-identical and avoids a hydration mismatch.
+  return formatted.replace(/[  ]/g, " ");
 }
 
 export function formatMonthlyPrice(price: number): string {

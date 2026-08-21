@@ -474,7 +474,43 @@ export function AdminProductEditor({ productId }: AdminProductEditorProps) {
                     />
                     Produkt manuell archivieren
                   </label>
+                  <label className="flex items-center gap-2 text-[13px] text-[#1d1d1f]">
+                    <input
+                      type="checkbox"
+                      checked={draft.saleMode === "presale"}
+                      onChange={(e) =>
+                        patch({
+                          saleMode: e.target.checked ? "presale" : "standard",
+                        })
+                      }
+                      className="h-4 w-4 rounded border-[#d2d2d7] accent-accent"
+                    />
+                    Vorverkauf aktivieren (auch ohne Bestand im Shop sichtbar)
+                  </label>
+                  {draft.saleMode === "presale" && (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="text-[12px] text-[#1d1d1f]">
+                        <span className="mb-1 block font-medium">Lieferhinweis</span>
+                        <input
+                          className={inputClass}
+                          value={draft.presaleShipLabel ?? ""}
+                          onChange={(e) => patch({ presaleShipLabel: e.target.value })}
+                          placeholder="z. B. Versand ab Ende März"
+                        />
+                      </label>
+                      <label className="text-[12px] text-[#1d1d1f]">
+                        <span className="mb-1 block font-medium">Erwartetes Datum</span>
+                        <input
+                          type="date"
+                          className={inputClass}
+                          value={draft.presaleShipDate ?? ""}
+                          onChange={(e) => patch({ presaleShipDate: e.target.value })}
+                        />
+                      </label>
+                    </div>
+                  )}
                   <p className="text-[12px] text-[#86868b]">
+                    Ohne Bestand und ohne Vorverkauf erscheint das Produkt nicht im Shop.
                     Bestand pro Zustand unten bei Speicher & Zustände pflegen.
                   </p>
                 </div>

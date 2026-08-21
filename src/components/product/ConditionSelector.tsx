@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import type { ConditionId } from "@/types/product";
-import { CONDITION_DEFINITIONS, CONDITION_IDS, getConditionDescription } from "@/lib/conditions";
+import {
+  CONDITION_DEFINITIONS,
+  CONDITION_IDS,
+  getConditionDescription,
+} from "@/lib/conditions";
 import { formatPrice } from "@/data/products";
 
 export interface ConditionSelectorOption {
@@ -13,6 +17,9 @@ export interface ConditionSelectorOption {
   active: boolean;
   available: boolean;
   note?: string;
+  /** Ersparnis gegenüber Neu */
+  savings?: number;
+  basePrice?: number;
 }
 
 interface ConditionSelectorProps {
@@ -36,19 +43,19 @@ export function ConditionSelector({
     <div>
       <div className="mb-3 flex items-center justify-between gap-3">
         <p className="text-[15px] font-semibold tracking-tight text-text-primary">
-          Zustand – Neu oder neuwertig?
+          Zustand – Welcher Zustand passt zu dir?
         </p>
         <button
           type="button"
           onClick={() => setInfoOpen((open) => !open)}
-          className="text-[12px] font-medium text-accent hover:underline"
+          className="shrink-0 text-[12px] font-medium text-accent hover:underline"
         >
           {infoOpen ? "Infos schließen" : "Was bedeuten die Zustände?"}
         </button>
       </div>
 
       {infoOpen && (
-        <div className="mb-3 space-y-2 rounded-[16px] border border-border bg-background-secondary p-3.5">
+        <div className="mb-3 space-y-2.5 rounded-[16px] border border-border bg-background-secondary p-3.5">
           {CONDITION_IDS.map((id) => (
             <div key={id}>
               <p className="text-[13px] font-semibold text-text-primary">
@@ -62,10 +69,11 @@ export function ConditionSelector({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
         {visible.map((option) => {
           const isSelected = option.condition === selectedCondition;
           const isAvailable = option.available;
+          const savings = option.savings ?? 0;
 
           return (
             <button
@@ -75,7 +83,7 @@ export function ConditionSelector({
               aria-disabled={!isAvailable}
               disabled={!isAvailable}
               onClick={() => isAvailable && onChange(option.condition)}
-              className={`rounded-[16px] border px-3 py-3.5 text-left transition-all duration-200 ${
+              className={`flex min-h-[92px] flex-col rounded-[16px] border px-3 py-3 text-left transition-all duration-200 ${
                 !isAvailable
                   ? "cursor-not-allowed border-border bg-surface-hover text-text-muted opacity-70"
                   : isSelected
@@ -83,13 +91,24 @@ export function ConditionSelector({
                     : "border-border bg-surface-card text-text-primary shadow-[var(--shadow-card)] hover:border-text-muted/50"
               }`}
             >
-              <span className="block text-[14px] font-medium">{option.label}</span>
+              <span className="block text-[14px] font-semibold leading-snug tracking-tight">
+                {option.label}
+              </span>
               {isAvailable ? (
-                <span className="mt-0.5 block text-[12px] font-normal opacity-80">
-                  {formatPrice(option.price)}
-                </span>
+                <>
+                  <span className="mt-1 block text-[15px] font-semibold tracking-tight">
+                    {formatPrice(option.price)}
+                  </span>
+                  {savings > 0 ? (
+                    <span className="mt-1 text-[12px] font-medium text-accent">
+                      −{formatPrice(savings)} günstiger
+                    </span>
+                  ) : (
+                    <span className="mt-1 text-[11px] text-text-muted">Basispreis</span>
+                  )}
+                </>
               ) : (
-                <span className="mt-0.5 block text-[11px] font-normal">Nicht verfügbar</span>
+                <span className="mt-1 block text-[11px] font-normal">Nicht verfügbar</span>
               )}
             </button>
           );

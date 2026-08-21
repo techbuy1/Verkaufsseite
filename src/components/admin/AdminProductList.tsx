@@ -24,12 +24,14 @@ const CATEGORY_OPTIONS = [
 const AVAILABILITY_FILTERS = [
   { id: "all", label: "Alle" },
   { id: "available", label: "Verfügbar" },
+  { id: "presale", label: "Vorverkauf" },
   { id: "low_stock", label: "Niedriger Bestand" },
   { id: "out_of_stock", label: "Ausverkauft" },
+  { id: "archived", label: "Archiviert" },
 ] as const;
 
 export function AdminProductList() {
-  const { products } = useProductStore();
+  const { products, updateProduct } = useProductStore();
   const [brandFilter, setBrandFilter] = useState<string>("Alle");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [availabilityFilter, setAvailabilityFilter] = useState<string>("all");
@@ -42,14 +44,10 @@ export function AdminProductList() {
 
       const status = getProductAvailabilityStatus(product);
       if (availabilityFilter === "available" && status !== "available") return false;
+      if (availabilityFilter === "presale" && status !== "presale") return false;
+      if (availabilityFilter === "archived" && status !== "archived") return false;
       if (availabilityFilter === "low_stock" && !isLowStockProduct(product)) return false;
-      if (
-        availabilityFilter === "out_of_stock" &&
-        status !== "out_of_stock" &&
-        status !== "archived"
-      ) {
-        return false;
-      }
+      if (availabilityFilter === "out_of_stock" && status !== "out_of_stock") return false;
 
       if (!query.trim()) return true;
       const q = query.toLowerCase();
@@ -169,12 +167,26 @@ export function AdminProductList() {
                 <p className="mt-2 text-[15px] font-semibold text-[#1d1d1f]">
                   ab {formatPrice(priceFrom)}
                 </p>
-                <Link
-                  href={`/admin/products/${product.id}`}
-                  className="btn-techbuy-primary mt-4 px-4 py-2 text-[13px]"
-                >
-                  Bearbeiten
-                </Link>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Link
+                    href={`/admin/products/${product.id}`}
+                    className="btn-techbuy-primary px-4 py-2 text-[13px]"
+                  >
+                    Bearbeiten
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateProduct({
+                        ...product,
+                        manualArchive: !product.manualArchive,
+                      })
+                    }
+                    className="rounded-xl border border-border bg-white px-3 py-2 text-[12px] font-medium text-text-secondary hover:text-text-primary"
+                  >
+                    {product.manualArchive ? "Wiederherstellen" : "Archivieren"}
+                  </button>
+                </div>
               </div>
             </article>
           );

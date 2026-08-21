@@ -9,6 +9,7 @@ import {
   getCartTotal,
   type CartItem,
 } from "@/lib/cart";
+import { calculateAccessoryDiscounts } from "@/lib/accessoryPricing";
 import { CartCrossSellSection } from "@/components/cart/CartCrossSellSection";
 import { CartOrderSummary } from "@/components/cart/CartOrderSummary";
 import { CartTrustSection } from "@/components/cart/CartTrustSection";
@@ -103,7 +104,15 @@ function CartPageLineItem({
 
 export function CartPageContent() {
   const { cartItems, cartSubtotal, updateQuantity, removeFromCart } = useShop();
-  const total = getCartTotal(cartSubtotal);
+  const accessoryPricing = calculateAccessoryDiscounts(
+    cartItems.map((item) => ({
+      productId: item.productId,
+      quantity: item.quantity,
+      unitPrice: item.price,
+    })),
+  );
+  const discount = accessoryPricing.totalDiscount;
+  const total = getCartTotal(cartSubtotal, discount);
 
   return (
     <section className="min-h-screen bg-[#f5f5f7] pb-28 pt-28 md:pb-16 md:pt-32">
@@ -148,7 +157,11 @@ export function CartPageContent() {
                 <div className="lg:hidden">
                   <CartCrossSellSection />
                   <div className="mt-8">
-                    <CartOrderSummary subtotal={cartSubtotal} />
+                    <CartOrderSummary
+                      subtotal={cartSubtotal}
+                      discount={discount}
+                      discountLabels={accessoryPricing.labels}
+                    />
                   </div>
                 </div>
 
@@ -156,7 +169,12 @@ export function CartPageContent() {
               </div>
 
               <div className="hidden lg:block">
-                <CartOrderSummary subtotal={cartSubtotal} className="sticky top-28" />
+                <CartOrderSummary
+                  subtotal={cartSubtotal}
+                  discount={discount}
+                  discountLabels={accessoryPricing.labels}
+                  className="sticky top-28"
+                />
               </div>
             </div>
 

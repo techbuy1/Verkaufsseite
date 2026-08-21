@@ -1,5 +1,3 @@
-import { FREE_SHIPPING_THRESHOLD } from "@/lib/cart";
-
 export type ServiceCardSize = "large" | "small";
 
 export interface TechBuyServiceCard {
@@ -19,7 +17,7 @@ export interface TechBuyServiceCard {
 
 /**
  * Homepage service cards — copy and claims tied to real TechBuy surfaces only
- * (footer payment list, cart free-shipping threshold, Ankauf URL, support mail).
+ * (footer payment list, Ankauf URL, support mail).
  * No 0 %-Finanzierung: not implemented in checkout.
  */
 export const techBuyServiceCards: TechBuyServiceCard[] = [
@@ -91,8 +89,8 @@ export const techBuyServiceCards: TechBuyServiceCard[] = [
     span: 6,
     eyebrow: "Versand",
     title: "Schnell bei Ihnen.",
-    body: `Ihre Bestellung wird zuverlässig vorbereitet und sicher versendet. Ab ${FREE_SHIPPING_THRESHOLD} € Bestellwert entfällt die Versandpauschale; Lieferzeiten und Sendungsverfolgung werden im Bestellprozess transparent angezeigt.`,
-    link: { label: "Mehr zum Versand", href: "#versand" },
+    body: "Ihre Bestellung wird zuverlässig vorbereitet und sicher versendet — der Versand ist bei TechBuy immer kostenlos. Lieferzeiten und Sendungsverfolgung werden im Bestellprozess transparent angezeigt.",
+    link: { label: "Mehr zum Versand", href: "/versand" },
     visual: "shipping",
   },
 ];

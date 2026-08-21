@@ -8,8 +8,10 @@ import {
   formatPrice,
   getCartItemProductHref,
   getCartItemVariantLabel,
+  getCartTotal,
   type CartItem,
 } from "@/lib/cart";
+import { calculateAccessoryDiscounts } from "@/lib/accessoryPricing";
 import { CloseIcon } from "./Icons";
 
 function QuantityControl({
@@ -123,6 +125,16 @@ export function CartDrawer() {
     removeFromCart,
   } = useShop();
 
+  const accessoryPricing = calculateAccessoryDiscounts(
+    cartItems.map((item) => ({
+      productId: item.productId,
+      quantity: item.quantity,
+      unitPrice: item.price,
+    })),
+  );
+  const discount = accessoryPricing.totalDiscount;
+  const total = getCartTotal(cartSubtotal, discount);
+
   useEffect(() => {
     if (isCartOpen) {
       document.body.style.overflow = "hidden";
@@ -198,13 +210,19 @@ export function CartDrawer() {
                 <span>Zwischensumme</span>
                 <span className="font-medium">{formatPrice(cartSubtotal)}</span>
               </div>
+              {discount > 0 && (
+                <div className="flex items-center justify-between text-accent">
+                  <span>Rabatt</span>
+                  <span className="font-medium">−{formatPrice(discount)}</span>
+                </div>
+              )}
               <div className="flex items-center justify-between text-[#6e6e73]">
                 <span>Versand</span>
-                <span>Wird im Checkout berechnet</span>
+                <span className="text-accent">Kostenlos</span>
               </div>
               <div className="flex items-center justify-between border-t border-[#d2d2d7]/40 pt-3 text-[16px] font-semibold text-[#1d1d1f]">
                 <span>Gesamt</span>
-                <span>{formatPrice(cartSubtotal)}</span>
+                <span>{formatPrice(total)}</span>
               </div>
             </div>
 

@@ -11,7 +11,7 @@ import {
   useTransform,
   type MotionValue,
 } from "motion/react";
-import { useRef, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Button } from "@/components/Button";
 import { ChevronRightIcon } from "@/components/Icons";
 import { HeroDeviceModel } from "@/components/hero/HeroDeviceModel";
@@ -206,14 +206,20 @@ function PhoneSlot({
 
 export function PhoneShowcaseHero() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [scrollTargetReady, setScrollTargetReady] = useState(false);
   const prefersReducedMotion = Boolean(useReducedMotion());
   const pointerX = useMotionValue(0);
   const pointerY = useMotionValue(0);
 
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end start"],
-  });
+  useEffect(() => {
+    setScrollTargetReady(Boolean(containerRef.current));
+  }, []);
+
+  const { scrollYProgress } = useScroll(
+    scrollTargetReady
+      ? { target: containerRef, offset: ["start start", "end start"] }
+      : undefined,
+  );
   const scrollSpread = useTransform(scrollYProgress, [0, 1], [0, 1]);
 
   function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
@@ -282,7 +288,7 @@ export function PhoneShowcaseHero() {
         </div>
 
         <div
-          className="order-2 h-[320px] touch-none select-none sm:h-[380px] md:h-[440px] lg:h-[500px]"
+          className="order-2 h-[320px] select-none touch-pan-y sm:h-[380px] md:h-[440px] lg:h-[500px]"
           style={{ perspective: 1400 }}
           onPointerMove={handlePointerMove}
           onPointerLeave={handlePointerLeave}
@@ -305,26 +311,23 @@ export function PhoneShowcaseHero() {
               className="absolute"
               style={{ left: "22%", top: "58%", zIndex: 30 }}
             >
-              <div style={{ transform: "translate(-50%, -50%)" }}>
-                <HeroDeviceModel
-                  slug={HERO_3D_DEVICES.galaxyA57.slug}
-                  ariaLabel={`${HERO_3D_DEVICES.galaxyA57.model} entdecken`}
-                  modelPath={HERO_3D_DEVICES.galaxyA57.modelPath}
-                  colorHex={HERO_3D_DEVICES.galaxyA57.colorHex}
-                  fallbackImage={HERO_3D_DEVICES.galaxyA57.fallbackImage}
-                  fallbackImageAlt={`${HERO_3D_DEVICES.galaxyA57.model} ${HERO_3D_DEVICES.galaxyA57.colorName}`}
-                  viewCycleSeconds={6}
-                  glowColor={HERO_3D_DEVICES.galaxyA57.colorHex}
-                  floatDuration={12}
-                  floatDelay={0.4}
-                  sizeClassName="w-[128px] sm:w-[160px] md:w-[200px] lg:w-[230px]"
-                  zIndex={30}
-                  reducedMotion={prefersReducedMotion}
-                  pointerX={pointerX}
-                  pointerY={pointerY}
-                  tiltStrength={6}
-                />
-              </div>
+              <HeroDeviceModel
+                slug={HERO_3D_DEVICES.galaxyA57.slug}
+                ariaLabel={`${HERO_3D_DEVICES.galaxyA57.model} entdecken`}
+                modelPath={HERO_3D_DEVICES.galaxyA57.modelPath}
+                colorHex={HERO_3D_DEVICES.galaxyA57.colorHex}
+                fallbackImage={HERO_3D_DEVICES.galaxyA57.fallbackImage}
+                fallbackImageAlt={`${HERO_3D_DEVICES.galaxyA57.model} ${HERO_3D_DEVICES.galaxyA57.colorName}`}
+                glowColor={HERO_3D_DEVICES.galaxyA57.colorHex}
+                floatDuration={12}
+                floatDelay={0.4}
+                sizeClassName="w-[128px] sm:w-[160px] md:w-[200px] lg:w-[230px]"
+                zIndex={30}
+                reducedMotion={prefersReducedMotion}
+                pointerX={pointerX}
+                pointerY={pointerY}
+                tiltStrength={6}
+              />
             </div>
 
             {/* iPhone 17 Pro — real 3D GLB, large and centred, the hero's focal device */}
@@ -332,26 +335,24 @@ export function PhoneShowcaseHero() {
               className="absolute"
               style={{ left: "52%", top: "48%", zIndex: 50 }}
             >
-              <div style={{ transform: "translate(-50%, -50%)" }}>
-                <HeroDeviceModel
-                  slug={HERO_3D_DEVICES.iphone17Pro.slug}
-                  ariaLabel={`${HERO_3D_DEVICES.iphone17Pro.model} entdecken`}
-                  modelPath={HERO_3D_DEVICES.iphone17Pro.modelPath}
-                  colorModelPath={HERO_3D_DEVICES.iphone17Pro.modelPath}
-                  colorHex={HERO_3D_DEVICES.iphone17Pro.colorHex}
-                  fallbackImage={HERO_3D_DEVICES.iphone17Pro.fallbackImage}
-                  fallbackImageAlt={`${HERO_3D_DEVICES.iphone17Pro.model} ${HERO_3D_DEVICES.iphone17Pro.colorName}`}
-                  glowColor={HERO_3D_DEVICES.iphone17Pro.colorHex}
-                  floatDuration={10}
-                  floatDelay={0}
-                  sizeClassName="w-[190px] sm:w-[230px] md:w-[290px] lg:w-[340px]"
-                  zIndex={50}
-                  reducedMotion={prefersReducedMotion}
-                  pointerX={pointerX}
-                  pointerY={pointerY}
-                  tiltStrength={8}
-                />
-              </div>
+              <HeroDeviceModel
+                slug={HERO_3D_DEVICES.iphone17Pro.slug}
+                ariaLabel={`${HERO_3D_DEVICES.iphone17Pro.model} entdecken`}
+                modelPath={HERO_3D_DEVICES.iphone17Pro.modelPath}
+                colorModelPath={HERO_3D_DEVICES.iphone17Pro.modelPath}
+                colorHex={HERO_3D_DEVICES.iphone17Pro.colorHex}
+                fallbackImage={HERO_3D_DEVICES.iphone17Pro.fallbackImage}
+                fallbackImageAlt={`${HERO_3D_DEVICES.iphone17Pro.model} ${HERO_3D_DEVICES.iphone17Pro.colorName}`}
+                glowColor={HERO_3D_DEVICES.iphone17Pro.colorHex}
+                floatDuration={10}
+                floatDelay={0}
+                sizeClassName="w-[190px] sm:w-[230px] md:w-[290px] lg:w-[340px]"
+                zIndex={50}
+                reducedMotion={prefersReducedMotion}
+                pointerX={pointerX}
+                pointerY={pointerY}
+                tiltStrength={8}
+              />
             </div>
           </div>
         </div>

@@ -3,33 +3,27 @@ import { Reveal } from "./motion/Reveal";
 
 const footerLinks = {
   rechtliches: [
-    { label: "Datenschutz", href: "#datenschutz" },
-    { label: "Impressum", href: "#impressum" },
-    { label: "AGB", href: "#agb" },
-    { label: "Widerruf", href: "#widerruf" },
+    { label: "Datenschutz", href: "/datenschutz" },
+    { label: "Impressum", href: "/impressum" },
+    { label: "AGB", href: "/agb" },
+    { label: "Widerruf", href: "/widerruf" },
   ],
   service: [
-    { label: "Kontakt", href: "#kontakt" },
-    { label: "FAQ", href: "#faq" },
-    { label: "Rückgabe", href: "#rueckgabe" },
-    { label: "Garantie", href: "#garantie" },
+    { label: "Kontakt", href: "/kontakt" },
+    { label: "FAQ", href: "/faq" },
+    { label: "Rückgabe", href: "/rueckgabe" },
+    { label: "Garantie", href: "/garantie" },
   ],
   kontakt: [
-    { label: "service@tbwebdesigne.de", href: "mailto:service@tbwebdesigne.de" },
-    { label: "Support-Anfrage", href: "#support" },
-    { label: "Bestellstatus", href: "#bestellstatus" },
-  ],
-  zahlung: [
-    { label: "PayPal", href: "#paypal" },
-    { label: "Kreditkarte", href: "#kreditkarte" },
-    { label: "Klarna", href: "#klarna" },
-    { label: "Apple Pay", href: "#apple-pay" },
+    { label: "Bill@techbuy-ankauf.de", href: "mailto:Bill@techbuy-ankauf.de" },
+    { label: "01630448214", href: "tel:+4901630448214" },
+    { label: "Support-Anfrage", href: "/support" },
+    { label: "Bestellstatus", href: "/bestellstatus" },
   ],
   versand: [
-    { label: "DHL Express", href: "#dhl" },
-    { label: "Kostenloser Versand ab 50 €", href: "#versand" },
-    { label: "Lieferzeiten", href: "#lieferzeiten" },
-    { label: "Sendungsverfolgung", href: "#tracking" },
+    { label: "DHL Express", href: "/versand" },
+    { label: "Lieferzeiten", href: "/lieferzeiten" },
+    { label: "Sendungsverfolgung", href: "/tracking" },
   ],
 };
 
@@ -52,7 +46,7 @@ export function Footer() {
           </div>
         </Reveal>
 
-        <div className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-5 lg:gap-8">
+        <div className="grid grid-cols-2 gap-6 md:grid-cols-4 lg:gap-8">
           <Reveal variant="up-soft" delay={0}>
             <div>
               <h3 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#F5F5F3]/90">
@@ -74,7 +68,7 @@ export function Footer() {
           </Reveal>
 
           <Reveal variant="up-soft" delay={0.06}>
-            <div id="support">
+            <div>
               <h3 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#F5F5F3]/90">
                 Service
               </h3>
@@ -113,28 +107,8 @@ export function Footer() {
             </div>
           </Reveal>
 
-          <Reveal variant="up-soft" delay={0.18}>
-            <div id="zahlung">
-              <h3 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#F5F5F3]/90">
-                Zahlungsarten
-              </h3>
-              <ul className="space-y-2.5">
-                {footerLinks.zahlung.map((link) => (
-                  <li key={link.href + link.label}>
-                    <Link
-                      href={link.href}
-                      className="text-[13px] text-[#9A9A96] transition-colors hover:text-accent"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </Reveal>
-
-          <Reveal variant="up-soft" delay={0.24} className="col-span-2 md:col-span-1">
-            <div id="versand">
+          <Reveal variant="up-soft" delay={0.18} className="col-span-2 md:col-span-1">
+            <div>
               <h3 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#F5F5F3]/90">
                 Versand
               </h3>

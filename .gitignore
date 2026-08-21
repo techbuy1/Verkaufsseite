@@ -28,8 +28,12 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files
+# env files (keep example committed)
 .env*
+!.env.example
+
+# local stripe fulfillment log
+.data/
 
 # typescript
 *.tsbuildinfo

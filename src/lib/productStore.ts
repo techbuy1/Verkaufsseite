@@ -2,14 +2,41 @@ import { premiumProducts as SEED_PRODUCTS } from "@/data/premiumCatalog";
 import { reduceVariantStock, type CheckoutLineItem } from "@/lib/productAvailability";
 import { isConditionId } from "@/lib/conditions";
 import { syncProductVariants } from "@/lib/productVariants";
-import type { AdminProductSpecs, PremiumProduct, ProductSpecifications } from "@/types/product";
+import type {
+  AdminProductSpecs,
+  PremiumProduct,
+  ProductSpecifications,
+  StorageOption,
+} from "@/types/product";
 
-const STORAGE_KEY = "techbuy-admin-products-v6";
+const STORAGE_KEY = "techbuy-admin-products-v7";
 const LEGACY_STORAGE_KEYS = [
+  "techbuy-admin-products-v6",
   "techbuy-admin-products-v5",
   "techbuy-admin-products-v4",
   "techbuy-admin-products-v3",
 ];
+
+/** Setzt Produkt-, Speicher- und Zustandsbestand auf 0 (Admin pflegt manuell). */
+function zeroStorageStock(option: StorageOption): StorageOption {
+  return {
+    ...option,
+    stock: 0,
+    conditions: option.conditions?.map((entry) => ({ ...entry, stock: 0 })),
+  };
+}
+
+function zeroProductStock(product: PremiumProduct): PremiumProduct {
+  return {
+    ...product,
+    stock: 0,
+    storageOptions: (product.storageOptions ?? []).map(zeroStorageStock),
+    variants: (product.variants ?? []).map((variant) => ({
+      ...variant,
+      storageOptions: variant.storageOptions.map(zeroStorageStock),
+    })),
+  };
+}
 
 function deriveAdminSpecs(product: PremiumProduct): AdminProductSpecs {
   const specs = product.specifications;
@@ -83,8 +110,10 @@ function readStoredRaw(): PremiumProduct[] | null {
   for (const legacyKey of LEGACY_STORAGE_KEYS) {
     const legacy = parseProductsJson(localStorage.getItem(legacyKey));
     if (legacy) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(legacy));
-      return legacy;
+      // Einmalige Migration: Fake-/Demo-Bestand auf 0, damit du selbst pflegen kannst.
+      const zeroed = legacy.map((product) => normalizeProduct(zeroProductStock(product)));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(zeroed));
+      return zeroed;
     }
   }
 

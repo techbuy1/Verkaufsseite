@@ -1,12 +1,19 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { AdminInventoryProvider } from "@/context/AdminInventoryContext";
 import { AdminHeader } from "./AdminHeader";
 import { AdminSidebar } from "./AdminSidebar";
 
 export function AdminShell({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isLogin = pathname === "/admin/login";
+
+  if (isLogin) {
+    return <>{children}</>;
+  }
 
   return (
     <AdminInventoryProvider>

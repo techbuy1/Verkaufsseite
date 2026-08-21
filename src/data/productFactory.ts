@@ -78,19 +78,23 @@ export const GOOGLE_COLORS = [
 ];
 
 export const APPLE_PHONE_ACCESSORIES = [
+  "acc-screen-protector-clear",
+  "acc-screen-protector-matte",
+  "acc-screen-protector-privacy",
+  "acc-case-clear",
+  "acc-case-silicone-apple",
+  "acc-cable-usbc",
   "offer-airpods",
-  "catalog-airpods",
-  "catalog-chargers",
-  "catalog-cases",
-  "catalog-screen-protector",
   "catalog-apple-watch",
-  "catalog-cables",
 ];
 
 export const APPLE_IPAD_ACCESSORIES = [
-  "catalog-cases",
-  "catalog-chargers",
-  "catalog-cables",
+  "acc-screen-protector-clear",
+  "acc-screen-protector-matte",
+  "acc-screen-protector-privacy",
+  "acc-case-clear",
+  "acc-case-silicone-apple",
+  "acc-cable-usbc",
   "catalog-adapters",
 ];
 
@@ -122,25 +126,30 @@ export const IPAD_11_COLORS = [
 ];
 
 export const SAMSUNG_S_ACCESSORIES = [
+  "acc-screen-protector-clear",
+  "acc-screen-protector-matte",
+  "acc-screen-protector-privacy",
+  "acc-case-clear",
+  "acc-cable-usbc",
   "catalog-galaxy-buds",
   "catalog-galaxy-watch",
-  "catalog-chargers",
-  "catalog-cases",
-  "catalog-screen-protector",
 ];
 
 export const SAMSUNG_A_ACCESSORIES = [
-  "catalog-cases",
-  "catalog-screen-protector",
-  "catalog-chargers",
+  "acc-screen-protector-clear",
+  "acc-screen-protector-matte",
+  "acc-screen-protector-privacy",
+  "acc-case-clear",
+  "acc-cable-usbc",
 ];
 
 export const GOOGLE_ACCESSORIES = [
+  "acc-screen-protector-clear",
+  "acc-screen-protector-matte",
+  "acc-screen-protector-privacy",
+  "acc-case-clear",
+  "acc-cable-usbc",
   "catalog-pixel-watch",
-  "catalog-chargers",
-  "catalog-cases",
-  "catalog-screen-protector",
-  "catalog-cables",
 ];
 
 function defaultSpecs(def: ProductDefinition): AdminProductSpecs {
@@ -263,7 +272,7 @@ export function buildProductFromDefinition(def: ProductDefinition): PremiumProdu
     similarProducts: def.similarProducts ?? [],
     bundleOffers: [],
     badge: def.badge,
-    stock: 24,
+    stock: 0,
     operatingSystem: adminSpecs.operatingSystem,
     boxContents: ["Gerät", "USB-C Kabel", "Anleitung"],
   });
@@ -343,10 +352,10 @@ export function ipadDef(
 }
 
 export const LAPTOP_ACCESSORIES = [
+  "acc-cable-usbc",
   "catalog-chargers",
-  "catalog-cases",
-  "catalog-cables",
   "catalog-adapters",
+  "catalog-powerbanks",
 ];
 
 export const MACBOOK_COLORS = [

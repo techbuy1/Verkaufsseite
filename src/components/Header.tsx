@@ -151,8 +151,19 @@ export function Header() {
             <div className="flex h-[68px] items-center gap-4 lg:h-[72px] lg:gap-6">
               <TechBuyLogo />
 
+              {/*
+               * `justify-center` here was the actual bug behind "Store"
+               * looking cut off: when this row's content is wider than the
+               * available space — true even at wide desktop widths once the
+               * search bar and icon buttons are accounted for — centering it
+               * inside a scrollable container pushes part of the *first*
+               * item further left than scrollLeft 0 can ever reach:
+               * permanently hidden, not just visually tight. `justify-start`
+               * keeps every item reachable by normal (only positive)
+               * scrolling, with nothing clipped, at any width.
+               */}
               <nav
-                className="scrollbar-hide hidden min-w-0 flex-1 items-center justify-center gap-5 overflow-x-auto lg:flex xl:gap-6"
+                className="scrollbar-hide hidden min-w-0 flex-1 items-center justify-start gap-5 overflow-x-auto pl-1 lg:flex xl:gap-6"
                 aria-label="Hauptnavigation"
               >
                 {mainNavItems.map((item) =>
@@ -192,7 +203,16 @@ export function Header() {
                       }`}
                       onMouseEnter={closeMegaMenu}
                     >
-                      {item.label}
+                      {item.href === "/store" ? (
+                        <span className="inline-flex items-center gap-1">
+                          {item.label}
+                          <span className="motion-safe:animate-[header-flame-flicker_1.6s_ease-in-out_infinite]" aria-hidden="true">
+                            🔥
+                          </span>
+                        </span>
+                      ) : (
+                        item.label
+                      )}
                     </Link>
                   ),
                 )}

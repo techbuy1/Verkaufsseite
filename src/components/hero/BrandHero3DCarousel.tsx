@@ -136,7 +136,7 @@ export function BrandHero3DCarousel({
         </div>
 
         <div
-          className="order-2 relative h-[300px] touch-none select-none sm:h-[360px] md:h-[420px] lg:h-[460px]"
+          className="order-2 relative h-[300px] select-none touch-pan-y sm:h-[360px] md:h-[420px] lg:h-[460px]"
           style={{ perspective: 1400 }}
           onPointerMove={handlePointerMove}
           onPointerLeave={handlePointerLeave}
@@ -151,30 +151,26 @@ export function BrandHero3DCarousel({
            * already crossfades between models internally (its own loading
            * overlay), so a stable instance here is both correct and simpler.
            */}
-          {(
-            <div className="absolute" style={{ left: "50%", top: "50%" }}>
-              <div style={{ transform: "translate(-50%, -50%)" }}>
-                <HeroDeviceModel
-                  slug={active.slug}
-                  ariaLabel={`${active.model} ${active.colorName} entdecken`}
-                  modelPath={active.modelPath}
-                  colorModelPath={active.colorModelPath}
-                  colorHex={active.colorHex}
-                  fallbackImage={active.fallbackImage}
-                  fallbackImageAlt={`${active.model} ${active.colorName}`}
-                  glowColor={active.glowColor}
-                  floatDuration={10}
-                  floatDelay={0}
-                  sizeClassName="w-[200px] sm:w-[240px] md:w-[290px] lg:w-[320px]"
-                  zIndex={10}
-                  reducedMotion={prefersReducedMotion}
-                  pointerX={pointerX}
-                  pointerY={pointerY}
-                  tiltStrength={7}
-                />
-              </div>
-            </div>
-          )}
+          <div className="absolute" style={{ left: "50%", top: "50%" }}>
+            <HeroDeviceModel
+              slug={active.slug}
+              ariaLabel={`${active.model} ${active.colorName} entdecken`}
+              modelPath={active.modelPath}
+              colorModelPath={active.colorModelPath}
+              colorHex={active.colorHex}
+              fallbackImage={active.fallbackImage}
+              fallbackImageAlt={`${active.model} ${active.colorName}`}
+              glowColor={active.glowColor}
+              floatDuration={10}
+              floatDelay={0}
+              sizeClassName="w-[200px] sm:w-[240px] md:w-[290px] lg:w-[320px]"
+              zIndex={10}
+              reducedMotion={prefersReducedMotion}
+              pointerX={pointerX}
+              pointerY={pointerY}
+              tiltStrength={7}
+            />
+          </div>
 
           {slides.length > 1 && (
             <div className="absolute bottom-2 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">

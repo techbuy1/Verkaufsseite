@@ -165,7 +165,7 @@ export function TopDealSection() {
               fallbackImageAlt={`${product.name} – ${selectedColor.name}`}
               screenTextureUrl={selectedColor.wallpaper}
               className="h-full w-full"
-              viewCycleSeconds={modelOption.slug === "galaxy-a57" ? 6 : undefined}
+              autoRotateSpeed={3}
             />
           </motion.div>
         </div>

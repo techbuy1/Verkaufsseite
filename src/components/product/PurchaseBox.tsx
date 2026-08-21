@@ -20,6 +20,8 @@ interface PurchaseBoxProps {
   taxAccepted: boolean;
   canPurchase?: boolean;
   lowStockHint?: string;
+  isPresale?: boolean;
+  presaleShipLabel?: string;
   onColorChange: (colorId: string) => void;
   onStorageChange: (storage: string) => void;
   onConditionChange?: (condition: ConditionId) => void;
@@ -57,6 +59,8 @@ export function PurchaseBox({
   taxAccepted,
   canPurchase = true,
   lowStockHint,
+  isPresale = false,
+  presaleShipLabel,
   onColorChange,
   onStorageChange,
   onConditionChange,
@@ -65,8 +69,13 @@ export function PurchaseBox({
   hidePrice = false,
   compact = false,
 }: PurchaseBoxProps) {
-  const isUnavailable = !canPurchase || (stock !== undefined && stock <= 0);
-  const buttonLabel = isUnavailable ? "Nicht verfügbar" : "In den Warenkorb";
+  const outOfStock = stock !== undefined && stock <= 0;
+  const isUnavailable = !canPurchase || (outOfStock && !isPresale);
+  const buttonLabel = isUnavailable
+    ? "Nicht verfügbar"
+    : isPresale && outOfStock
+      ? "Jetzt vorbestellen"
+      : "In den Warenkorb";
   const activeConditions = conditionOptions.filter((option) => option.active);
 
   return (
@@ -80,12 +89,21 @@ export function PurchaseBox({
           {stock !== undefined && (
             <p
               className={`mt-2 text-[13px] font-medium ${
-                stock > 0 ? "text-accent" : "text-text-secondary"
+                stock > 0 || isPresale ? "text-accent" : "text-text-secondary"
               }`}
             >
               {stock > 0
                 ? lowStockHint ?? `${stock} auf Lager · Versandbereit`
-                : "Derzeit nicht verfügbar"}
+                : isPresale
+                  ? presaleShipLabel
+                    ? `Vorverkauf · ${presaleShipLabel}`
+                    : "Vorverkauf · Lieferung nach Verfügbarkeit"
+                  : "Derzeit nicht verfügbar"}
+            </p>
+          )}
+          {isPresale && (
+            <p className="mt-2 inline-flex rounded-full bg-accent-soft px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-accent">
+              Vorverkauf
             </p>
           )}
         </ConfigCard>

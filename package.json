@@ -16,18 +16,23 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@paypal/react-paypal-js": "^10.3.0",
     "@react-three/drei": "^10.7.8",
     "@react-three/fiber": "^9.7.0",
     "motion": "^13.1.0",
     "next": "^15.4.6",
+    "nodemailer": "^9.0.5",
+    "pdf-lib": "^1.17.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "stripe": "^18.5.0",
     "three": "^0.185.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
     "@tailwindcss/postcss": "^4.1.11",
     "@types/node": "^22.17.1",
+    "@types/nodemailer": "^8.0.1",
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.7",
     "@types/three": "^0.185.4",

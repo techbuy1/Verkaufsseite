@@ -1008,6 +1008,18 @@
   animation: trust-icon-breathe 3.6s ease-in-out infinite;
 }
 
+@keyframes header-flame-flicker {
+  0%,
+  100% {
+    transform: scale(1) rotate(-3deg);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.12) rotate(3deg);
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .trust-icon-breathe {
     animation: none !important;

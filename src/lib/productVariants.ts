@@ -7,6 +7,7 @@ import type {
 } from "@/types/product";
 import {
   buildVariantSku,
+  computeConditionPrice,
   ensureStorageConditions,
   getConditionOption,
   getDefaultAvailableCondition,
@@ -119,8 +120,8 @@ function legacyToVariants(product: PremiumProduct): ProductVariant[] {
               storageOptions: [],
             },
             ensureStorageConditions(
-              { storage: "Standard", price: 0, stock: product.stock ?? 24 },
-              product.stock ?? 24,
+              { storage: "Standard", price: 0, stock: product.stock ?? 0 },
+              product.stock ?? 0,
             ),
           ),
         ],
@@ -232,17 +233,25 @@ export function getProductPrice(
   condition?: ConditionId,
 ): number {
   const option = getStorageOption(product, storage, colorId);
+  const ensured = ensureStorageConditions(option);
+  const newBase =
+    ensured.conditions?.find((entry) => entry.condition === "new")?.price ||
+    ensured.price ||
+    0;
+
   if (condition) {
-    return getConditionOption(option, condition).price;
+    return computeConditionPrice(newBase, condition);
   }
-  const available = getPurchasableConditions(option);
+
+  const available = getPurchasableConditions(ensured);
   if (available.length > 0) {
-    return Math.min(...available.map((c) => c.price));
+    return Math.min(...available.map((c) => computeConditionPrice(newBase, c.condition)));
   }
-  return getDefaultAvailableCondition(option).price || option.price;
+
+  return computeConditionPrice(newBase, "new") || ensured.price;
 }
 
-/** Niedrigster Preis über alle Farb-/Speicher-/Zustand-Kombinationen (für „Ab …“). */
+/** Niedrigster Preis über alle Farb-/Speicher-Kombinationen (Basis „Neu“ für „Ab …“). */
 export function getProductMinPrice(product: PremiumProduct): number {
   const variants = getProductVariants(syncProductVariants(product));
   let min = Infinity;
@@ -250,23 +259,10 @@ export function getProductMinPrice(product: PremiumProduct): number {
   for (const variant of variants) {
     for (const option of variant.storageOptions) {
       const ensured = ensureStorageConditions(option);
-      for (const condition of ensured.conditions ?? []) {
-        if (
-          condition.active &&
-          Number.isFinite(condition.price) &&
-          condition.price > 0 &&
-          condition.price < min
-        ) {
-          min = condition.price;
-        }
-      }
-      if (
-        (!ensured.conditions || ensured.conditions.length === 0) &&
-        Number.isFinite(option.price) &&
-        option.price > 0 &&
-        option.price < min
-      ) {
-        min = option.price;
+      const neu = ensured.conditions?.find((entry) => entry.condition === "new");
+      const price = neu?.price && neu.price > 0 ? neu.price : ensured.price;
+      if (Number.isFinite(price) && price > 0 && price < min) {
+        min = price;
       }
     }
   }

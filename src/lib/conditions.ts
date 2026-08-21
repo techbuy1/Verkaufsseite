@@ -10,43 +10,63 @@ export const CONDITION_IDS = [
   "poor",
 ] as const satisfies readonly ConditionId[];
 
+/**
+ * Preisabschläge gegenüber dem Basispreis für „Neu“.
+ * Zentral anpassbar — gilt für alle Produkte/Varianten.
+ */
+export const CONDITION_DISCOUNTS: Record<ConditionId, number> = {
+  new: 0,
+  like_new: 0.05,
+  excellent: 0.1,
+  very_good: 0.15,
+  good: 0.22,
+  heavily_used: 0.32,
+  poor: 0.45,
+};
+
 export const CONDITION_DEFINITIONS: Record<
   ConditionId,
   { label: string; description: string; skuCode: string }
 > = {
   new: {
     label: "Neu",
-    description: "Unbenutzt bzw. Neuware.",
+    description: "Unbenutztes Gerät ohne Gebrauchsspuren.",
     skuCode: "NEW",
   },
   like_new: {
     label: "Wie neu",
-    description: "Nahezu keine sichtbaren Gebrauchsspuren.",
+    description:
+      "Nahezu keine sichtbaren Gebrauchsspuren. Optisch kaum von einem neuen Gerät zu unterscheiden.",
     skuCode: "LN",
   },
   excellent: {
     label: "Hervorragend",
-    description: "Minimale Gebrauchsspuren.",
+    description:
+      "Sehr leichte Gebrauchsspuren möglich, insgesamt ausgezeichnete Optik.",
     skuCode: "EX",
   },
   very_good: {
     label: "Sehr gut",
-    description: "Leichte Gebrauchsspuren möglich.",
+    description:
+      "Leichte sichtbare Gebrauchsspuren wie kleine Kratzer möglich.",
     skuCode: "VG",
   },
   good: {
     label: "Gut",
-    description: "Sichtbare Gebrauchsspuren, technisch einwandfrei.",
+    description:
+      "Normale Gebrauchsspuren und sichtbare Kratzer möglich, technisch vollständig funktionsfähig.",
     skuCode: "GD",
   },
   heavily_used: {
     label: "Stark gebraucht",
-    description: "Deutlich sichtbare Gebrauchsspuren.",
+    description:
+      "Deutlich sichtbare Gebrauchsspuren, Kratzer oder kleinere optische Abnutzungen. Technisch funktionsfähig.",
     skuCode: "HU",
   },
   poor: {
     label: "Schlecht",
-    description: "Starke optische Gebrauchsspuren; genaue Beschreibung beachten.",
+    description:
+      "Starke optische Gebrauchsspuren. Das Gerät erfüllt trotzdem den auf der Website angegebenen technischen Zustand.",
     skuCode: "PR",
   },
 };
@@ -61,6 +81,45 @@ export function getConditionDescription(condition: ConditionId): string {
 
 export function isConditionId(value: string | undefined | null): value is ConditionId {
   return Boolean(value && (CONDITION_IDS as readonly string[]).includes(value));
+}
+
+function roundPrice(price: number): number {
+  if (!Number.isFinite(price)) return 0;
+  return Math.round(price * 100) / 100;
+}
+
+/** Verkaufspreis aus Neu-Basispreis und zentralem Abschlag. */
+export function computeConditionPrice(
+  newBasePrice: number,
+  condition: ConditionId,
+): number {
+  const base = roundPrice(newBasePrice);
+  if (base <= 0) return 0;
+  const discount = CONDITION_DISCOUNTS[condition] ?? 0;
+  return roundPrice(base * (1 - discount));
+}
+
+/** Absolute Ersparnis gegenüber Neu (0 bei Neu). */
+export function getConditionSavings(
+  newBasePrice: number,
+  condition: ConditionId,
+): number {
+  const base = roundPrice(newBasePrice);
+  const sale = computeConditionPrice(base, condition);
+  return roundPrice(Math.max(0, base - sale));
+}
+
+export function getConditionDiscountRate(condition: ConditionId): number {
+  return CONDITION_DISCOUNTS[condition] ?? 0;
+}
+
+/** Basispreis „Neu“ einer Speicheroption. */
+export function getNewBasePriceFromOption(option: StorageOption): number {
+  const ensured = ensureStorageConditions(option);
+  const neu = ensured.conditions?.find((entry) => entry.condition === "new");
+  if (neu && neu.price > 0) return roundPrice(neu.price);
+  if (ensured.price > 0) return roundPrice(ensured.price);
+  return 0;
 }
 
 function abbreviateToken(value: string, max = 4): string {
@@ -118,11 +177,6 @@ export function buildVariantSku(params: {
   return `${brand}-${model}-${color}-${storage}-${condition}`;
 }
 
-function roundPrice(price: number): number {
-  if (!Number.isFinite(price)) return 0;
-  return Math.round(price * 100) / 100;
-}
-
 function normalizeConditionEntry(
   partial: Partial<ConditionOption> | undefined,
   condition: ConditionId,
@@ -151,7 +205,7 @@ function normalizeConditionEntry(
   };
 }
 
-/** Migriert Legacy-Speicheroptionen und stellt alle 7 Zustände sicher. */
+/** Migriert Legacy-Speicheroptionen und stellt alle 7 Zustände mit Abschlagspreisen sicher. */
 export function ensureStorageConditions(
   option: StorageOption,
   fallbackStock = 0,
@@ -172,10 +226,21 @@ export function ensureStorageConditions(
   }
 
   const hasAnyConditions = existing.size > 0;
-  const conditions = CONDITION_IDS.map((condition) => {
+  const rawConditions = CONDITION_IDS.map((condition) => {
     const current = existing.get(condition);
     if (current) {
-      return normalizeConditionEntry(current, condition, legacyPrice || current.price, 0, current.active);
+      // Früher wurden ungenutzte Zustände mit active:false angelegt — für die
+      // Zustandsauswahl aktivieren wir sie, behalten aber den Bestand.
+      const shouldActivate =
+        current.active ||
+        (current.stock === 0 && current.active === false);
+      return normalizeConditionEntry(
+        { ...current, active: shouldActivate },
+        condition,
+        legacyPrice || current.price,
+        0,
+        true,
+      );
     }
 
     if (!hasAnyConditions && condition === "new") {
@@ -189,21 +254,40 @@ export function ensureStorageConditions(
     }
 
     return normalizeConditionEntry(
-      { price: legacyPrice, stock: 0, active: false },
+      { price: legacyPrice, stock: 0, active: true },
       condition,
       legacyPrice,
       0,
-      false,
+      true,
     );
   });
 
-  const activePriced = conditions.filter((c) => c.active && c.price > 0);
+  const newBase =
+    rawConditions.find((entry) => entry.condition === "new")?.price ||
+    legacyPrice ||
+    0;
+
+  const conditions = rawConditions.map((entry) => ({
+    ...entry,
+    active: entry.active !== false,
+    label: CONDITION_DEFINITIONS[entry.condition].label,
+    price: computeConditionPrice(newBase > 0 ? newBase : entry.price, entry.condition),
+  }));
+
+  // Neu behält den Basispreis exakt
+  const withNewBase = conditions.map((entry) =>
+    entry.condition === "new" && newBase > 0 ? { ...entry, price: roundPrice(newBase) } : entry,
+  );
+
+  const activePriced = withNewBase.filter((c) => c.active && c.price > 0);
   const derivedPrice =
     activePriced.length > 0
       ? Math.min(...activePriced.map((c) => c.price))
-      : legacyPrice || Math.min(...conditions.map((c) => c.price).filter((p) => p > 0), Infinity) || 0;
+      : legacyPrice ||
+        Math.min(...withNewBase.map((c) => c.price).filter((p) => p > 0), Infinity) ||
+        0;
 
-  const derivedStock = conditions
+  const derivedStock = withNewBase
     .filter((c) => c.active)
     .reduce((sum, c) => sum + c.stock, 0);
 
@@ -212,8 +296,27 @@ export function ensureStorageConditions(
     storage: option.storage,
     price: Number.isFinite(derivedPrice) && derivedPrice !== Infinity ? derivedPrice : 0,
     stock: derivedStock,
-    conditions,
+    conditions: withNewBase,
   };
+}
+
+/**
+ * Verfügbarer Bestand für einen Zustand.
+ * Hat der Zustand keinen eigenen Bestand, darf er den Neu-Bestand nutzen (Shared Pool),
+ * damit alle Zustände wählbar sind, sobald Neuware verfügbar ist.
+ */
+export function getEffectiveConditionStock(
+  option: StorageOption,
+  condition: ConditionId,
+): number {
+  const ensured = ensureStorageConditions(option);
+  const entry = ensured.conditions?.find((c) => c.condition === condition);
+  if (!entry || !entry.active) return 0;
+  if (entry.stock > 0) return entry.stock;
+  if (condition === "new") return 0;
+  const neu = ensured.conditions?.find((c) => c.condition === "new");
+  if (neu?.active && neu.stock > 0) return neu.stock;
+  return 0;
 }
 
 export function getActiveConditions(option: StorageOption): ConditionOption[] {
@@ -222,7 +325,13 @@ export function getActiveConditions(option: StorageOption): ConditionOption[] {
 }
 
 export function getPurchasableConditions(option: StorageOption): ConditionOption[] {
-  return getActiveConditions(option).filter((c) => c.stock > 0 && c.price > 0);
+  const ensured = ensureStorageConditions(option);
+  return (ensured.conditions ?? []).filter(
+    (c) =>
+      c.active &&
+      c.price > 0 &&
+      getEffectiveConditionStock(ensured, c.condition) > 0,
+  );
 }
 
 export function getConditionOption(

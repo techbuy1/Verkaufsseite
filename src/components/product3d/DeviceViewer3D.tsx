@@ -35,8 +35,15 @@ interface DeviceViewer3DProps {
    * seconds instead of continuously auto-rotating.
    */
   viewCycleSeconds?: number;
+  /** Degrees/sec-equivalent auto-rotate speed (60/speed = seconds per full turn). Defaults to the standard, slower presentation speed. */
+  autoRotateSpeed?: number;
   /** Hide the built-in "In 3D ansehen" button. */
   hideControls?: boolean;
+  /**
+   * Decorative / hero use: no R3F pointer capture so page scroll works
+   * while the cursor/finger is over the model.
+   */
+  presentationOnly?: boolean;
   /**
    * Bump this number to open the fullscreen view from a parent CTA that lives
    * outside this component (e.g. a text-panel button). Plain-prop signal
@@ -73,6 +80,8 @@ function CanvasScene({
   controlsRef,
   onModelReady,
   viewCycleSeconds,
+  autoRotateSpeed,
+  presentationOnly = false,
 }: {
   modelPath: string;
   colorHex?: string;
@@ -83,32 +92,77 @@ function CanvasScene({
   controlsRef: React.RefObject<Scene3DHandle | null>;
   onModelReady: () => void;
   viewCycleSeconds?: number;
+  autoRotateSpeed?: number;
+  presentationOnly?: boolean;
 }) {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const [hostReady, setHostReady] = useState(false);
+
+  useEffect(() => {
+    // Wait one frame so the host is in the document before R3F connects events.
+    // Without this, connect(null) throws: Cannot read properties of null (reading 'addEventListener').
+    const id = window.requestAnimationFrame(() => setHostReady(true));
+    return () => {
+      window.cancelAnimationFrame(id);
+      setHostReady(false);
+    };
+  }, []);
+
   return (
-    <Canvas
-      dpr={[1, 2]}
-      camera={{ position: [0, 0, 2.4], fov: 28, near: 0.1, far: 50 }}
-      gl={{ antialias: true, powerPreference: "high-performance" }}
-      shadows={false}
-      // Presentation-only: let page scroll / clicks pass through the canvas.
-      style={{ pointerEvents: "none", touchAction: "none" }}
-      onCreated={({ gl }) => {
-        gl.domElement.style.pointerEvents = "none";
-        gl.domElement.style.touchAction = "none";
-      }}
+    <div
+      ref={hostRef}
+      className="relative h-full w-full touch-pan-y"
+      style={{ touchAction: "pan-y", pointerEvents: presentationOnly ? "none" : undefined }}
     >
-      <Scene3D
-        ref={controlsRef}
-        modelPath={modelPath}
-        colorHex={colorHex}
-        buttonColorHex={buttonColorHex}
-        screenTextureUrl={screenTextureUrl}
-        accentColor={accentColor}
-        reducedMotion={reducedMotion}
-        onModelReady={onModelReady}
-        viewCycleSeconds={viewCycleSeconds}
-      />
-    </Canvas>
+      {hostReady ? (
+        <Canvas
+          dpr={[1, 2]}
+          camera={{ position: [0, 0, 2.4], fov: 28, near: 0.1, far: 50 }}
+          gl={{ antialias: true, powerPreference: "high-performance" }}
+          shadows={false}
+          // Bind events to the mounted host — never null — so R3F's connect()
+          // cannot call addEventListener on null (presentation canvas only).
+          // Skip for decorative heroes so wheel/touch scroll isn't captured.
+          eventSource={presentationOnly ? undefined : hostRef.current ?? undefined}
+          // No debounce: the canvas otherwise sometimes locks onto its very
+          // first (pre-layout) measurement — e.g. R3F's 300×150 fallback — and
+          // never gets a later resize callback to correct it, since nothing
+          // about this container's own size changes again after mount.
+          resize={{ debounce: 0 }}
+          // Presentation-only: let page scroll / clicks pass through the canvas.
+          style={{ pointerEvents: "none", touchAction: "pan-y" }}
+          onCreated={({ gl, events }) => {
+            gl.domElement.style.pointerEvents = "none";
+            gl.domElement.style.touchAction = "pan-y";
+            if (presentationOnly) {
+              events.disconnect?.();
+              return;
+            }
+            const source = hostRef.current ?? document.documentElement;
+            if (!events.connected && source) {
+              try {
+                events.connect?.(source);
+              } catch {
+                events.disconnect?.();
+              }
+            }
+          }}
+        >
+          <Scene3D
+            ref={controlsRef}
+            modelPath={modelPath}
+            colorHex={colorHex}
+            buttonColorHex={buttonColorHex}
+            screenTextureUrl={screenTextureUrl}
+            accentColor={accentColor}
+            reducedMotion={reducedMotion}
+            onModelReady={onModelReady}
+            viewCycleSeconds={viewCycleSeconds}
+            autoRotateSpeed={autoRotateSpeed}
+          />
+        </Canvas>
+      ) : null}
+    </div>
   );
 }
 
@@ -124,7 +178,9 @@ export const DeviceViewer3D = forwardRef<DeviceViewer3DHandle, DeviceViewer3DPro
       colorModelPath,
       screenTextureUrl,
       viewCycleSeconds,
+      autoRotateSpeed,
       hideControls = false,
+      presentationOnly = false,
       openSignal,
     },
     handleRef,
@@ -251,6 +307,8 @@ export const DeviceViewer3D = forwardRef<DeviceViewer3DHandle, DeviceViewer3DPro
                 controlsRef={controlsRef}
                 onModelReady={() => setModelLoaded(true)}
                 viewCycleSeconds={viewCycleSeconds}
+                autoRotateSpeed={autoRotateSpeed}
+                presentationOnly={presentationOnly}
               />
               {!modelLoaded && <LoadingOverlay3D />}
 
@@ -320,6 +378,7 @@ export const DeviceViewer3D = forwardRef<DeviceViewer3DHandle, DeviceViewer3DPro
                           controlsRef={fullscreenControlsRef}
                           onModelReady={() => {}}
                           viewCycleSeconds={viewCycleSeconds}
+                          autoRotateSpeed={autoRotateSpeed}
                         />
                       </ModelErrorBoundary>
                     ) : (

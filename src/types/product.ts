@@ -136,6 +136,16 @@ export interface PremiumProduct {
   stock?: number;
   /** Manuell aus dem Shop ausblenden — unabhängig vom Bestand */
   manualArchive?: boolean;
+  /**
+   * Verkaufsmodus:
+   * - standard: nur mit Bestand sichtbar/kaufbar
+   * - presale: Vorverkauf (Temu-ähnlich) — auch ohne Bestand sichtbar
+   */
+  saleMode?: "standard" | "presale";
+  /** Optionales Lieferfenster für Vorverkauf, z. B. „KW 12 · März 2026“ */
+  presaleShipLabel?: string;
+  /** ISO-Datum der erwarteten Auslieferung (Vorverkauf) */
+  presaleShipDate?: string;
   /** Suchbegriffe für Produktsuche */
   keywords?: string[];
   recommendedAccessories?: string[];

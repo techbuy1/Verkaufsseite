@@ -34,6 +34,8 @@ interface Scene3DProps {
    * model itself turns). Disables the regular auto-rotate for this instance.
    */
   viewCycleSeconds?: number;
+  /** Degrees/sec-equivalent speed for the presentation auto-rotate (60/speed = seconds per full turn). */
+  autoRotateSpeed?: number;
 }
 
 /** Eases the model group's yaw toward 0° (front) / 180° (back), flipping every `intervalSeconds`. */
@@ -116,12 +118,35 @@ function CameraFramer({
   controlsRef: React.RefObject<OrbitControlsImpl | null>;
 }) {
   const { camera, invalidate } = useThree();
+  const hasFramedRef = useRef(false);
 
   useEffect(() => {
     if (!framing) return;
     if (!(camera instanceof THREE.PerspectiveCamera)) return;
 
-    camera.position.copy(framing.position);
+    if (!hasFramedRef.current) {
+      // First model this scene ever shows — no orbit in progress yet, so
+      // starting front-on (framing.position) is correct.
+      camera.position.copy(framing.position);
+      hasFramedRef.current = true;
+    } else {
+      // A later model swap (hero carousel advancing slides, colour swap,
+      // etc.) — autoRotate has been spinning the camera around the old
+      // target this whole time. Re-pointing it straight at framing.position
+      // would snap the view back to front-on, killing the loop the user is
+      // watching. Keep the camera's current orbit *direction* and only
+      // rescale its distance for the new model's framing, so the rotation
+      // continues seamlessly instead of resetting.
+      const previousTarget = camera.userData.lastFramingTarget as THREE.Vector3 | undefined;
+      const direction = camera.position
+        .clone()
+        .sub(previousTarget ?? framing.target)
+        .normalize();
+      const distance = framing.position.distanceTo(framing.target);
+      camera.position.copy(framing.target.clone().addScaledVector(direction, distance));
+    }
+    camera.userData.lastFramingTarget = framing.target.clone();
+
     camera.near = Math.max(0.05, framing.minDistance * 0.05);
     camera.far = Math.max(50, framing.maxDistance * 4);
     camera.lookAt(framing.target);
@@ -150,6 +175,7 @@ export const Scene3D = forwardRef<Scene3DHandle, Scene3DProps>(function Scene3D(
     reducedMotion,
     onModelReady,
     viewCycleSeconds,
+    autoRotateSpeed = 2.8,
   },
   handleRef,
 ) {
@@ -288,7 +314,7 @@ export const Scene3D = forwardRef<Scene3DHandle, Scene3DProps>(function Scene3D(
         minDistance={minDistance}
         maxDistance={maxDistance}
         autoRotate={!reducedMotion && !viewCycleSeconds}
-        autoRotateSpeed={2.8}
+        autoRotateSpeed={autoRotateSpeed}
       />
     </>
   );

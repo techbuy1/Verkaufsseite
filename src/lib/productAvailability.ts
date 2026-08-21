@@ -8,6 +8,7 @@ import {
   ensureStorageConditions,
   getConditionOption,
   getDefaultAvailableCondition,
+  getEffectiveConditionStock,
   getPurchasableConditions,
   getStorageMinAvailablePrice,
   getStorageOptionTotalStock,
@@ -22,10 +23,19 @@ import {
   syncProductVariants,
 } from "@/lib/productVariants";
 
-export type ProductAvailabilityStatus = "available" | "out_of_stock" | "archived";
+export type ProductAvailabilityStatus =
+  | "available"
+  | "out_of_stock"
+  | "archived"
+  | "presale";
 
 export const LOW_STOCK_THRESHOLD = 3;
-export const DEFAULT_VARIANT_STOCK = 24;
+/** Kein Fake-Bestand — ohne expliziten Stock gilt 0 (Shop blendet aus). */
+export const DEFAULT_VARIANT_STOCK = 0;
+
+export function isPresaleProduct(product: PremiumProduct): boolean {
+  return product.saleMode === "presale" && !product.manualArchive;
+}
 
 export function getStorageOptionStock(
   option: StorageOption,
@@ -60,9 +70,7 @@ export function getConditionStock(
 ): number {
   const synced = syncProductVariants(product);
   const option = getStorageOption(synced, storage, colorId);
-  const entry = getConditionOption(option, condition);
-  if (!entry.active) return 0;
-  return entry.stock;
+  return getEffectiveConditionStock(option, condition);
 }
 
 export function getVariantStock(
@@ -88,6 +96,14 @@ export function getColorStockTotal(product: PremiumProduct, colorId: string): nu
 }
 
 export function isColorAvailable(product: PremiumProduct, colorId: string): boolean {
+  if (isPresaleProduct(product)) {
+    const variant = getVariantByColorId(syncProductVariants(product), colorId);
+    return variant.storageOptions.some((option) =>
+      ensureStorageConditions(option).conditions?.some(
+        (entry) => entry.active && entry.price > 0,
+      ),
+    );
+  }
   return getColorStockTotal(product, colorId) > 0;
 }
 
@@ -96,6 +112,12 @@ export function isStorageOptionAvailable(
   colorId: string,
   storage: string,
 ): boolean {
+  if (isPresaleProduct(product)) {
+    const option = getStorageOption(syncProductVariants(product), storage, colorId);
+    return (ensureStorageConditions(option).conditions ?? []).some(
+      (entry) => entry.active && entry.price > 0,
+    );
+  }
   return getVariantStock(product, colorId, storage) > 0;
 }
 
@@ -126,11 +148,14 @@ export function getProductAvailabilityStatus(
   product: PremiumProduct,
 ): ProductAvailabilityStatus {
   if (product.manualArchive) return "archived";
+  if (isPresaleProduct(product)) return "presale";
   return getTotalStock(product) > 0 ? "available" : "out_of_stock";
 }
 
 export function isProductVisibleInShop(product: PremiumProduct): boolean {
-  return !product.manualArchive && getTotalStock(product) > 0;
+  if (product.manualArchive) return false;
+  if (isPresaleProduct(product)) return true;
+  return getTotalStock(product) > 0;
 }
 
 export function isProductAvailable(product: PremiumProduct): boolean {
@@ -149,12 +174,21 @@ export function getAvailablePremiumProducts(products: PremiumProduct[]): Premium
 export function getProductMinAvailablePrice(product: PremiumProduct): number {
   const variants = getProductVariants(syncProductVariants(product));
   let min = Infinity;
+  const allowZero = isPresaleProduct(product);
 
   for (const variant of variants) {
     for (const option of variant.storageOptions) {
-      const price = getStorageMinAvailablePrice(option);
-      if (price !== null && price > 0 && price < min) {
-        min = price;
+      if (allowZero) {
+        for (const condition of ensureStorageConditions(option).conditions ?? []) {
+          if (condition.active && condition.price > 0 && condition.price < min) {
+            min = condition.price;
+          }
+        }
+      } else {
+        const price = getStorageMinAvailablePrice(option);
+        if (price !== null && price > 0 && price < min) {
+          min = price;
+        }
       }
     }
   }
@@ -235,24 +269,49 @@ export function getConditionAvailabilityMap(
   product: PremiumProduct,
   colorId: string,
   storage: string,
-): Record<ConditionId, { available: boolean; stock: number; active: boolean; price: number; label: string; note?: string }> {
+): Record<ConditionId, { available: boolean; stock: number; active: boolean; price: number; label: string; note?: string; savings: number; basePrice: number }> {
   const option = getStorageOption(syncProductVariants(product), storage, colorId);
   const ensured = ensureStorageConditions(option);
+  const allowZero = isPresaleProduct(product);
+  const basePrice =
+    ensured.conditions?.find((entry) => entry.condition === "new")?.price ||
+    ensured.price ||
+    0;
+
   return Object.fromEntries(
-    (ensured.conditions ?? []).map((entry) => [
-      entry.condition,
-      {
-        available: entry.active && entry.stock > 0 && entry.price > 0,
-        stock: entry.stock,
-        active: entry.active,
-        price: entry.price,
-        label: entry.label,
-        note: entry.note,
-      },
-    ]),
+    (ensured.conditions ?? []).map((entry) => {
+      const stock = getEffectiveConditionStock(ensured, entry.condition);
+      const price = entry.price;
+      const savings = Math.max(0, Math.round((basePrice - price) * 100) / 100);
+      return [
+        entry.condition,
+        {
+          available:
+            entry.active &&
+            price > 0 &&
+            (stock > 0 || allowZero),
+          stock,
+          active: entry.active,
+          price,
+          label: entry.label,
+          note: entry.note,
+          savings,
+          basePrice,
+        },
+      ];
+    }),
   ) as Record<
     ConditionId,
-    { available: boolean; stock: number; active: boolean; price: number; label: string; note?: string }
+    {
+      available: boolean;
+      stock: number;
+      active: boolean;
+      price: number;
+      label: string;
+      note?: string;
+      savings: number;
+      basePrice: number;
+    }
   >;
 }
 
@@ -272,13 +331,18 @@ export function validateVariantPurchase(
   const resolvedCondition =
     condition ?? getDefaultAvailableConditionId(product, colorId, storage);
   const stock = getConditionStock(product, colorId, storage, resolvedCondition);
+  const presale = isPresaleProduct(product);
 
-  if (stock <= 0) {
+  if (stock <= 0 && !presale) {
     return {
       ok: false,
       maxQuantity: 0,
       message: "Nicht verfügbar",
     };
+  }
+
+  if (presale && stock <= 0) {
+    return { ok: true, maxQuantity: Math.max(quantity, 99) };
   }
 
   if (quantity > stock) {
@@ -377,13 +441,31 @@ export function reduceVariantStock(
           option,
           synced.stock ?? DEFAULT_VARIANT_STOCK,
         );
-        const conditions = (ensured.conditions ?? []).map((entry) => {
-          if (entry.condition !== resolvedCondition) return entry;
-          return {
-            ...entry,
-            stock: Math.max(0, entry.stock - quantity),
-          };
-        });
+        const ownStock =
+          ensured.conditions?.find((entry) => entry.condition === resolvedCondition)
+            ?.stock ?? 0;
+
+        let conditions = ensured.conditions ?? [];
+        if (ownStock > 0) {
+          conditions = conditions.map((entry) =>
+            entry.condition === resolvedCondition
+              ? { ...entry, stock: Math.max(0, entry.stock - quantity) }
+              : entry,
+          );
+        } else if (resolvedCondition !== "new") {
+          conditions = conditions.map((entry) =>
+            entry.condition === "new"
+              ? { ...entry, stock: Math.max(0, entry.stock - quantity) }
+              : entry,
+          );
+        } else {
+          conditions = conditions.map((entry) =>
+            entry.condition === "new"
+              ? { ...entry, stock: Math.max(0, entry.stock - quantity) }
+              : entry,
+          );
+        }
+
         return ensureStorageConditions({ ...ensured, conditions });
       }),
     };
@@ -400,6 +482,7 @@ export function getAvailabilityStats(products: PremiumProduct[]) {
   let availableCount = 0;
   let lowStockCount = 0;
   let outOfStockCount = 0;
+  let presaleCount = 0;
   let totalStockUnits = 0;
 
   for (const product of products) {
@@ -410,7 +493,9 @@ export function getAvailabilityStats(products: PremiumProduct[]) {
     if (status === "available") {
       availableCount += 1;
       if (isLowStockProduct(product)) lowStockCount += 1;
-    } else {
+    } else if (status === "presale") {
+      presaleCount += 1;
+    } else if (status === "out_of_stock") {
       outOfStockCount += 1;
     }
   }
@@ -419,6 +504,7 @@ export function getAvailabilityStats(products: PremiumProduct[]) {
     availableCount,
     lowStockCount,
     outOfStockCount,
+    presaleCount,
     totalStockUnits,
   };
 }
@@ -430,7 +516,10 @@ export function getAdminStatusLabel(product: PremiumProduct): {
 } {
   const status = getProductAvailabilityStatus(product);
   if (status === "archived") {
-    return { emoji: "⚫", label: "Manuell archiviert", shopVisible: false };
+    return { emoji: "⚫", label: "Archiviert", shopVisible: false };
+  }
+  if (status === "presale") {
+    return { emoji: "🔵", label: "Vorverkauf", shopVisible: true };
   }
   if (status === "out_of_stock") {
     return { emoji: "⚫", label: "Ausverkauft", shopVisible: false };
