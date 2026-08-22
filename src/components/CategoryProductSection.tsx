@@ -1,12 +1,14 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   catalogCategories,
   type CatalogCategoryId,
 } from "@/data/catalogCategories";
-import { getCatalogProductsByCategory, getProductById } from "@/data/products";
+import { getHomepageProductsByCategory, getProductById } from "@/data/products";
+import { useProductStore } from "@/context/ProductStoreContext";
+import { sortProducts } from "@/lib/filterProducts";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { CategoryProductCarousel } from "./CategoryProductCarousel";
 import { Reveal } from "./motion/Reveal";
@@ -85,6 +87,7 @@ function CategoryTabIcon({ id, className }: { id: CatalogCategoryId; className?:
 export function CategoryProductSection() {
   const { ref, isVisible } = useScrollAnimation<HTMLElement>();
   const prefersReducedMotion = useReducedMotion();
+  const { products: storeProducts, ready } = useProductStore();
   const [activeCategory, setActiveCategory] =
     useState<CatalogCategoryId>(DEFAULT_CATEGORY);
 
@@ -109,9 +112,18 @@ export function CategoryProductSection() {
   const activeConfig =
     catalogCategories.find((category) => category.id === activeCategory) ??
     catalogCategories[0];
-  const products = getCatalogProductsByCategory(activeCategory).map(
-    (product) => getProductById(product.id) ?? product,
-  );
+
+  // Homepage: nur Geräte mit Bestand (reaktiv auf Admin-Store).
+  const products = useMemo(() => {
+    void ready;
+    void storeProducts;
+    return sortProducts(
+      getHomepageProductsByCategory(activeCategory).map(
+        (product) => getProductById(product.id) ?? product,
+      ),
+      "recommended",
+    );
+  }, [activeCategory, ready, storeProducts]);
 
   return (
     <section
@@ -121,12 +133,12 @@ export function CategoryProductSection() {
     >
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
         <div
-          className={`absolute left-[-8%] top-[-6%] h-[300px] w-[300px] rounded-full bg-accent/[0.06] blur-[80px] md:h-[380px] md:w-[380px] ${
+          className={`absolute left-[-8%] top-[-6%] h-[220px] w-[220px] rounded-full bg-accent/[0.05] blur-[50px] md:h-[280px] md:w-[280px] ${
             prefersReducedMotion ? "" : "parallax-orb-a"
           }`}
         />
         <div
-          className={`absolute bottom-[-14%] right-[-6%] h-[260px] w-[260px] rounded-full bg-accent/[0.04] blur-[70px] md:h-[340px] md:w-[340px] ${
+          className={`absolute bottom-[-14%] right-[-6%] h-[200px] w-[200px] rounded-full bg-accent/[0.035] blur-[45px] md:h-[260px] md:w-[260px] ${
             prefersReducedMotion ? "" : "parallax-orb-b"
           }`}
         />

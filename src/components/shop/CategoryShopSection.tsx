@@ -7,12 +7,15 @@ import {
   getCatalogProductsByCategory,
   getProductById,
 } from "@/data/products";
+import { useProductStore } from "@/context/ProductStoreContext";
+import { accessoryProducts } from "@/data/accessoryCatalog";
 import {
   applyProductFilters,
   BRAND_FILTER_OPTIONS,
   type BrandFilterValue,
   type SortOption,
 } from "@/lib/filterProducts";
+import { premiumToLegacyProduct } from "@/lib/productAdapters";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { ProductCard } from "@/components/ProductCard";
 import { BrandFilter } from "@/components/shop/BrandFilter";
@@ -34,16 +37,25 @@ export function CategoryShopSection({
     BRAND_FILTER_OPTIONS.find((option) => option.id === brandFromUrl)?.id ?? "all";
 
   const { ref, isVisible } = useScrollAnimation<HTMLElement>();
+  const { products: storeProducts, ready } = useProductStore();
   const [selectedBrand, setSelectedBrand] = useState<BrandFilterValue>(initialBrand);
   const [selectedSort, setSelectedSort] = useState<SortOption>("newest");
 
-  const allProducts = useMemo(
-    () =>
-      getCatalogProductsByCategory(categoryId).map(
-        (product) => getProductById(product.id) ?? product,
-      ),
-    [categoryId],
-  );
+  const allProducts = useMemo(() => {
+    void ready;
+    if (storeProducts.length > 0) {
+      const devices = storeProducts
+        .filter((product) => product.catalogCategory === categoryId)
+        .map(premiumToLegacyProduct);
+      const accessories = accessoryProducts.filter(
+        (product) => product.catalogCategory === categoryId,
+      );
+      return [...devices, ...accessories];
+    }
+    return getCatalogProductsByCategory(categoryId).map(
+      (product) => getProductById(product.id) ?? product,
+    );
+  }, [categoryId, ready, storeProducts]);
 
   const filteredProducts = useMemo(
     () => applyProductFilters(allProducts, selectedBrand, selectedSort),

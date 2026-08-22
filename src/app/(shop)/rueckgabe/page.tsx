@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LegalPageLayout, LegalSection } from "@/components/legal/LegalPageLayout";
+import { ORDER_NUMBER_HINT, SHOP_CONTACT_EMAIL } from "@/lib/shopContact";
 
 export const metadata = { title: "Rückgabe – TechBuy" };
 
@@ -17,7 +18,11 @@ export default function RueckgabePage() {
             <Link href="/kontakt" className="text-accent hover:underline">
               Kontaktseite
             </Link>{" "}
-            oder per E-Mail mit.
+            oder per E-Mail an{" "}
+            <a className="text-accent hover:underline" href={`mailto:${SHOP_CONTACT_EMAIL}`}>
+              {SHOP_CONTACT_EMAIL}
+            </a>{" "}
+            mit. {ORDER_NUMBER_HINT}
           </li>
           <li>Senden Sie das Gerät gut verpackt an die von uns mitgeteilte Adresse zurück.</li>
           <li>Nach Eingang und Prüfung erstatten wir den Kaufpreis auf dem ursprünglichen Zahlungsweg.</li>

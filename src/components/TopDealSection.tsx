@@ -7,9 +7,11 @@ import { formatPrice } from "@/data/products";
 import { getColorDefinitionsForSlug } from "@/data/productImageMap";
 import { getDealImageCollage } from "@/data/dealImageCollages";
 import { resolvePremiumProduct } from "@/lib/catalog";
+import { isProductInStock } from "@/lib/productAvailability";
 import { getProductPrice, getStorageOptionsForColor } from "@/lib/productVariants";
 import { TOP_DEAL_PRODUCT_OPTIONS } from "@/lib/topDealStore";
 import { useTopDeal } from "@/context/TopDealContext";
+import { useProductStore } from "@/context/ProductStoreContext";
 import { DeviceImageCollage } from "./hero/DeviceImageCollage";
 import { Reveal } from "./motion/Reveal";
 
@@ -38,7 +40,7 @@ function useCountdown(endsAt: string) {
 function CountdownUnit({ value, label }: { value: number; label: string }) {
   return (
     <div className="flex flex-col items-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.12] bg-white/[0.06] text-[22px] font-bold tabular-nums text-white backdrop-blur-md md:h-16 md:w-16 md:text-[26px]">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.12] bg-white/[0.06] text-[22px] font-bold tabular-nums text-white md:h-16 md:w-16 md:text-[26px]">
         {String(value).padStart(2, "0")}
       </div>
       <span className="mt-1.5 text-[11px] font-medium uppercase tracking-wide text-white/50">
@@ -48,12 +50,31 @@ function CountdownUnit({ value, label }: { value: number; label: string }) {
   );
 }
 
+function DealCountdown({ endsAt }: { endsAt: string }) {
+  const countdown = useCountdown(endsAt);
+  if (countdown.expired) return null;
+
+  return (
+    <div className="mt-7 flex items-center gap-3">
+      <CountdownUnit value={countdown.days} label="Tage" />
+      <span className="pb-4 text-[20px] font-semibold text-white/25">:</span>
+      <CountdownUnit value={countdown.hours} label="Std" />
+      <span className="pb-4 text-[20px] font-semibold text-white/25">:</span>
+      <CountdownUnit value={countdown.minutes} label="Min" />
+      <span className="pb-4 text-[20px] font-semibold text-white/25">:</span>
+      <CountdownUnit value={countdown.seconds} label="Sek" />
+    </div>
+  );
+}
+
 export function TopDealSection() {
   const { config, ready } = useTopDeal();
+  const { getProductById, ready: productsReady } = useProductStore();
   const prefersReducedMotion = useReducedMotion();
-  const countdown = useCountdown(config.endsAt);
 
-  const product = ready ? resolvePremiumProduct(config.productId) : undefined;
+  const product = ready && productsReady
+    ? getProductById(config.productId) ?? resolvePremiumProduct(config.productId)
+    : undefined;
   const modelOption = TOP_DEAL_PRODUCT_OPTIONS.find((option) => option.productId === config.productId);
   const colors = useMemo(
     () => (modelOption ? getColorDefinitionsForSlug(modelOption.slug) ?? [] : []),
@@ -61,7 +82,17 @@ export function TopDealSection() {
   );
   const selectedColor = colors.find((color) => color.id === config.colorId) ?? colors[0];
 
-  if (!ready || !config.active || !product || !modelOption || !selectedColor) return null;
+  if (
+    !ready ||
+    !productsReady ||
+    !config.active ||
+    !product ||
+    !isProductInStock(product) ||
+    !modelOption ||
+    !selectedColor
+  ) {
+    return null;
+  }
 
   const storageOptions = getStorageOptionsForColor(product, selectedColor.id);
   const storage = storageOptions.find((option) => option.storage === config.storage) ?? storageOptions[0];
@@ -114,19 +145,9 @@ export function TopDealSection() {
               <p className="mt-1 text-[13px] text-white/40">{storage.storage} · {selectedColor.name}</p>
             </Reveal>
 
-            {!countdown.expired && (
-              <Reveal variant="up-soft" delay={0.26}>
-                <div className="mt-7 flex items-center gap-3">
-                  <CountdownUnit value={countdown.days} label="Tage" />
-                  <span className="pb-4 text-[20px] font-semibold text-white/25">:</span>
-                  <CountdownUnit value={countdown.hours} label="Std" />
-                  <span className="pb-4 text-[20px] font-semibold text-white/25">:</span>
-                  <CountdownUnit value={countdown.minutes} label="Min" />
-                  <span className="pb-4 text-[20px] font-semibold text-white/25">:</span>
-                  <CountdownUnit value={countdown.seconds} label="Sek" />
-                </div>
-              </Reveal>
-            )}
+            <Reveal variant="up-soft" delay={0.26}>
+              <DealCountdown endsAt={config.endsAt} />
+            </Reveal>
 
             <Reveal variant="up-soft" delay={0.32}>
               <Link

@@ -1,5 +1,6 @@
 import type { Product } from "@/data/products";
 import { resolvePremiumProductBySlug } from "@/lib/catalog";
+import { isProductInStock } from "@/lib/productAvailability";
 import { getProductVariants } from "@/lib/productVariants";
 
 export type BrandFilterValue =
@@ -59,6 +60,20 @@ const BRAND_LABELS: Record<Exclude<BrandFilterValue, "all">, string> = {
   oneplus: "OnePlus",
 };
 
+/** Legacy Product / Zubehör: auf Lager wenn nicht soldOut; Premium über echten Bestand. */
+export function isCatalogProductInStock(product: Product): boolean {
+  if (product.soldOut) return false;
+  const premium = resolvePremiumProductBySlug(product.slug);
+  if (premium) return isProductInStock(premium);
+  return true;
+}
+
+function compareInStockFirst(a: Product, b: Product): number {
+  const aIn = isCatalogProductInStock(a) ? 1 : 0;
+  const bIn = isCatalogProductInStock(b) ? 1 : 0;
+  return bIn - aIn;
+}
+
 export function filterProductsByBrand(
   products: Product[],
   brand: BrandFilterValue,
@@ -74,15 +89,15 @@ export function filterProductsByBrand(
 export function sortProducts(products: Product[], sort: SortOption): Product[] {
   const sorted = [...products];
 
-  switch (sort) {
-    case "price-asc":
-      return sorted.sort((a, b) => a.price - b.price);
-    case "price-desc":
-      return sorted.sort((a, b) => b.price - a.price);
-    case "name-asc":
-      return sorted.sort((a, b) => a.name.localeCompare(b.name, "de"));
-    case "newest":
-      return sorted.sort((a, b) => {
+  const bySecondary = (a: Product, b: Product): number => {
+    switch (sort) {
+      case "price-asc":
+        return a.price - b.price;
+      case "price-desc":
+        return b.price - a.price;
+      case "name-asc":
+        return a.name.localeCompare(b.name, "de");
+      case "newest": {
         const premiumA = resolvePremiumProductBySlug(a.slug);
         const premiumB = resolvePremiumProductBySlug(b.slug);
         const genA = premiumA?.generation ?? "";
@@ -92,10 +107,9 @@ export function sortProducts(products: Product[], sort: SortOption): Product[] {
         const bNew = b.badge === "Neu" ? 1 : 0;
         if (aNew !== bNew) return bNew - aNew;
         return a.name.localeCompare(b.name, "de");
-      });
-    case "recommended":
-    default:
-      return sorted.sort((a, b) => {
+      }
+      case "recommended":
+      default: {
         const premiumA = resolvePremiumProductBySlug(a.slug);
         const premiumB = resolvePremiumProductBySlug(b.slug);
         const aNew = a.badge === "Neu" ? 1 : 0;
@@ -105,8 +119,16 @@ export function sortProducts(products: Product[], sort: SortOption): Product[] {
         const genB = premiumB?.generation ?? "";
         if (genA !== genB) return genB.localeCompare(genA, "de");
         return a.name.localeCompare(b.name, "de");
-      });
-  }
+      }
+    }
+  };
+
+  // Immer: lagernde Geräte zuerst, danach die gewählte Sortierung.
+  return sorted.sort((a, b) => {
+    const stockOrder = compareInStockFirst(a, b);
+    if (stockOrder !== 0) return stockOrder;
+    return bySecondary(a, b);
+  });
 }
 
 export function applyAdvancedProductFilters(

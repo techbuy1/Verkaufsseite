@@ -5,7 +5,7 @@ import {
   getProductById,
 } from "./catalogProducts";
 import { resolvePremiumProduct } from "@/lib/catalog";
-import { isProductVisibleInShop } from "@/lib/productAvailability";
+import { isProductInStock, isProductVisibleInShop } from "@/lib/productAvailability";
 
 export type {
   PremiumProduct,
@@ -87,6 +87,7 @@ export {
 export {
   getCatalogProducts,
   getCatalogProductsByCategory,
+  getHomepageProductsByCategory,
   getProductById,
 } from "./catalogProducts";
 
@@ -96,7 +97,9 @@ export const showcaseProducts: HeroProduct[] = [];
 export const topOffers: Product[] = ["offer-iphone", "offer-iphone-17", "offer-samsung"]
   .map((id) => {
     const premium = resolvePremiumProduct(id);
-    if (premium && !isProductVisibleInShop(premium)) return undefined;
+    if (!premium || !isProductVisibleInShop(premium) || !isProductInStock(premium)) {
+      return undefined;
+    }
     return getProductById(id);
   })
   .filter((product): product is Product => Boolean(product));

@@ -14,6 +14,7 @@ import {
   deductStockForOrder as persistStockDeduction,
   getSeedProducts,
   loadProducts,
+  normalizeProduct,
   resetProductsToSeed,
   saveProducts,
   updateProduct as persistProduct,
@@ -45,29 +46,94 @@ interface ProductStoreContextValue {
 
 const ProductStoreContext = createContext<ProductStoreContextValue | null>(null);
 
+async function pushCatalogToServer(products: PremiumProduct[]): Promise<void> {
+  try {
+    await fetch("/api/admin/products", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ products }),
+    });
+  } catch {
+    // Local save already succeeded; server sync retries on next admin save.
+  }
+}
+
 export function ProductStoreProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<PremiumProduct[]>(getSeedProducts);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setProducts(loadProducts());
-    setReady(true);
+    let cancelled = false;
+
+    async function hydrate() {
+      const local = loadProducts();
+
+      try {
+        const response = await fetch("/api/catalog/products", {
+          credentials: "same-origin",
+        });
+        if (response.ok) {
+          const data = (await response.json()) as {
+            products?: PremiumProduct[];
+            persisted?: boolean;
+          };
+          const remote = Array.isArray(data.products)
+            ? data.products.map(normalizeProduct)
+            : [];
+
+          if (!cancelled && data.persisted && remote.length > 0) {
+            saveProducts(remote);
+            setProducts(remote);
+            setReady(true);
+            return;
+          }
+
+          // No server catalog yet — keep local edits; migrate from admin only.
+          if (!cancelled) {
+            setProducts(local);
+            setReady(true);
+            if (window.location.pathname.startsWith("/admin")) {
+              void pushCatalogToServer(local);
+            }
+            return;
+          }
+        }
+      } catch {
+        // Fall through to local.
+      }
+
+      if (!cancelled) {
+        setProducts(local);
+        setReady(true);
+      }
+    }
+
+    void hydrate();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const updateProduct = useCallback((product: PremiumProduct) => {
-    setProducts(persistProduct(product));
+    const next = persistProduct(product);
+    setProducts(next);
     invalidateSearchIndex();
+    void pushCatalogToServer(next);
   }, []);
 
-  const updateProducts = useCallback((next: PremiumProduct[]) => {
-    setProducts(persistProducts(next));
+  const updateProducts = useCallback((nextList: PremiumProduct[]) => {
+    const next = persistProducts(nextList);
+    setProducts(next);
     invalidateSearchIndex();
+    void pushCatalogToServer(next);
   }, []);
 
   const setProductsState = useCallback((next: PremiumProduct[]) => {
     saveProducts(next);
     setProducts(next);
     invalidateSearchIndex();
+    void pushCatalogToServer(next);
   }, []);
 
   const deductStockForOrder = useCallback(
@@ -82,13 +148,18 @@ export function ProductStoreProvider({ children }: { children: ReactNode }) {
         condition?: ConditionId | string;
       }>,
     ) => {
-      setProducts(persistStockDeduction(items));
+      const next = persistStockDeduction(items);
+      setProducts(next);
+      void pushCatalogToServer(next);
     },
     [],
   );
 
   const resetToSeed = useCallback(() => {
-    setProducts(resetProductsToSeed());
+    const next = resetProductsToSeed();
+    setProducts(next);
+    invalidateSearchIndex();
+    void pushCatalogToServer(next);
   }, []);
 
   const value = useMemo(

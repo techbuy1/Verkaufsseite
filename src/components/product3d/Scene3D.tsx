@@ -257,7 +257,7 @@ export const Scene3D = forwardRef<Scene3DHandle, Scene3DProps>(function Scene3D(
       <ambientLight intensity={0.7} />
       <directionalLight position={[3, 4, 5]} intensity={1.3} />
       <directionalLight position={[-4, 2, -3]} intensity={0.5} />
-      <Environment resolution={256}>
+      <Environment resolution={128}>
         <Lightformer intensity={2.5} color="white" position={[0, 4, 2]} scale={[8, 4, 1]} />
         <Lightformer
           intensity={1.5}
@@ -297,10 +297,11 @@ export const Scene3D = forwardRef<Scene3DHandle, Scene3DProps>(function Scene3D(
 
       <ContactShadows
         position={[0, shadowY, 0]}
-        opacity={0.45}
-        blur={2.6}
+        opacity={0.35}
+        blur={2}
         far={2.5}
-        resolution={512}
+        resolution={128}
+        frames={1}
       />
 
       {/* Presentation-only controls: auto-rotate keeps running; no user input. */}

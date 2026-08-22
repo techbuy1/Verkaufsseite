@@ -7,6 +7,10 @@ import { catalogCategories } from "@/data/catalogCategories";
 import type { Product } from "@/data/products";
 import { ProductCard } from "@/components/ProductCard";
 import { ManufacturerFilterBar } from "@/components/shop/ManufacturerFilterBar";
+import { useProductStore } from "@/context/ProductStoreContext";
+import { accessoryProducts } from "@/data/accessoryCatalog";
+import { sortProducts } from "@/lib/filterProducts";
+import { premiumToLegacyProduct } from "@/lib/productAdapters";
 import {
   applyStoreFilters,
   buildStoreSearchParams,
@@ -38,6 +42,7 @@ export function StorePageContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { products: storeProducts, ready } = useProductStore();
 
   const filtersFromUrl = useMemo(
     () => parseStoreFilters(searchParams),
@@ -53,7 +58,13 @@ export function StorePageContent() {
     setSearchInput(filtersFromUrl.search);
   }, [filtersFromUrl]);
 
-  const allProducts = useMemo(() => getCatalogProducts(), []);
+  const allProducts = useMemo(() => {
+    void ready;
+    if (storeProducts.length > 0) {
+      return [...storeProducts.map(premiumToLegacyProduct), ...accessoryProducts];
+    }
+    return getCatalogProducts();
+  }, [ready, storeProducts]);
 
   const filteredProducts = useMemo(
     () => applyStoreFilters(allProducts, filtersFromUrl),
@@ -61,8 +72,12 @@ export function StorePageContent() {
   );
 
   const groupedProducts = useMemo(
-    () => groupStoreProductsByCategory(filteredProducts),
-    [filteredProducts],
+    () =>
+      groupStoreProductsByCategory(filteredProducts).map((group) => ({
+        ...group,
+        products: sortProducts(group.products, filtersFromUrl.sort),
+      })),
+    [filteredProducts, filtersFromUrl.sort],
   );
 
   const showGroupedSections =

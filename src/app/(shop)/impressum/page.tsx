@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { LegalPageLayout, LegalSection } from "@/components/legal/LegalPageLayout";
+import { companySettings } from "@/lib/companySettings";
+import { ORDER_NUMBER_HINT, SHOP_CONTACT_EMAIL } from "@/lib/shopContact";
 
 export const metadata = { title: "Impressum – TechBuy" };
 
@@ -8,34 +10,35 @@ export default function ImpressumPage() {
     <LegalPageLayout eyebrow="Rechtliches" title="Impressum">
       <LegalSection title="Angaben gemäß § 5 TMG">
         <p>
-          Techbuy
+          {companySettings.companyName}
           <br />
-          Inhaber: Ahmad Amir Popal
+          Inhaber: {companySettings.ownerName}
           <br />
-          Krümmelstraße 2
+          {companySettings.street}
           <br />
-          21502 Geesthacht
+          {companySettings.postalCode} {companySettings.city}
           <br />
-          Deutschland
+          {companySettings.country}
         </p>
       </LegalSection>
 
       <LegalSection title="Kontakt">
         <p>
-          Telefon: 01630448214
+          Telefon: {companySettings.phone}
           <br />
           E-Mail:{" "}
-          <a className="text-accent hover:underline" href="mailto:Bill@techbuy-ankauf.de">
-            Bill@techbuy-ankauf.de
+          <a className="text-accent hover:underline" href={`mailto:${SHOP_CONTACT_EMAIL}`}>
+            {SHOP_CONTACT_EMAIL}
           </a>
         </p>
+        <p className="pt-2 text-[14px] text-text-secondary">{ORDER_NUMBER_HINT}</p>
       </LegalSection>
 
       <LegalSection title="Umsatzsteuer">
         <p>
-          Umsatzsteuer-Identifikationsnummer gemäß § 27a Umsatzsteuergesetz: DE450323348
+          Umsatzsteuer-Identifikationsnummer gemäß § 27a Umsatzsteuergesetz: {companySettings.vatId}
           <br />
-          Steuernummer: 112700620
+          Steuernummer: {companySettings.taxNumber}
         </p>
       </LegalSection>
 
@@ -43,9 +46,9 @@ export default function ImpressumPage() {
         <p>
           Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV:
           <br />
-          Ahmad Amir Popal
+          {companySettings.ownerName}
           <br />
-          Krümmelstraße 2, 21502 Geesthacht
+          {companySettings.street}, {companySettings.postalCode} {companySettings.city}
         </p>
       </LegalSection>
 
@@ -72,8 +75,8 @@ export default function ImpressumPage() {
         Fragen zu einer Bestellung oder zum Ankauf eines Geräts beantworten wir gern über die{" "}
         <Link href="/kontakt" className="text-accent hover:underline">
           Kontaktseite
-        </Link>
-        .
+        </Link>{" "}
+        bzw. per E-Mail an {SHOP_CONTACT_EMAIL}. {ORDER_NUMBER_HINT}
       </p>
     </LegalPageLayout>
   );

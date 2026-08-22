@@ -32,8 +32,8 @@ const variantMap: Record<RevealVariant, Variants> = {
     show: { opacity: 1, y: 0, scale: 1 },
   },
   blur: {
-    hidden: { opacity: 0, y: 16, filter: "blur(8px)" },
-    show: { opacity: 1, y: 0, filter: "blur(0px)" },
+    hidden: { opacity: 0, y: 16 },
+    show: { opacity: 1, y: 0 },
   },
   fade: {
     hidden: { opacity: 0 },

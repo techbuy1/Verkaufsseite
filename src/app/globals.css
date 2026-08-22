@@ -166,22 +166,21 @@
 .parallax-orb {
   position: absolute;
   border-radius: 999px;
-  filter: blur(60px);
+  filter: blur(40px);
   pointer-events: none;
-  will-change: transform;
+  contain: strict;
 }
 
 .parallax-orb-a {
-  animation: orb-drift-a 16s ease-in-out infinite;
+  animation: orb-drift-a 22s ease-in-out infinite;
 }
 
 .parallax-orb-b {
-  animation: orb-drift-b 19s ease-in-out infinite;
+  animation: orb-drift-b 26s ease-in-out infinite;
 }
 
 .float-idle {
-  animation: float-y 5s ease-in-out infinite;
-  will-change: transform;
+  animation: float-y 6s ease-in-out infinite;
 }
 
 @keyframes bridge-float {

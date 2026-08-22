@@ -546,8 +546,9 @@ export function AdminProductEditor({ productId }: AdminProductEditorProps) {
           <section className="rounded-[18px] bg-white p-6 shadow-[0_4px_24px_rgba(0,0,0,0.08)]">
             <h2 className="mb-2 text-[18px] font-semibold text-[#1d1d1f]">Varianten</h2>
             <p className="mb-5 text-[13px] text-[#6e6e73]">
-              Farbe → Speicher → Zustand mit eigenem Preis und Bestand. Deaktivierte Zustände bleiben
-              gespeichert, erscheinen aber nicht im Shop.
+              Farbe → Speicher → Zustand mit eigenem Preis und Bestand. Jeder Zustandspreis
+              wird einzeln gespeichert und im Shop sowie bei der Zahlung übernommen.
+              Deaktivierte Zustände bleiben gespeichert, erscheinen aber nicht im Shop.
             </p>
             <Link
               href="/admin/bulk"

@@ -15,14 +15,14 @@ import {
   getDefaultAvailableConditionId,
   validateCheckoutStock,
 } from "@/lib/productAvailability";
-import { getSeedProducts } from "@/lib/productStore";
+import { readServerProducts } from "@/lib/serverProductCatalog";
 import {
   getDefaultColor,
   getDefaultStorage,
   getProductPrice,
   getColorVariant,
 } from "@/lib/productVariants";
-import type { ConditionId } from "@/types/product";
+import type { ConditionId, PremiumProduct } from "@/types/product";
 
 export type PaymentProvider = "stripe" | "paypal";
 
@@ -80,17 +80,19 @@ function roundMoney(value: number): number {
 
 /**
  * Single source of truth for checkout pricing (Stripe + PayPal).
- * Ignores any client-supplied price fields.
+ * Ignores any client-supplied price fields — uses admin catalog when persisted.
  */
-export function calculateProductUnitPrice(input: {
-  productId: string;
-  storage?: string;
-  colorId?: string;
-  colorName?: string;
-  color?: string;
-  condition?: ConditionId | string;
-}): number | null {
-  const products = getSeedProducts();
+export function calculateProductUnitPrice(
+  input: {
+    productId: string;
+    storage?: string;
+    colorId?: string;
+    colorName?: string;
+    color?: string;
+    condition?: ConditionId | string;
+  },
+  products: PremiumProduct[],
+): number | null {
   const premium = products.find((product) => product.id === input.productId);
 
   if (premium) {
@@ -116,15 +118,15 @@ export function calculateProductUnitPrice(input: {
   return roundMoney(accessory.price);
 }
 
-export function validateAndPriceCart(
+export async function validateAndPriceCart(
   items: CheckoutLineInput[],
   upsellSelections?: DeviceUpsellSelectionInput[],
-): CartValidationResult {
+): Promise<CartValidationResult> {
   if (!Array.isArray(items) || items.length === 0) {
     return { ok: false, message: "Warenkorb ist leer.", status: 400 };
   }
 
-  const products = getSeedProducts();
+  const { products } = await readServerProducts();
   const stockErrors = validateCheckoutStock(items, products);
   if (stockErrors.length > 0) {
     return {
@@ -190,13 +192,16 @@ export function validateAndPriceCart(
       colorName = item.colorName ?? item.color;
     }
 
-    const unitPrice = calculateProductUnitPrice({
-      productId: item.productId,
-      storage,
-      colorId,
-      colorName,
-      condition,
-    });
+    const unitPrice = calculateProductUnitPrice(
+      {
+        productId: item.productId,
+        storage,
+        colorId,
+        colorName,
+        condition,
+      },
+      products,
+    );
 
     if (unitPrice === null || unitPrice <= 0) {
       return {

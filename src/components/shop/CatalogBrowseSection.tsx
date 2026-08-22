@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { CatalogCategoryId } from "@/data/catalogCategories";
 import { getCatalogProductsByCategory } from "@/data/catalogProducts";
+import { useProductStore } from "@/context/ProductStoreContext";
+import { accessoryProducts } from "@/data/accessoryCatalog";
 import {
   applyAdvancedProductFilters,
   BRAND_FILTER_OPTIONS,
@@ -17,6 +19,7 @@ import {
   type SortOption,
 } from "@/lib/filterProducts";
 import { getProductsByBrandAndCategory } from "@/lib/catalog";
+import { premiumToLegacyProduct } from "@/lib/productAdapters";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { ProductCard } from "@/components/ProductCard";
 import { BrandFilter } from "@/components/shop/BrandFilter";
@@ -96,12 +99,30 @@ export function CatalogBrowseSection({
           : "all");
 
   const { ref, isVisible } = useScrollAnimation<HTMLElement>();
+  const { products: storeProducts, ready } = useProductStore();
   const [filters, setFilters] = useState<CatalogFilters>({
     ...DEFAULT_CATALOG_FILTERS,
     brand: initialBrand as BrandFilterValue,
   });
 
   const allProducts = useMemo(() => {
+    void ready;
+    if (storeProducts.length > 0) {
+      let devices = storeProducts.map(premiumToLegacyProduct);
+      if (categoryId) {
+        devices = devices.filter((product) => product.catalogCategory === categoryId);
+      }
+      const accessories = accessoryProducts.filter((product) =>
+        categoryId ? product.catalogCategory === categoryId : true,
+      );
+      let merged = [...devices, ...accessories];
+      if (brand) {
+        merged = merged.filter(
+          (product) => product.brand.toLowerCase() === brand.toLowerCase(),
+        );
+      }
+      return merged;
+    }
     if (categoryId && brand) {
       return getProductsByBrandAndCategory(brand, categoryId);
     }
@@ -112,7 +133,7 @@ export function CatalogBrowseSection({
       return getProductsByBrandAndCategory(brand);
     }
     return getCatalogProductsByCategory("smartphones");
-  }, [categoryId, brand]);
+  }, [categoryId, brand, ready, storeProducts]);
 
   const models = useMemo(() => getAvailableModels(allProducts), [allProducts]);
   const generations = useMemo(() => getAvailableGenerations(allProducts), [allProducts]);

@@ -153,18 +153,23 @@ export function getProductAvailabilityStatus(
 }
 
 /**
- * A product stays visible in the shop (catalog listings and its own detail
- * page) as long as it isn't manually archived — running out of stock marks
- * it "Ausverkauft" (see getAdminStatusLabel / PurchaseBox) rather than
- * removing it from the catalog or 404ing its page. Only a deliberate
- * archive should make a product disappear entirely.
+ * A product stays reachable via its detail page as long as it isn't manually
+ * archived — running out of stock marks it "Ausverkauft" rather than 404ing.
+ * Homepage listings use {@link isProductInStock} instead.
  */
 export function isProductVisibleInShop(product: PremiumProduct): boolean {
   return !product.manualArchive;
 }
 
+/** True when the product has sellable stock (or is intentionally in presale). */
+export function isProductInStock(product: PremiumProduct): boolean {
+  if (product.manualArchive) return false;
+  if (isPresaleProduct(product)) return true;
+  return getTotalStock(product) > 0;
+}
+
 export function isProductAvailable(product: PremiumProduct): boolean {
-  return isProductVisibleInShop(product);
+  return isProductVisibleInShop(product) && isProductInStock(product);
 }
 
 export function isLowStockProduct(product: PremiumProduct): boolean {
@@ -174,6 +179,11 @@ export function isLowStockProduct(product: PremiumProduct): boolean {
 
 export function getAvailablePremiumProducts(products: PremiumProduct[]): PremiumProduct[] {
   return products.filter(isProductVisibleInShop);
+}
+
+/** Homepage / featured surfaces: only devices that can currently be bought. */
+export function getInStockPremiumProducts(products: PremiumProduct[]): PremiumProduct[] {
+  return products.filter(isProductInStock);
 }
 
 export function getProductMinAvailablePrice(product: PremiumProduct): number {

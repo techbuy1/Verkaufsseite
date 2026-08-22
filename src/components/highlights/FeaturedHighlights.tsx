@@ -8,7 +8,9 @@ import { featuredHighlightProducts } from "@/data/featuredHighlights";
 import { formatPrice } from "@/data/products";
 import { getColorDefinitionsForSlug } from "@/data/productImageMap";
 import { resolvePremiumProduct } from "@/lib/catalog";
+import { isProductInStock } from "@/lib/productAvailability";
 import { getProductPrice, getStorageOptionsForColor } from "@/lib/productVariants";
+import { useProductStore } from "@/context/ProductStoreContext";
 import { Reveal } from "../motion/Reveal";
 import { SplitHeadline } from "../motion/SplitHeadline";
 import { DeviceStage } from "./DeviceStage";
@@ -32,13 +34,28 @@ const DeviceViewer3D = dynamic(
 
 export function FeaturedHighlights() {
   const prefersReducedMotion = useReducedMotion();
+  const { getProductById, ready } = useProductStore();
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const active = featuredHighlightProducts[activeIndex];
-  const product = resolvePremiumProduct(active.productId);
+  const availableHighlights = useMemo(() => {
+    void ready;
+    return featuredHighlightProducts.filter((entry) => {
+      const live = getProductById(entry.productId) ?? resolvePremiumProduct(entry.productId);
+      return live ? isProductInStock(live) : false;
+    });
+  }, [getProductById, ready]);
+
+  const safeIndex =
+    availableHighlights.length === 0
+      ? 0
+      : Math.min(activeIndex, availableHighlights.length - 1);
+  const active = availableHighlights[safeIndex];
+  const product = active
+    ? getProductById(active.productId) ?? resolvePremiumProduct(active.productId)
+    : undefined;
   const colors = useMemo(
-    () => getColorDefinitionsForSlug(active.slug) ?? [],
-    [active.slug],
+    () => (active ? getColorDefinitionsForSlug(active.slug) ?? [] : []),
+    [active],
   );
 
   const [selectedColorId, setSelectedColorId] = useState<string | undefined>(colors[0]?.id);
@@ -60,12 +77,18 @@ export function FeaturedHighlights() {
     setSelectedStorage(undefined);
   }, [activeColorId]);
 
-  if (!product || !selectedColor) return null;
+  useEffect(() => {
+    if (activeIndex >= availableHighlights.length) {
+      setActiveIndex(0);
+    }
+  }, [activeIndex, availableHighlights.length]);
+
+  if (!active || !product || !selectedColor) return null;
 
   const price = activeStorage ? getProductPrice(product, activeStorage, activeColorId) : 0;
 
   function selectProduct(index: number) {
-    if (index === activeIndex) return;
+    if (index === safeIndex) return;
     setActiveIndex(index);
     setSelectedColorId(undefined);
     setSelectedStorage(undefined);
@@ -113,8 +136,8 @@ export function FeaturedHighlights() {
         <Reveal variant="up-soft" delay={0.1} amount={0.4}>
           <div className="mb-6 flex justify-center md:mb-8">
             <div className="inline-flex rounded-full border border-border bg-surface-card p-1 shadow-[var(--shadow-card)]">
-              {featuredHighlightProducts.map((entry, index) => {
-                const isActive = index === activeIndex;
+              {availableHighlights.map((entry, index) => {
+                const isActive = index === safeIndex;
                 return (
                   <button
                     key={entry.productId}

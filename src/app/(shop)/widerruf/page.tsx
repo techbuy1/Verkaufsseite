@@ -1,4 +1,6 @@
 import { LegalPageLayout, LegalSection } from "@/components/legal/LegalPageLayout";
+import { companySettings } from "@/lib/companySettings";
+import { ORDER_NUMBER_HINT, SHOP_CONTACT_EMAIL } from "@/lib/shopContact";
 
 export const metadata = { title: "Widerruf – TechBuy" };
 
@@ -19,16 +21,17 @@ export default function WiderrufPage() {
         <p>
           Um Ihr Widerrufsrecht auszuüben, müssen Sie uns
           <br />
-          Techbuy, Ahmad Amir Popal, Krümmelstraße 2, 21502 Geesthacht, E-Mail:{" "}
-          <a className="text-accent hover:underline" href="mailto:Bill@techbuy-ankauf.de">
-            Bill@techbuy-ankauf.de
+          {companySettings.companyName}, {companySettings.ownerName}, {companySettings.street},{" "}
+          {companySettings.postalCode} {companySettings.city}, E-Mail:{" "}
+          <a className="text-accent hover:underline" href={`mailto:${SHOP_CONTACT_EMAIL}`}>
+            {SHOP_CONTACT_EMAIL}
           </a>
-          , Telefon: 01630448214
+          , Telefon: {companySettings.phone}
           <br />
           mittels einer eindeutigen Erklärung (z. B. ein mit der Post versandter Brief oder eine
-          E-Mail) über Ihren Entschluss, diesen Vertrag zu widerrufen, informieren. Zur Wahrung der
-          Widerrufsfrist reicht es aus, dass Sie die Mitteilung über die Ausübung des
-          Widerrufsrechts vor Ablauf der Widerrufsfrist absenden.
+          E-Mail) über Ihren Entschluss, diesen Vertrag zu widerrufen, informieren.{" "}
+          {ORDER_NUMBER_HINT} Zur Wahrung der Widerrufsfrist reicht es aus, dass Sie die Mitteilung
+          über die Ausübung des Widerrufsrechts vor Ablauf der Widerrufsfrist absenden.
         </p>
       </LegalSection>
 
@@ -60,14 +63,21 @@ export default function WiderrufPage() {
       </LegalSection>
 
       <LegalSection title="Muster-Widerrufsformular">
-        <p>(Wenn Sie den Vertrag widerrufen wollen, füllen Sie bitte dieses Formular aus und senden Sie es zurück.)</p>
+        <p>
+          (Wenn Sie den Vertrag widerrufen wollen, füllen Sie bitte dieses Formular aus und senden
+          Sie es zurück.)
+        </p>
         <div className="rounded-[14px] bg-background-secondary p-4 text-[13px] leading-relaxed">
-          <p>An: Techbuy, Ahmad Amir Popal, Krümmelstraße 2, 21502 Geesthacht, Bill@techbuy-ankauf.de</p>
+          <p>
+            An: {companySettings.companyName}, {companySettings.ownerName}, {companySettings.street},{" "}
+            {companySettings.postalCode} {companySettings.city}, {SHOP_CONTACT_EMAIL}
+          </p>
           <p className="mt-2">
             Hiermit widerrufe(n) ich/wir (*) den von mir/uns (*) abgeschlossenen Vertrag über den
             Kauf der folgenden Waren (*)/die Erbringung der folgenden Dienstleistung (*):
           </p>
           <p className="mt-2">Bestellt am (*)/erhalten am (*):</p>
+          <p>Bestellnummer:</p>
           <p>Name des/der Verbraucher(s):</p>
           <p>Anschrift des/der Verbraucher(s):</p>
           <p>Unterschrift des/der Verbraucher(s) (nur bei Mitteilung auf Papier)</p>
@@ -92,7 +102,7 @@ export default function WiderrufPage() {
           Geräts — die oben stehende Widerrufsbelehrung für Warenkäufe bei TechBuy ist auf diesen
           umgekehrten Fall nicht direkt anwendbar. Angaben zu Widerruf, Rücktritt oder
           Stornierung eines Ankauf-Vorgangs entnehmen Sie bitte den Bedingungen auf
-          techbuy-ankauf.de bzw. erfragen Sie direkt bei uns.
+          techbuy-ankauf.de bzw. erfragen Sie direkt bei uns unter {SHOP_CONTACT_EMAIL}.
         </p>
       </LegalSection>
     </LegalPageLayout>

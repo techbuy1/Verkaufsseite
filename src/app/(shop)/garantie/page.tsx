@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LegalPageLayout, LegalSection } from "@/components/legal/LegalPageLayout";
+import { ORDER_NUMBER_HINT, SHOP_CONTACT_EMAIL } from "@/lib/shopContact";
 
 export const metadata = { title: "Garantie – TechBuy" };
 
@@ -30,8 +31,12 @@ export default function GarantiePage() {
           <Link href="/kontakt" className="text-accent hover:underline">
             Kontaktseite
           </Link>{" "}
-          mit einer kurzen Beschreibung des Problems. Wir prüfen den Fall und melden uns mit dem
-          weiteren Vorgehen bei Ihnen zurück.
+          oder per E-Mail an{" "}
+          <a className="text-accent hover:underline" href={`mailto:${SHOP_CONTACT_EMAIL}`}>
+            {SHOP_CONTACT_EMAIL}
+          </a>{" "}
+          mit einer kurzen Beschreibung des Problems. {ORDER_NUMBER_HINT} Wir prüfen den Fall und
+          melden uns mit dem weiteren Vorgehen bei Ihnen zurück.
         </p>
       </LegalSection>
     </LegalPageLayout>

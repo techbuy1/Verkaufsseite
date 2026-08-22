@@ -7,7 +7,6 @@ import type {
 } from "@/types/product";
 import {
   buildVariantSku,
-  computeConditionPrice,
   ensureStorageConditions,
   getConditionOption,
   getDefaultAvailableCondition,
@@ -234,21 +233,25 @@ export function getProductPrice(
 ): number {
   const option = getStorageOption(product, storage, colorId);
   const ensured = ensureStorageConditions(option);
-  const newBase =
-    ensured.conditions?.find((entry) => entry.condition === "new")?.price ||
-    ensured.price ||
-    0;
 
   if (condition) {
-    return computeConditionPrice(newBase, condition);
+    const entry = ensured.conditions?.find((c) => c.condition === condition);
+    if (entry && entry.price > 0) return roundStoredPrice(entry.price);
+    return 0;
   }
 
   const available = getPurchasableConditions(ensured);
   if (available.length > 0) {
-    return Math.min(...available.map((c) => computeConditionPrice(newBase, c.condition)));
+    return roundStoredPrice(Math.min(...available.map((c) => c.price)));
   }
 
-  return computeConditionPrice(newBase, "new") || ensured.price;
+  const neu = ensured.conditions?.find((entry) => entry.condition === "new");
+  if (neu && neu.price > 0) return roundStoredPrice(neu.price);
+  return roundStoredPrice(ensured.price);
+}
+
+function roundStoredPrice(value: number): number {
+  return Math.round(value * 100) / 100;
 }
 
 /** Niedrigster Preis über alle Farb-/Speicher-Kombinationen (Basis „Neu“ für „Ab …“). */

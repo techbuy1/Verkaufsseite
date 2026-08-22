@@ -24,10 +24,16 @@ export const companySettings = {
   postalCode: "21502",
   city: "Geesthacht",
   country: "Deutschland",
-  email: "Bill@techbuy-ankauf.de",
+  /** Öffentliche Shop-Kontaktadresse — überall auf der Website verwenden. */
+  email: "info@techbuyshop.de",
   phone: "01630448214",
   vatId: "DE450323348",
   taxNumber: "112700620",
+  /**
+   * Hinweis für Anfragen, Widerruf, Support: Bestellnummer immer angeben.
+   */
+  contactOrderNumberHint:
+    "Bitte geben Sie bei Anfragen, Widerruf oder Rückfragen stets Ihre Bestellnummer an.",
   /** Standard VAT rate for Regelbesteuerung (gross → net/VAT split). */
   standardVatRate: 0.19,
   /**

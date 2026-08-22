@@ -1,4 +1,5 @@
 import { LegalPageLayout, LegalSection } from "@/components/legal/LegalPageLayout";
+import { ORDER_NUMBER_HINT, SHOP_CONTACT_EMAIL } from "@/lib/shopContact";
 
 export const metadata = { title: "FAQ – TechBuy" };
 
@@ -17,11 +18,11 @@ const FAQ_ITEMS: { q: string; a: string }[] = [
   },
   {
     q: "Kann ich meine Bestellung zurückgeben?",
-    a: "Als Verbraucher steht Ihnen ein 14-tägiges Widerrufsrecht zu. Details finden Sie auf unserer Widerrufs- und Rückgabeseite.",
+    a: "Als Verbraucher steht Ihnen ein 14-tägiges Widerrufsrecht zu. Details finden Sie auf unserer Widerrufs- und Rückgabeseite. Bitte melden Sie sich unter info@techbuyshop.de und geben Sie stets Ihre Bestellnummer an.",
   },
   {
     q: "Wie erreiche ich den Support?",
-    a: "Am schnellsten per E-Mail oder Telefon über unsere Kontaktseite.",
+    a: `Am schnellsten per E-Mail an ${SHOP_CONTACT_EMAIL} oder über unsere Kontaktseite. ${ORDER_NUMBER_HINT}`,
   },
 ];
 

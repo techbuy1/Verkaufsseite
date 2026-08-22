@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { LegalPageLayout, LegalSection } from "@/components/legal/LegalPageLayout";
+import { ORDER_NUMBER_HINT, SHOP_CONTACT_EMAIL } from "@/lib/shopContact";
+import { companySettings } from "@/lib/companySettings";
 
 export const metadata = { title: "Support – TechBuy" };
 
@@ -14,15 +16,16 @@ export default function SupportPage() {
             Kontaktseite
           </Link>{" "}
           oder direkt per E-Mail an{" "}
-          <a className="text-accent hover:underline" href="mailto:Bill@techbuy-ankauf.de">
-            Bill@techbuy-ankauf.de
+          <a className="text-accent hover:underline" href={`mailto:${SHOP_CONTACT_EMAIL}`}>
+            {SHOP_CONTACT_EMAIL}
           </a>{" "}
           bzw. telefonisch unter{" "}
-          <a className="text-accent hover:underline" href="tel:+4901630448214">
-            01630448214
+          <a className="text-accent hover:underline" href={`tel:+49${companySettings.phone}`}>
+            {companySettings.phone}
           </a>
           .
         </p>
+        <p className="pt-2 font-medium text-text-primary">{ORDER_NUMBER_HINT}</p>
       </LegalSection>
       <LegalSection title="Häufige Themen">
         <p>

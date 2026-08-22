@@ -33,7 +33,7 @@ export function SellHeroCarousel() {
       aria-label="iPhone 17 Pro kaufen"
     >
       <div
-        className="pointer-events-none absolute left-1/2 top-[6%] h-[58vw] max-h-[560px] w-[58vw] max-w-[560px] -translate-x-1/2 rounded-full opacity-[0.22] blur-[110px]"
+        className="pointer-events-none absolute left-1/2 top-[6%] h-[58vw] max-h-[560px] w-[58vw] max-w-[560px] -translate-x-1/2 rounded-full opacity-[0.18] blur-[70px]"
         style={{ background: device.glowColor }}
         aria-hidden="true"
       />

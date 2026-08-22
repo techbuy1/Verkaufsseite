@@ -6,7 +6,10 @@ import {
   premiumProducts,
 } from "@/data/premiumCatalog";
 import { premiumToLegacyProduct } from "@/lib/productAdapters";
-import { isProductVisibleInShop } from "@/lib/productAvailability";
+import {
+  isProductInStock,
+  isProductVisibleInShop,
+} from "@/lib/productAvailability";
 import { getProductById as getStoredProductById, loadProducts } from "@/lib/productStore";
 import type { PremiumProduct } from "@/types/product";
 import { accessoryProducts } from "@/data/accessoryCatalog";
@@ -38,8 +41,17 @@ export function getShopPremiumProducts(): PremiumProduct[] {
   return getAllPremiumProducts().filter(isProductVisibleInShop);
 }
 
+/** Homepage: nur Geräte mit Bestand (bzw. Vorverkauf). */
+export function getHomepagePremiumProducts(): PremiumProduct[] {
+  return getAllPremiumProducts().filter(isProductInStock);
+}
+
 export function getShopDeviceProducts(): Product[] {
   return getShopPremiumProducts().map(premiumToLegacyProduct);
+}
+
+export function getHomepageDeviceProducts(): Product[] {
+  return getHomepagePremiumProducts().map(premiumToLegacyProduct);
 }
 
 export function getAllCatalogProducts(): Product[] {
@@ -48,6 +60,11 @@ export function getAllCatalogProducts(): Product[] {
 
 export function getShopCatalogProducts(): Product[] {
   return [...getShopDeviceProducts(), ...accessoryProducts];
+}
+
+/** Homepage-Kategorien: nur lagernde Geräte (+ Zubehör ohne Bestandsführung). */
+export function getHomepageCatalogProducts(): Product[] {
+  return [...getHomepageDeviceProducts(), ...accessoryProducts];
 }
 
 export function getCatalogProductsByCategory(categoryId: CatalogCategoryId): Product[] {
@@ -62,6 +79,18 @@ export function getCatalogProductsByCategory(categoryId: CatalogCategoryId): Pro
 
 export function getShopCatalogProductsByCategory(categoryId: CatalogCategoryId): Product[] {
   const devices = getShopPremiumProducts()
+    .filter((product) => product.catalogCategory === categoryId)
+    .map(premiumToLegacyProduct);
+  const accessories = accessoryProducts.filter(
+    (product) => product.catalogCategory === categoryId,
+  );
+  return [...devices, ...accessories];
+}
+
+export function getHomepageCatalogProductsByCategory(
+  categoryId: CatalogCategoryId,
+): Product[] {
+  const devices = getHomepagePremiumProducts()
     .filter((product) => product.catalogCategory === categoryId)
     .map(premiumToLegacyProduct);
   const accessories = accessoryProducts.filter(

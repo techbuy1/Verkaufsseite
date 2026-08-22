@@ -55,7 +55,7 @@ export const techBuyServiceCards: TechBuyServiceCard[] = [
     body: "Auch nach dem Kauf soll Technik unkompliziert bleiben. Unser Service unterstützt Sie bei Fragen zu Bestellung, Versand und Produktinformationen und hilft Ihnen dabei, schnell die passende Lösung zu finden.",
     link: {
       label: "Zum Service",
-      href: "mailto:service@tbwebdesigne.de",
+      href: "mailto:info@techbuyshop.de",
     },
     visual: "service",
   },

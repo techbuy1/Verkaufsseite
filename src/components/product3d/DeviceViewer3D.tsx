@@ -82,6 +82,7 @@ function CanvasScene({
   viewCycleSeconds,
   autoRotateSpeed,
   presentationOnly = false,
+  frameloop = "always",
 }: {
   modelPath: string;
   colorHex?: string;
@@ -94,6 +95,7 @@ function CanvasScene({
   viewCycleSeconds?: number;
   autoRotateSpeed?: number;
   presentationOnly?: boolean;
+  frameloop?: "always" | "demand" | "never";
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const [hostReady, setHostReady] = useState(false);
@@ -116,19 +118,20 @@ function CanvasScene({
     >
       {hostReady ? (
         <Canvas
-          dpr={[1, 2]}
+          dpr={[1, 1.5]}
+          frameloop={frameloop}
           camera={{ position: [0, 0, 2.4], fov: 28, near: 0.1, far: 50 }}
-          gl={{ antialias: true, powerPreference: "high-performance" }}
+          gl={{
+            antialias: false,
+            powerPreference: "high-performance",
+            alpha: true,
+          }}
           shadows={false}
           // Bind events to the mounted host — never null — so R3F's connect()
           // cannot call addEventListener on null (presentation canvas only).
           // Skip for decorative heroes so wheel/touch scroll isn't captured.
           eventSource={presentationOnly ? undefined : hostRef.current ?? undefined}
-          // No debounce: the canvas otherwise sometimes locks onto its very
-          // first (pre-layout) measurement — e.g. R3F's 300×150 fallback — and
-          // never gets a later resize callback to correct it, since nothing
-          // about this container's own size changes again after mount.
-          resize={{ debounce: 0 }}
+          resize={{ debounce: 120 }}
           // Presentation-only: let page scroll / clicks pass through the canvas.
           style={{ pointerEvents: "none", touchAction: "pan-y" }}
           onCreated={({ gl, events }) => {
@@ -192,12 +195,34 @@ export const DeviceViewer3D = forwardRef<DeviceViewer3DHandle, DeviceViewer3DPro
   const [modelFailed, setModelFailed] = useState(false);
   const [modelLoaded, setModelLoaded] = useState(false);
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
+  const [inView, setInView] = useState(false);
+  const [hasBeenVisible, setHasBeenVisible] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<Scene3DHandle | null>(null);
   const fullscreenControlsRef = useRef<Scene3DHandle | null>(null);
   const lastOpenSignal = useRef(openSignal);
 
   useEffect(() => {
     setWebglOk(hasWebGL());
+  }, []);
+
+  useEffect(() => {
+    const node = rootRef.current;
+    if (!node || typeof IntersectionObserver === "undefined") {
+      setInView(true);
+      setHasBeenVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const visible = entry.isIntersecting;
+        setInView(visible);
+        if (visible) setHasBeenVisible(true);
+      },
+      { rootMargin: "160px 0px", threshold: 0.05 },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -251,6 +276,8 @@ export const DeviceViewer3D = forwardRef<DeviceViewer3DHandle, DeviceViewer3DPro
   }, [modelPath, colorModelPath]);
 
   const use3D = webglOk === true && resolvedModelPath !== null && !modelFailed;
+  const showInlineCanvas = use3D && !fullscreenOpen && hasBeenVisible;
+  const inlineFrameloop: "always" | "never" = inView ? "always" : "never";
 
   useImperativeHandle(
     handleRef,
@@ -289,11 +316,9 @@ export const DeviceViewer3D = forwardRef<DeviceViewer3DHandle, DeviceViewer3DPro
     />
   );
 
-  const showInlineCanvas = use3D && !fullscreenOpen;
-
   return (
     <>
-      <div className={`relative ${className}`}>
+      <div ref={rootRef} className={`relative ${className}`}>
         {showInlineCanvas ? (
           <ModelErrorBoundary fallback={renderFallbackImage()} onError={() => setModelFailed(true)}>
             <div className="relative h-full w-full">
@@ -309,6 +334,7 @@ export const DeviceViewer3D = forwardRef<DeviceViewer3DHandle, DeviceViewer3DPro
                 viewCycleSeconds={viewCycleSeconds}
                 autoRotateSpeed={autoRotateSpeed}
                 presentationOnly={presentationOnly}
+                frameloop={inlineFrameloop}
               />
               {!modelLoaded && <LoadingOverlay3D />}
 

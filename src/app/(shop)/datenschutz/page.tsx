@@ -1,4 +1,6 @@
 import { LegalPageLayout, LegalSection } from "@/components/legal/LegalPageLayout";
+import { companySettings } from "@/lib/companySettings";
+import { SHOP_CONTACT_EMAIL } from "@/lib/shopContact";
 
 export const metadata = { title: "Datenschutzerklärung – TechBuy" };
 
@@ -13,22 +15,22 @@ export default function DatenschutzPage() {
         <p>
           Verantwortlicher im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:
           <br />
-          Ahmad Amir Popal
+          {companySettings.ownerName}
           <br />
-          Techbuy
+          {companySettings.companyName}
           <br />
-          Krümmelstraße 2
+          {companySettings.street}
           <br />
-          21502 Geesthacht
+          {companySettings.postalCode} {companySettings.city}
           <br />
-          Deutschland
+          {companySettings.country}
           <br />
           E-Mail:{" "}
-          <a className="text-accent hover:underline" href="mailto:Bill@techbuy-ankauf.de">
-            Bill@techbuy-ankauf.de
+          <a className="text-accent hover:underline" href={`mailto:${SHOP_CONTACT_EMAIL}`}>
+            {SHOP_CONTACT_EMAIL}
           </a>
           <br />
-          Telefon: 01630448214
+          Telefon: {companySettings.phone}
         </p>
       </LegalSection>
 
@@ -113,8 +115,8 @@ export default function DatenschutzPage() {
         <p>
           Bei Fragen zur Erhebung, Verarbeitung oder Nutzung Ihrer personenbezogenen Daten
           erreichen Sie uns unter{" "}
-          <a className="text-accent hover:underline" href="mailto:Bill@techbuy-ankauf.de">
-            Bill@techbuy-ankauf.de
+          <a className="text-accent hover:underline" href={`mailto:${SHOP_CONTACT_EMAIL}`}>
+            {SHOP_CONTACT_EMAIL}
           </a>
           .
         </p>

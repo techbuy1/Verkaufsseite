@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const validated = validateAndPriceCart(
+  const validated = await validateAndPriceCart(
     body.items ?? [],
     body.upsellSelections,
   );

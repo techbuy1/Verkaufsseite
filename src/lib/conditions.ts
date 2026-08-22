@@ -11,8 +11,8 @@ export const CONDITION_IDS = [
 ] as const satisfies readonly ConditionId[];
 
 /**
- * Preisabschläge gegenüber dem Basispreis für „Neu“.
- * Zentral anpassbar — gilt für alle Produkte/Varianten.
+ * Default-Abschläge nur für neu angelegte Zustände (Migration / fehlende Einträge).
+ * Manuell gesetzte Preise pro Zustand bleiben unverändert.
  */
 export const CONDITION_DISCOUNTS: Record<ConditionId, number> = {
   new: 0,
@@ -209,7 +209,10 @@ function normalizeConditionEntry(
   };
 }
 
-/** Migriert Legacy-Speicheroptionen und stellt alle 7 Zustände mit Abschlagspreisen sicher. */
+/**
+ * Stellt alle 7 Zustände sicher.
+ * Vorhandene Einzelpreise bleiben erhalten — Abschläge nur für neu fehlende Zustände.
+ */
 export function ensureStorageConditions(
   option: StorageOption,
   fallbackStock = 0,
@@ -230,19 +233,26 @@ export function ensureStorageConditions(
   }
 
   const hasAnyConditions = existing.size > 0;
-  const rawConditions = CONDITION_IDS.map((condition) => {
+  const newBaseHint =
+    (existing.get("new")?.price && existing.get("new")!.price > 0
+      ? existing.get("new")!.price
+      : legacyPrice) || 0;
+
+  const conditions = CONDITION_IDS.map((condition) => {
     const current = existing.get(condition);
     if (current) {
       // Früher wurden ungenutzte Zustände mit active:false angelegt — für die
-      // Zustandsauswahl aktivieren wir sie, behalten aber den Bestand.
+      // Zustandsauswahl aktivieren wir sie, behalten aber den Bestand und Preis.
       const shouldActivate =
         current.active ||
         (current.stock === 0 && current.active === false);
       return normalizeConditionEntry(
         { ...current, active: shouldActivate },
         condition,
-        legacyPrice || current.price,
-        0,
+        typeof current.price === "number" && current.price > 0
+          ? current.price
+          : legacyPrice,
+        typeof current.stock === "number" ? current.stock : 0,
         true,
       );
     }
@@ -257,41 +267,27 @@ export function ensureStorageConditions(
       );
     }
 
+    // Nur fehlende Zustände: Default-Abschlag vom Neu-/Legacy-Preis.
+    const defaultPrice =
+      newBaseHint > 0 ? computeConditionPrice(newBaseHint, condition) : 0;
     return normalizeConditionEntry(
-      { price: legacyPrice, stock: 0, active: true },
+      { price: defaultPrice, stock: 0, active: true },
       condition,
-      legacyPrice,
+      defaultPrice,
       0,
       true,
     );
   });
 
-  const newBase =
-    rawConditions.find((entry) => entry.condition === "new")?.price ||
-    legacyPrice ||
-    0;
-
-  const conditions = rawConditions.map((entry) => ({
-    ...entry,
-    active: entry.active !== false,
-    label: CONDITION_DEFINITIONS[entry.condition].label,
-    price: computeConditionPrice(newBase > 0 ? newBase : entry.price, entry.condition),
-  }));
-
-  // Neu behält den Basispreis exakt
-  const withNewBase = conditions.map((entry) =>
-    entry.condition === "new" && newBase > 0 ? { ...entry, price: roundPrice(newBase) } : entry,
-  );
-
-  const activePriced = withNewBase.filter((c) => c.active && c.price > 0);
+  const activePriced = conditions.filter((c) => c.active && c.price > 0);
   const derivedPrice =
     activePriced.length > 0
       ? Math.min(...activePriced.map((c) => c.price))
       : legacyPrice ||
-        Math.min(...withNewBase.map((c) => c.price).filter((p) => p > 0), Infinity) ||
+        Math.min(...conditions.map((c) => c.price).filter((p) => p > 0), Infinity) ||
         0;
 
-  const derivedStock = withNewBase
+  const derivedStock = conditions
     .filter((c) => c.active)
     .reduce((sum, c) => sum + c.stock, 0);
 
@@ -300,7 +296,7 @@ export function ensureStorageConditions(
     storage: option.storage,
     price: Number.isFinite(derivedPrice) && derivedPrice !== Infinity ? derivedPrice : 0,
     stock: derivedStock,
-    conditions: withNewBase,
+    conditions,
   };
 }
 

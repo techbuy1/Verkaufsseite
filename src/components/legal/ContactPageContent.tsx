@@ -2,22 +2,36 @@
 
 import { useState } from "react";
 import { LegalPageLayout, LegalSection } from "@/components/legal/LegalPageLayout";
+import {
+  ORDER_NUMBER_HINT,
+  SHOP_CONTACT_EMAIL,
+  shopContactMailto,
+} from "@/lib/shopContact";
+import { companySettings } from "@/lib/companySettings";
 
-const CONTACT_EMAIL = "Bill@techbuy-ankauf.de";
 const inputClass =
   "w-full rounded-[12px] border border-border bg-white px-4 py-3 text-[14px] text-text-primary placeholder:text-text-secondary/60 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20";
 
 export function ContactPageContent() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [orderNumber, setOrderNumber] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
 
-  const mailtoHref = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(
-    subject || "Kontaktanfrage über techbuy.de",
-  )}&body=${encodeURIComponent(
-    `${message}\n\n—\n${name}\n${email}`,
-  )}`;
+  const mailtoHref = shopContactMailto({
+    subject: subject || "Kontaktanfrage über TechBuy Shop",
+    body: [
+      message.trim(),
+      "",
+      "—",
+      name.trim(),
+      email.trim(),
+      orderNumber.trim()
+        ? `Bestellnummer: ${orderNumber.trim()}`
+        : "Bestellnummer: (bitte angeben, falls vorhanden)",
+    ].join("\n"),
+  });
 
   return (
     <LegalPageLayout
@@ -29,22 +43,23 @@ export function ContactPageContent() {
         <LegalSection title="Direkt erreichbar">
           <p>
             Telefon:{" "}
-            <a className="text-accent hover:underline" href="tel:+4901630448214">
-              01630448214
+            <a className="text-accent hover:underline" href={`tel:+49${companySettings.phone}`}>
+              {companySettings.phone}
             </a>
           </p>
           <p>
             E-Mail:{" "}
-            <a className="text-accent hover:underline" href={`mailto:${CONTACT_EMAIL}`}>
-              {CONTACT_EMAIL}
+            <a className="text-accent hover:underline" href={`mailto:${SHOP_CONTACT_EMAIL}`}>
+              {SHOP_CONTACT_EMAIL}
             </a>
           </p>
+          <p className="pt-2 text-[14px] text-text-secondary">{ORDER_NUMBER_HINT}</p>
           <p className="pt-2">
-            Techbuy
+            {companySettings.companyName}
             <br />
-            Krümmelstraße 2
+            {companySettings.street}
             <br />
-            21502 Geesthacht
+            {companySettings.postalCode} {companySettings.city}
           </p>
         </LegalSection>
 
@@ -76,6 +91,14 @@ export function ContactPageContent() {
             </div>
             <input
               type="text"
+              placeholder="Bestellnummer (falls vorhanden)"
+              value={orderNumber}
+              onChange={(event) => setOrderNumber(event.target.value)}
+              className={inputClass}
+              autoComplete="off"
+            />
+            <input
+              type="text"
               placeholder="Betreff"
               value={subject}
               onChange={(event) => setSubject(event.target.value)}
@@ -96,7 +119,8 @@ export function ContactPageContent() {
               Nachricht senden
             </button>
             <p className="pt-1 text-[12px] text-text-secondary/70">
-              Öffnet dein E-Mail-Programm mit einer vorausgefüllten Nachricht an {CONTACT_EMAIL}.
+              Öffnet dein E-Mail-Programm mit einer vorausgefüllten Nachricht an{" "}
+              {SHOP_CONTACT_EMAIL}. {ORDER_NUMBER_HINT}
             </p>
           </form>
         </LegalSection>

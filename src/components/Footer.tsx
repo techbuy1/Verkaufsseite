@@ -15,7 +15,7 @@ const footerLinks = {
     { label: "Garantie", href: "/garantie" },
   ],
   kontakt: [
-    { label: "Bill@techbuy-ankauf.de", href: "mailto:Bill@techbuy-ankauf.de" },
+    { label: "info@techbuyshop.de", href: "mailto:info@techbuyshop.de" },
     { label: "01630448214", href: "tel:+4901630448214" },
     { label: "Support-Anfrage", href: "/support" },
     { label: "Bestellstatus", href: "/bestellstatus" },

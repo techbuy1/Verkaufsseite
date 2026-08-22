@@ -7,8 +7,6 @@ import { useShop } from "@/context/ShopContext";
 import { Button } from "./Button";
 import { HeartIcon } from "./Icons";
 import { ProductImageSwitch } from "./ProductImageSwitch";
-import { Reveal } from "./motion/Reveal";
-import { TiltCard } from "./motion/TiltCard";
 
 interface ProductCardProps {
   product: Product;
@@ -24,11 +22,9 @@ const IMAGE_HEIGHT_DEFAULT = "h-[190px] md:h-[210px]";
 export function ProductCard({
   product,
   size = "default",
-  index = 0,
 }: ProductCardProps) {
   const { toggleWishlist, isInWishlist } = useShop();
   const [selectedColorId, setSelectedColorId] = useState(product.colors?.[0]?.id);
-  const staggerDelay = Math.min(index, 5) * 0.07;
   const wishlisted = isInWishlist(product.id);
   const isCompact = size === "compact";
   const isTabletCategory = product.catalogCategory === "tablets";
@@ -47,11 +43,7 @@ export function ProductCard({
 
   if (isCompact) {
     return (
-      <Reveal variant="up" delay={staggerDelay} amount={0.15} className="h-full w-full min-w-0">
-      <TiltCard maxTilt={2.5} scale={1.006} className="h-full w-full min-w-0">
-      <article
-        className="product-card-hover group relative flex h-full w-full min-w-0 flex-col rounded-[14px] border border-border bg-surface-card p-1.5 shadow-[var(--shadow-card)] sm:p-2"
-      >
+      <article className="product-card-hover group relative flex h-full w-full min-w-0 flex-col rounded-[14px] border border-border bg-surface-card p-1.5 shadow-[var(--shadow-card)] sm:p-2">
         <button
           onClick={() => toggleWishlist(product.id)}
           className={`absolute right-1 top-1 z-10 rounded-full p-0.5 transition-colors duration-200 ${
@@ -149,14 +141,10 @@ export function ProductCard({
           </Link>
         </div>
       </article>
-      </TiltCard>
-      </Reveal>
     );
   }
 
   return (
-    <Reveal variant="up" delay={staggerDelay} amount={0.15} className="h-full">
-    <TiltCard maxTilt={4} scale={1.012} className="h-full">
     <article className="product-card-hover group relative flex h-full flex-col rounded-[22px] border border-border bg-surface-card p-5 shadow-[var(--shadow-card)] md:p-6">
       <button
         onClick={() => toggleWishlist(product.id)}
@@ -248,7 +236,5 @@ export function ProductCard({
         </div>
       </div>
     </article>
-    </TiltCard>
-    </Reveal>
   );
 }

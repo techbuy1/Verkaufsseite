@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LegalPageLayout, LegalSection } from "@/components/legal/LegalPageLayout";
+import { ORDER_NUMBER_HINT, SHOP_CONTACT_EMAIL } from "@/lib/shopContact";
 
 export const metadata = { title: "Sendungsverfolgung – TechBuy" };
 
@@ -19,7 +20,11 @@ export default function TrackingPage() {
           <Link href="/kontakt" className="text-accent hover:underline">
             Kontaktseite
           </Link>{" "}
-          mit Ihrer Bestellnummer — wir teilen Ihnen den aktuellen Versandstatus gerne mit.
+          oder per E-Mail an{" "}
+          <a className="text-accent hover:underline" href={`mailto:${SHOP_CONTACT_EMAIL}`}>
+            {SHOP_CONTACT_EMAIL}
+          </a>
+          . {ORDER_NUMBER_HINT} Wir teilen Ihnen den aktuellen Versandstatus gerne mit.
         </p>
       </LegalSection>
     </LegalPageLayout>
