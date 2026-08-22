@@ -162,6 +162,8 @@ function wrapEmail(title: string, body: string): string {
     <div style="padding:16px 24px;background:#f5f5f7;color:#6e6e73;font-size:12px;">
       ${escapeHtml(companySettings.companyName)} · ${escapeHtml(companySettings.street)},
       ${escapeHtml(companySettings.postalCode)} ${escapeHtml(companySettings.city)}
+      <br/>Fragen? <a href="mailto:${escapeHtml(companySettings.email)}" style="color:#0071e3;text-decoration:none;">${escapeHtml(companySettings.email)}</a>
+      — bitte immer deine Bestellnummer angeben.
     </div>
   </div>
 </body>
@@ -200,6 +202,7 @@ export async function sendOrderConfirmationEmail(input: {
     <p>Zahlungsart: ${escapeHtml(paymentLabel)}</p>
     ${invoiceBlock}
     <p style="color:#6e6e73;">Wir informieren dich per E-Mail, sobald deine Bestellung versendet wurde. Die Rechnung erhältst du nach der Versandvorbereitung separat.</p>
+    <p style="color:#6e6e73;">Fragen zur Bestellung? Schreib an ${escapeHtml(companySettings.email)} und gib bitte immer deine Bestellnummer an.</p>
   `,
   );
 

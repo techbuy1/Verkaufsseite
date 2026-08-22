@@ -18,7 +18,7 @@ const FAQ_ITEMS: { q: string; a: string }[] = [
   },
   {
     q: "Kann ich meine Bestellung zurückgeben?",
-    a: "Als Verbraucher steht Ihnen ein 14-tägiges Widerrufsrecht zu. Details finden Sie auf unserer Widerrufs- und Rückgabeseite. Bitte melden Sie sich unter info@techbuyshop.de und geben Sie stets Ihre Bestellnummer an.",
+    a: `Als Verbraucher steht Ihnen ein 14-tägiges Widerrufsrecht zu. Details finden Sie auf unserer Widerrufs- und Rückgabeseite. Bitte melden Sie sich unter ${SHOP_CONTACT_EMAIL} und geben Sie stets Ihre Bestellnummer an.`,
   },
   {
     q: "Wie erreiche ich den Support?",

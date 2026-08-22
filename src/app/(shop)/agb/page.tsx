@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LegalPageLayout, LegalSection } from "@/components/legal/LegalPageLayout";
+import { ORDER_NUMBER_HINT, SHOP_CONTACT_EMAIL } from "@/lib/shopContact";
 
 export const metadata = { title: "AGB – TechBuy" };
 
@@ -162,12 +163,17 @@ export default function AgbPage() {
         </p>
         <p>
           (5) Zur zügigen Bearbeitung bittet TechBuy, Mängel unter genauer Beschreibung sowie mit
-          Fotodokumentation über die{" "}
+          Fotodokumentation und Angabe der Bestellnummer über die{" "}
           <Link className="text-accent hover:underline" href="/kontakt">
             Kontaktseite
           </Link>{" "}
-          anzuzeigen. Verschleiß durch normalen, bestimmungsgemäßen Gebrauch nach Gefahrübergang
-          (z. B. übliche alterungsbedingte Akkukapazitätsminderung) stellt keinen Sachmangel dar.
+          oder per E-Mail an{" "}
+          <a className="text-accent hover:underline" href={`mailto:${SHOP_CONTACT_EMAIL}`}>
+            {SHOP_CONTACT_EMAIL}
+          </a>{" "}
+          anzuzeigen. {ORDER_NUMBER_HINT} Verschleiß durch normalen, bestimmungsgemäßen Gebrauch
+          nach Gefahrübergang (z. B. übliche alterungsbedingte Akkukapazitätsminderung) stellt
+          keinen Sachmangel dar.
         </p>
       </LegalSection>
 
