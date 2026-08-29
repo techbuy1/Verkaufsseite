@@ -4,15 +4,18 @@ import {
   findOrderById,
   findOrderByStripeSessionId,
 } from "@/lib/orderStore";
-import { getSiteUrl, getStripe } from "@/lib/stripe";
+import { logMissingEnv, missingConfigMessage } from "@/lib/env";
+import { getSiteUrl } from "@/lib/siteUrl";
+import { getStripe } from "@/lib/stripe";
 
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
   const stripe = getStripe();
   if (!stripe) {
+    logMissingEnv("stripe/confirm", ["STRIPE_SECRET_KEY"]);
     return NextResponse.json(
-      { message: "Stripe ist nicht konfiguriert." },
+      { message: missingConfigMessage("Stripe", ["STRIPE_SECRET_KEY"]) },
       { status: 503 },
     );
   }

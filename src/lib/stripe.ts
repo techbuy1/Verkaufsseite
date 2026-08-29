@@ -1,10 +1,14 @@
 import Stripe from "stripe";
+import { isEnvConfigured } from "@/lib/env";
+
+export { getSiteUrl } from "@/lib/siteUrl";
 
 let stripeClient: Stripe | null = null;
 
 export function getStripe(): Stripe | null {
+  if (!isEnvConfigured("STRIPE_SECRET_KEY")) return null;
   const key = process.env.STRIPE_SECRET_KEY?.trim();
-  if (!key || key.includes("REPLACE")) return null;
+  if (!key) return null;
 
   if (!stripeClient) {
     stripeClient = new Stripe(key, {
@@ -17,8 +21,7 @@ export function getStripe(): Stripe | null {
 }
 
 export function isStripeConfigured(): boolean {
-  const key = process.env.STRIPE_SECRET_KEY?.trim();
-  return Boolean(key && !key.includes("REPLACE"));
+  return isEnvConfigured("STRIPE_SECRET_KEY");
 }
 
 /** Optional Stripe Price ID for single-product / featured checkout. */
@@ -28,6 +31,7 @@ export function getStripePriceId(): string | null {
 }
 
 export function getStripeWebhookSecret(): string | null {
+  if (!isEnvConfigured("STRIPE_WEBHOOK_SECRET")) return null;
   const secret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
   return secret && secret.startsWith("whsec_") ? secret : null;
 }
@@ -43,19 +47,3 @@ export function getStripePublishableKey(): string | null {
   return key && key.startsWith("pk_") ? key : null;
 }
 
-export function getSiteUrl(request?: Request): string {
-  const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "");
-  if (fromEnv) return fromEnv;
-
-  if (request) {
-    const origin = request.headers.get("origin");
-    if (origin) return origin.replace(/\/$/, "");
-    const host = request.headers.get("host");
-    if (host) {
-      const proto = request.headers.get("x-forwarded-proto") ?? "http";
-      return `${proto}://${host}`.replace(/\/$/, "");
-    }
-  }
-
-  return "http://localhost:3000";
-}

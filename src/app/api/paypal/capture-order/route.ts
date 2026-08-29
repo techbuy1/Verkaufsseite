@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logMissingEnv, missingConfigMessage } from "@/lib/env";
 import {
   capturePayPalOrder,
   getPayPalOrder,
@@ -10,7 +11,7 @@ import {
   findOrderByPayPalOrderId,
   updateOrder,
 } from "@/lib/orderStore";
-import { getSiteUrl } from "@/lib/stripe";
+import { getSiteUrl } from "@/lib/siteUrl";
 
 export const runtime = "nodejs";
 
@@ -21,8 +22,17 @@ function amountsMatch(expected: number, actual: number | undefined): boolean {
 
 export async function POST(request: Request) {
   if (!isPayPalConfigured()) {
+    logMissingEnv("paypal/capture-order", [
+      "NEXT_PUBLIC_PAYPAL_CLIENT_ID",
+      "PAYPAL_CLIENT_SECRET",
+    ]);
     return NextResponse.json(
-      { message: "PayPal ist nicht konfiguriert." },
+      {
+        message: missingConfigMessage("PayPal", [
+          "NEXT_PUBLIC_PAYPAL_CLIENT_ID",
+          "PAYPAL_CLIENT_SECRET",
+        ]),
+      },
       { status: 503 },
     );
   }

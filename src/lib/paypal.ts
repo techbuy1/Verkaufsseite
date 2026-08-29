@@ -1,3 +1,4 @@
+import { isEnvConfigured } from "@/lib/env";
 import type { ValidatedCartTotals } from "@/lib/serverCheckout";
 import { formatEuroAmount } from "@/lib/serverCheckout";
 
@@ -9,27 +10,25 @@ function getPayPalEnv(): PayPalEnv {
 }
 
 export function isPayPalConfigured(): boolean {
-  return Boolean(
-    process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID?.trim() &&
-      process.env.PAYPAL_CLIENT_SECRET?.trim() &&
-      !process.env.PAYPAL_CLIENT_SECRET.includes("REPLACE"),
+  return (
+    isEnvConfigured("NEXT_PUBLIC_PAYPAL_CLIENT_ID") &&
+    isEnvConfigured("PAYPAL_CLIENT_SECRET")
   );
 }
 
 export function getPayPalClientId(): string | null {
-  const id = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID?.trim();
-  return id || null;
+  if (!isEnvConfigured("NEXT_PUBLIC_PAYPAL_CLIENT_ID")) return null;
+  return process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID?.trim() || null;
 }
 
 function getPayPalSecret(): string | null {
-  const secret = process.env.PAYPAL_CLIENT_SECRET?.trim();
-  if (!secret || secret.includes("REPLACE")) return null;
-  return secret;
+  if (!isEnvConfigured("PAYPAL_CLIENT_SECRET")) return null;
+  return process.env.PAYPAL_CLIENT_SECRET?.trim() || null;
 }
 
 export function getPayPalWebhookId(): string | null {
-  const id = process.env.PAYPAL_WEBHOOK_ID?.trim();
-  return id || null;
+  if (!isEnvConfigured("PAYPAL_WEBHOOK_ID")) return null;
+  return process.env.PAYPAL_WEBHOOK_ID?.trim() || null;
 }
 
 function getApiBase(): string {

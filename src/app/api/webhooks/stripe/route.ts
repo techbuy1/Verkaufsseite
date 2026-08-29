@@ -5,6 +5,7 @@ import {
   findOrderById,
   findOrderByStripeSessionId,
 } from "@/lib/orderStore";
+import { logMissingEnv, missingConfigMessage } from "@/lib/env";
 import { getSiteUrl, getStripe, getStripeWebhookSecret } from "@/lib/stripe";
 import { recordFulfilledSession } from "@/lib/stripeOrders";
 
@@ -15,10 +16,16 @@ export async function POST(request: Request) {
   const webhookSecret = getStripeWebhookSecret();
 
   if (!stripe || !webhookSecret) {
+    logMissingEnv("stripe/webhook", ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"]);
+    if (!webhookSecret) {
+      console.error("[stripe/webhook] STRIPE_WEBHOOK_SECRET is missing");
+    }
     return NextResponse.json(
       {
-        message:
-          "Webhook nicht konfiguriert. STRIPE_SECRET_KEY und STRIPE_WEBHOOK_SECRET setzen.",
+        message: missingConfigMessage("Stripe-Webhook", [
+          "STRIPE_SECRET_KEY",
+          "STRIPE_WEBHOOK_SECRET",
+        ]),
       },
       { status: 503 },
     );

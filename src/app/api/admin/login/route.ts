@@ -4,7 +4,10 @@ import {
   ADMIN_SESSION_MAX_AGE_SEC,
   createAdminSessionToken,
   credentialsMatch,
+  getMissingAdminEnvNames,
+  isAdminAuthConfigured,
 } from "@/lib/admin/auth";
+import { isProductionRuntime, logMissingEnv } from "@/lib/env";
 
 export const runtime = "nodejs";
 
@@ -16,6 +19,20 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { ok: false, error: "Ungültige Anfrage." },
       { status: 400 },
+    );
+  }
+
+  if (!isAdminAuthConfigured()) {
+    const missing = getMissingAdminEnvNames();
+    logMissingEnv("admin/login", missing);
+    return NextResponse.json(
+      {
+        ok: false,
+        error: isProductionRuntime()
+          ? "Admin-Login ist nicht konfiguriert."
+          : `Admin-Login ist nicht konfiguriert. ${missing.map((name) => `${name} is missing`).join(" ")}`,
+      },
+      { status: 503 },
     );
   }
 

@@ -1,3 +1,5 @@
+import { isEnvConfigured } from "@/lib/env";
+
 /**
  * Edge-compatible session verification for Next.js middleware.
  * Token format must match `createAdminSessionToken` in auth.ts:
@@ -6,17 +8,15 @@
 
 export const ADMIN_SESSION_COOKIE = "tb_admin_session";
 
-function getSessionSecret() {
-  return (
-    process.env.ADMIN_SESSION_SECRET ??
-    "techbuy-admin-session-secret-v1"
-  );
+function getSessionSecret(): string | null {
+  if (!isEnvConfigured("ADMIN_SESSION_SECRET")) return null;
+  return process.env.ADMIN_SESSION_SECRET?.trim() || null;
 }
 
-async function hmacHex(message: string): Promise<string> {
+async function hmacHex(message: string, secret: string): Promise<string> {
   const key = await crypto.subtle.importKey(
     "raw",
-    new TextEncoder().encode(getSessionSecret()),
+    new TextEncoder().encode(secret),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"],
@@ -44,6 +44,9 @@ export async function verifyAdminSessionTokenEdge(
   token: string | undefined | null,
 ): Promise<boolean> {
   if (!token) return false;
+  const secret = getSessionSecret();
+  if (!secret) return false;
+
   const parts = token.split(".");
   if (parts.length !== 3) return false;
 
@@ -53,6 +56,6 @@ export async function verifyAdminSessionTokenEdge(
   const exp = Number(expStr);
   if (!Number.isFinite(exp) || Date.now() > exp) return false;
 
-  const expected = await hmacHex(`${role}.${expStr}`);
+  const expected = await hmacHex(`${role}.${expStr}`, secret);
   return timingSafeEqualHex(sig, expected);
 }

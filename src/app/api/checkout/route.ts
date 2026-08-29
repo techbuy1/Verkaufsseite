@@ -7,6 +7,7 @@ import {
   type CheckoutLineInput,
 } from "@/lib/serverCheckout";
 import type { DeviceUpsellSelectionInput } from "@/lib/checkoutUpsell";
+import { logMissingEnv, missingConfigMessage } from "@/lib/env";
 import {
   getSiteUrl,
   getStripe,
@@ -41,11 +42,11 @@ export async function POST(request: Request) {
   }
 
   if (!isStripeConfigured()) {
+    logMissingEnv("stripe/checkout", ["STRIPE_SECRET_KEY"]);
     return NextResponse.json(
       {
         ok: false,
-        message:
-          "Stripe ist noch nicht konfiguriert. Bitte STRIPE_SECRET_KEY in .env.local setzen.",
+        message: missingConfigMessage("Stripe", ["STRIPE_SECRET_KEY"]),
       },
       { status: 503 },
     );

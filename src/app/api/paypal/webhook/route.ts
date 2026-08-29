@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
-import { verifyPayPalWebhook } from "@/lib/paypal";
+import { logMissingEnv, missingConfigMessage } from "@/lib/env";
+import { getPayPalWebhookId, verifyPayPalWebhook } from "@/lib/paypal";
 import { fulfillPaidOrder } from "@/lib/fulfillOrder";
 import {
   findOrderByPayPalCaptureId,
   findOrderByPayPalOrderId,
   updateOrder,
 } from "@/lib/orderStore";
-import { getSiteUrlFromEnv } from "@/lib/siteUrl";
+import { getSiteUrl } from "@/lib/siteUrl";
 
 export const runtime = "nodejs";
 
@@ -25,6 +26,14 @@ interface PayPalWebhookEvent {
 }
 
 export async function POST(request: Request) {
+  if (!getPayPalWebhookId()) {
+    logMissingEnv("paypal/webhook", ["PAYPAL_WEBHOOK_ID"]);
+    return NextResponse.json(
+      { message: missingConfigMessage("PayPal-Webhook", ["PAYPAL_WEBHOOK_ID"]) },
+      { status: 503 },
+    );
+  }
+
   const rawBody = await request.text();
 
   const valid = await verifyPayPalWebhook({
@@ -70,7 +79,7 @@ export async function POST(request: Request) {
         orderId: order.id,
         paidAmount: Number.isFinite(amount) ? (amount as number) : order.total,
         paypalCaptureId: captureId,
-        requestOrigin: getSiteUrlFromEnv(),
+        requestOrigin: getSiteUrl(request),
       });
     } else if (eventType === "PAYMENT.CAPTURE.PENDING") {
       if (order.paymentStatus !== "paid") {

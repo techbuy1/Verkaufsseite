@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { validateCheckoutCustomer } from "@/lib/checkoutCustomer";
+import { logMissingEnv, missingConfigMessage } from "@/lib/env";
 import { createPayPalOrder, isPayPalConfigured } from "@/lib/paypal";
 import { createPendingOrder, updateOrder } from "@/lib/orderStore";
 import {
@@ -13,10 +14,16 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   if (!isPayPalConfigured()) {
+    logMissingEnv("paypal/create-order", [
+      "NEXT_PUBLIC_PAYPAL_CLIENT_ID",
+      "PAYPAL_CLIENT_SECRET",
+    ]);
     return NextResponse.json(
       {
-        message:
-          "PayPal ist noch nicht konfiguriert. Bitte NEXT_PUBLIC_PAYPAL_CLIENT_ID und PAYPAL_CLIENT_SECRET setzen.",
+        message: missingConfigMessage("PayPal", [
+          "NEXT_PUBLIC_PAYPAL_CLIENT_ID",
+          "PAYPAL_CLIENT_SECRET",
+        ]),
       },
       { status: 503 },
     );
