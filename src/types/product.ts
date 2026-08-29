@@ -171,4 +171,12 @@ export interface AddToCartPayload {
   quantity?: number;
   /** Stabile Produkt-ID des kompatiblen Smartphones — für gerätespezifisches Zubehör. */
   deviceId?: string;
+  /** Client snapshot from the PDP so the cart works without the full catalog in memory. */
+  name?: string;
+  brand?: string;
+  slug?: string;
+  image?: string;
+  unitPrice?: number;
+  stock?: number;
+  colorName?: string;
 }

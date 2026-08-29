@@ -55,6 +55,8 @@ export interface Product {
   storage?: string;
   color?: string;
   variant?: string;
+  model?: string;
+  generation?: string;
   colors?: ProductColorOption[];
   storageOptions?: string[];
   /** Optional: Zustand des günstigsten verfügbaren Preises */

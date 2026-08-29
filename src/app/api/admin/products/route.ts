@@ -1,9 +1,20 @@
 import { NextResponse } from "next/server";
 import { verifyAdminSessionFromCookieHeader } from "@/lib/admin/auth";
-import { writeServerProducts } from "@/lib/serverProductCatalog";
+import { readServerProducts, writeServerProducts } from "@/lib/serverProductCatalog";
 import type { PremiumProduct } from "@/types/product";
 
 export const runtime = "nodejs";
+
+/** Full catalog for admin editors only. */
+export async function GET(request: Request) {
+  const ok = verifyAdminSessionFromCookieHeader(request.headers.get("cookie"));
+  if (!ok) {
+    return NextResponse.json({ message: "Nicht autorisiert." }, { status: 401 });
+  }
+
+  const { products, persisted } = await readServerProducts();
+  return NextResponse.json({ ok: true, persisted, products });
+}
 
 /** Persist full product catalog (admin prices, stock, variants). */
 export async function PUT(request: Request) {

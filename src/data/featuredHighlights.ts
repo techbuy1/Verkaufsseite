@@ -5,11 +5,6 @@
  * Datei enthält nur die editorielle Zusatzschicht (Kurz-Highlights, Glow).
  */
 
-import {
-  GALAXY_S26_ULTRA_MODEL_PATH,
-  IPHONE_17_PRO_MODEL_PATH,
-} from "@/components/product3d/constants";
-
 export interface HighlightImageAngles {
   front: string;
   back?: string;
@@ -58,8 +53,7 @@ export const featuredHighlightProducts: HighlightProductConfig[] = [
     eyebrow: "iPhone 17 Pro",
     headline: "Pro. In jeder Perspektive.",
     glowColor: "#e8622a",
-    use3D: true,
-    modelPath: IPHONE_17_PRO_MODEL_PATH,
+    use3D: false,
     stats: [
       { icon: "chip", label: "Chip", value: "A19 Pro" },
       { icon: "camera", label: "Kamera", value: "48 MP Fusion" },
@@ -86,8 +80,7 @@ export const featuredHighlightProducts: HighlightProductConfig[] = [
     eyebrow: "Galaxy S26 Ultra",
     headline: "Ultra. In jedem Detail.",
     glowColor: "#4a6fa5",
-    use3D: true,
-    modelPath: GALAXY_S26_ULTRA_MODEL_PATH,
+    use3D: false,
     stats: [
       { icon: "chip", label: "Chip", value: "Snapdragon 8 Elite" },
       { icon: "camera", label: "Kamera", value: "50 MP Pro-Kamera" },

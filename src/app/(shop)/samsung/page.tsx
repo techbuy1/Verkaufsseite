@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { CatalogBrowseSection } from "@/components/shop/CatalogBrowseSection";
-import { BrandHero3DCarousel } from "@/components/hero/BrandHero3DCarousel";
+import { BrandHeroBanner } from "@/components/hero/BrandHeroBanner";
 import { SAMSUNG_HERO_CANDIDATES } from "@/data/brandHeroDevices";
 
 function SamsungContent() {
@@ -18,7 +18,7 @@ function SamsungContent() {
 export default function SamsungPage() {
   return (
     <>
-      <BrandHero3DCarousel
+      <BrandHeroBanner
         eyebrow="Galaxy"
         headline="Ultra Leistung. Ultra smart."
         subheadline="Vom Alltags-Allrounder Galaxy A57 bis zum Galaxy S26 Ultra — Premium-Kamera und Galaxy AI."

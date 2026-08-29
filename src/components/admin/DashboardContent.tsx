@@ -13,7 +13,7 @@ import { RevenueChart } from "./RevenueChart";
 import { StatCard } from "./StatCard";
 
 export function DashboardContent() {
-  const { products } = useProductStore();
+  const { fullProducts: products } = useProductStore();
   const {
     ytdRevenue,
     ytdProfit,

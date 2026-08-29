@@ -6,9 +6,6 @@ import { useEffect, useMemo, useState } from "react";
 import { formatPrice } from "@/data/products";
 import { getColorDefinitionsForSlug } from "@/data/productImageMap";
 import { getDealImageCollage } from "@/data/dealImageCollages";
-import { resolvePremiumProduct } from "@/lib/catalog";
-import { isProductInStock } from "@/lib/productAvailability";
-import { getProductPrice, getStorageOptionsForColor } from "@/lib/productVariants";
 import { TOP_DEAL_PRODUCT_OPTIONS } from "@/lib/topDealStore";
 import { useTopDeal } from "@/context/TopDealContext";
 import { useProductStore } from "@/context/ProductStoreContext";
@@ -73,7 +70,7 @@ export function TopDealSection() {
   const prefersReducedMotion = useReducedMotion();
 
   const product = ready && productsReady
-    ? getProductById(config.productId) ?? resolvePremiumProduct(config.productId)
+    ? getProductById(config.productId)
     : undefined;
   const modelOption = TOP_DEAL_PRODUCT_OPTIONS.find((option) => option.productId === config.productId);
   const colors = useMemo(
@@ -87,18 +84,20 @@ export function TopDealSection() {
     !productsReady ||
     !config.active ||
     !product ||
-    !isProductInStock(product) ||
+    !product.inStock ||
     !modelOption ||
     !selectedColor
   ) {
     return null;
   }
 
-  const storageOptions = getStorageOptionsForColor(product, selectedColor.id);
-  const storage = storageOptions.find((option) => option.storage === config.storage) ?? storageOptions[0];
+  const storage =
+    product.storageOptions.find((option) => option === config.storage) ??
+    product.storageOptions[0] ??
+    config.storage;
   if (!storage) return null;
 
-  const originalPrice = getProductPrice(product, storage.storage, selectedColor.id);
+  const originalPrice = product.priceFrom;
   const dealPrice = Math.round(originalPrice * (1 - config.discountPercent / 100));
   const collage = getDealImageCollage(config.productId, selectedColor.id);
 
@@ -142,7 +141,7 @@ export function TopDealSection() {
                   -{config.discountPercent}%
                 </span>
               </div>
-              <p className="mt-1 text-[13px] text-white/40">{storage.storage} · {selectedColor.name}</p>
+              <p className="mt-1 text-[13px] text-white/40">{storage} · {selectedColor.name}</p>
             </Reveal>
 
             <Reveal variant="up-soft" delay={0.26}>

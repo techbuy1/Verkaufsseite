@@ -1,7 +1,4 @@
 import type { Product } from "@/data/products";
-import { resolvePremiumProductBySlug } from "@/lib/catalog";
-import { isProductInStock } from "@/lib/productAvailability";
-import { getProductVariants } from "@/lib/productVariants";
 
 export type BrandFilterValue =
   | "all"
@@ -71,12 +68,9 @@ const BRAND_LABELS: Record<Exclude<BrandFilterValue, "all">, string> = {
   oneplus: "OnePlus",
 };
 
-/** Legacy Product / Zubehör: auf Lager wenn nicht soldOut; Premium über echten Bestand. */
+/** Listing DTO: soldOut is set from the compact catalog / accessory flags. */
 export function isCatalogProductInStock(product: Product): boolean {
-  if (product.soldOut) return false;
-  const premium = resolvePremiumProductBySlug(product.slug);
-  if (premium) return isProductInStock(premium);
-  return true;
+  return product.soldOut !== true;
 }
 
 function compareInStockFirst(a: Product, b: Product): number {
@@ -109,10 +103,8 @@ export function sortProducts(products: Product[], sort: SortOption): Product[] {
       case "name-asc":
         return a.name.localeCompare(b.name, "de");
       case "newest": {
-        const premiumA = resolvePremiumProductBySlug(a.slug);
-        const premiumB = resolvePremiumProductBySlug(b.slug);
-        const genA = premiumA?.generation ?? "";
-        const genB = premiumB?.generation ?? "";
+        const genA = a.generation ?? "";
+        const genB = b.generation ?? "";
         if (genA !== genB) return genB.localeCompare(genA, "de");
         const aNew = a.badge === "Neu" ? 1 : 0;
         const bNew = b.badge === "Neu" ? 1 : 0;
@@ -127,13 +119,11 @@ export function sortProducts(products: Product[], sort: SortOption): Product[] {
       }
       case "recommended":
       default: {
-        const premiumA = resolvePremiumProductBySlug(a.slug);
-        const premiumB = resolvePremiumProductBySlug(b.slug);
         const aNew = a.badge === "Neu" ? 1 : 0;
         const bNew = b.badge === "Neu" ? 1 : 0;
         if (aNew !== bNew) return bNew - aNew;
-        const genA = premiumA?.generation ?? "";
-        const genB = premiumB?.generation ?? "";
+        const genA = a.generation ?? "";
+        const genB = b.generation ?? "";
         if (genA !== genB) return genB.localeCompare(genA, "de");
         return a.name.localeCompare(b.name, "de");
       }
@@ -155,37 +145,24 @@ export function applyAdvancedProductFilters(
   let result = filterProductsByBrand(products, filters.brand);
 
   if (filters.model !== "all") {
-    result = result.filter((product) => {
-      const premium = resolvePremiumProductBySlug(product.slug);
-      return premium?.model === filters.model;
-    });
+    result = result.filter((product) => (product.model ?? product.name) === filters.model);
   }
 
   if (filters.generation !== "all") {
-    result = result.filter((product) => {
-      const premium = resolvePremiumProductBySlug(product.slug);
-      return premium?.generation === filters.generation;
-    });
+    result = result.filter((product) => product.generation === filters.generation);
   }
 
   if (filters.storage !== "all") {
-    result = result.filter((product) => {
-      const premium = resolvePremiumProductBySlug(product.slug);
-      if (!premium) return false;
-      return getProductVariants(premium).some((variant) =>
-        variant.storageOptions.some((option) => option.storage.includes(filters.storage)),
-      );
-    });
+    result = result.filter((product) =>
+      (product.storageOptions ?? []).some((storage) => storage.includes(filters.storage)),
+    );
   }
 
   if (filters.color !== "all") {
-    result = result.filter((product) => {
-      const premium = resolvePremiumProductBySlug(product.slug);
-      if (!premium) return false;
-      return getProductVariants(premium).some((variant) =>
-        variant.colorName.toLowerCase().includes(filters.color.toLowerCase()),
-      );
-    });
+    const needle = filters.color.toLowerCase();
+    result = result.filter((product) =>
+      (product.colors ?? []).some((color) => color.label.toLowerCase().includes(needle)),
+    );
   }
 
   if (filters.minPrice !== null) {
@@ -211,7 +188,7 @@ export function getAvailableModels(products: Product[]): string[] {
   return [
     ...new Set(
       products
-        .map((product) => resolvePremiumProductBySlug(product.slug)?.model)
+        .map((product) => product.model ?? product.name)
         .filter((value): value is string => Boolean(value)),
     ),
   ].sort((a, b) => a.localeCompare(b, "de"));
@@ -221,7 +198,7 @@ export function getAvailableGenerations(products: Product[]): string[] {
   return [
     ...new Set(
       products
-        .map((product) => resolvePremiumProductBySlug(product.slug)?.generation)
+        .map((product) => product.generation)
         .filter((value): value is string => Boolean(value)),
     ),
   ].sort((a, b) => b.localeCompare(a, "de"));
@@ -230,13 +207,9 @@ export function getAvailableGenerations(products: Product[]): string[] {
 export function getAvailableStorages(products: Product[]): string[] {
   const storages = new Set<string>();
   for (const product of products) {
-    const premium = resolvePremiumProductBySlug(product.slug);
-    if (!premium) continue;
-    for (const variant of getProductVariants(premium)) {
-      for (const option of variant.storageOptions) {
-        const base = option.storage.split(" · ")[0]?.trim();
-        if (base) storages.add(base);
-      }
+    for (const storage of product.storageOptions ?? []) {
+      const base = storage.split(" · ")[0]?.trim();
+      if (base) storages.add(base);
     }
   }
   return [...storages].sort((a, b) => a.localeCompare(b, "de"));
@@ -245,10 +218,8 @@ export function getAvailableStorages(products: Product[]): string[] {
 export function getAvailableColors(products: Product[]): string[] {
   const colors = new Set<string>();
   for (const product of products) {
-    const premium = resolvePremiumProductBySlug(product.slug);
-    if (!premium) continue;
-    for (const variant of getProductVariants(premium)) {
-      colors.add(variant.colorName);
+    for (const color of product.colors ?? []) {
+      colors.add(color.label);
     }
   }
   return [...colors].sort((a, b) => a.localeCompare(b, "de"));

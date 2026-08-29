@@ -15,7 +15,7 @@ function toDateInputValue(iso: string): string {
 }
 
 export function SalesLedgerPage() {
-  const { products } = useProductStore();
+  const { fullProducts: products } = useProductStore();
   const {
     sales,
     ytdRevenue,

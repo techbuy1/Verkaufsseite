@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { CatalogBrowseSection } from "@/components/shop/CatalogBrowseSection";
-import { BrandHero3DCarousel } from "@/components/hero/BrandHero3DCarousel";
+import { BrandHeroBanner } from "@/components/hero/BrandHeroBanner";
 import { IPHONE_HERO_CANDIDATES } from "@/data/brandHeroDevices";
 
 function IphoneContent() {
@@ -18,7 +18,7 @@ function IphoneContent() {
 export default function IphonePage() {
   return (
     <>
-      <BrandHero3DCarousel
+      <BrandHeroBanner
         eyebrow="iPhone 17 Pro"
         headline="Pro. In jeder Perspektive."
         subheadline="Titan-Gehäuse, A19 Pro Chip und das stärkste iPhone Kamerasystem — jetzt bei TechBuy."

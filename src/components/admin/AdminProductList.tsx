@@ -31,7 +31,7 @@ const AVAILABILITY_FILTERS = [
 ] as const;
 
 export function AdminProductList() {
-  const { products, updateProduct } = useProductStore();
+  const { fullProducts: products, updateProduct } = useProductStore();
   const [brandFilter, setBrandFilter] = useState<string>("Alle");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [availabilityFilter, setAvailabilityFilter] = useState<string>("all");

@@ -10,7 +10,6 @@ import {
   getProductRegularPrice,
 } from "@/data/premiumCatalog";
 import { formatPrice } from "@/data/products";
-import { getColorDefinitionsForSlug } from "@/data/productImageMap";
 import {
   buildProductConfigIndex,
   getConditionAvailabilityFromIndex,
@@ -23,7 +22,6 @@ import {
 } from "@/lib/productAvailability";
 import { CONDITION_DEFINITIONS, CONDITION_IDS } from "@/lib/conditions";
 import { getImageTypeForCategory } from "@/lib/productAdapters";
-import { getProductModelPath } from "@/lib/productModels";
 import { useShopCartActions } from "@/context/ShopContext";
 import {
   DEVICE_ACCESSORY,
@@ -122,20 +120,6 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
   const selectedColor = useMemo(
     () => getColorVariant(configIndex.synced, selectedColorId),
     [configIndex.synced, selectedColorId],
-  );
-
-  const registryColors = useMemo(
-    () => getColorDefinitionsForSlug(product.slug) ?? [],
-    [product.slug],
-  );
-
-  const selectedRegistryColor = useMemo(
-    () =>
-      registryColors.find((color) => color.id === selectedColor.id) ??
-      registryColors.find(
-        (color) => color.name.toLowerCase() === selectedColor.colorName.toLowerCase(),
-      ),
-    [registryColors, selectedColor],
   );
 
   const conditionOptions: ConditionSelectorOption[] = useMemo(
@@ -237,7 +221,6 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
   ]);
 
   const activeColorIndex = product.images.findIndex((img) => img.id === selectedColor.id);
-  const modelPath = getProductModelPath(product.slug);
   const fallbackType = getImageTypeForCategory(product.category);
 
   useEffect(() => {
@@ -289,6 +272,13 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
       colorId: selectedColor.id,
       storage: selectedStorage,
       condition: selectedCondition,
+      name: product.name,
+      brand: product.brand,
+      slug: product.slug,
+      image: selectedColor.image,
+      unitPrice: price,
+      stock: purchaseValidation.maxQuantity,
+      colorName: selectedColor.colorName,
     });
 
     const foilId = screenProtectorIdFromChoice(addons.screenProtector);
@@ -307,8 +297,15 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
     addToCart,
     addons,
     openCart,
+    price,
+    product.brand,
     product.id,
+    product.name,
+    product.slug,
+    purchaseValidation.maxQuantity,
     purchaseValidation.ok,
+    selectedColor.colorName,
+    selectedColor.image,
     selectedColor.id,
     selectedCondition,
     selectedStorage,
@@ -359,11 +356,6 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
                   alt={product.name}
                   activeIndex={activeColorIndex >= 0 ? activeColorIndex : 0}
                   fallbackType={fallbackType}
-                  modelPath={modelPath}
-                  colorHex={selectedColor.colorCode}
-                  colorModelPath={selectedRegistryColor?.model}
-                  screenTextureUrl={selectedRegistryColor?.wallpaper}
-                  accentColor={selectedColor.colorCode}
                 />
               </div>
             </aside>

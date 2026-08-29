@@ -9,33 +9,30 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import type { CatalogSummaryProduct } from "@/types/catalogSummary";
 import type { PremiumProduct } from "@/types/product";
 import {
-  getSeedProducts,
-  loadProducts,
-  normalizeProduct,
   resetProductsToSeed,
   saveProducts,
   updateProduct as persistProduct,
   updateProducts as persistProducts,
 } from "@/lib/productStore";
-import { invalidateSearchIndex } from "@/lib/searchProducts";
+import { invalidateSearchIndex, setSearchSummaries } from "@/lib/searchProducts";
 import { setActivePromotions, type Promotion } from "@/lib/promotions";
 import { setActiveGadgetPriceOverrides, type GadgetPriceOverrides } from "@/lib/gadgetPricing";
 
 interface ProductStoreContextValue {
-  products: PremiumProduct[];
+  /** Compact shop catalog — no variant trees. */
+  products: CatalogSummaryProduct[];
   ready: boolean;
-  getProductById: (id: string) => PremiumProduct | undefined;
-  getProductBySlug: (slug: string) => PremiumProduct | undefined;
+  getProductById: (id: string) => CatalogSummaryProduct | undefined;
+  getProductBySlug: (slug: string) => CatalogSummaryProduct | undefined;
+  /** Full products — populated on admin routes only. */
+  fullProducts: PremiumProduct[];
+  adminReady: boolean;
   updateProduct: (product: PremiumProduct) => void;
   updateProducts: (products: PremiumProduct[]) => void;
   setProductsState: (products: PremiumProduct[]) => void;
-  /**
-   * Re-fetches the server catalog (the real source of truth after a
-   * purchase server-side deducted stock) and updates local state + cache
-   * without pushing back to the admin-only save endpoint.
-   */
   refreshFromServer: () => Promise<void>;
   resetToSeed: () => void;
 }
@@ -55,63 +52,73 @@ async function pushCatalogToServer(products: PremiumProduct[]): Promise<void> {
   }
 }
 
+function isAdminPath(): boolean {
+  return typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
+}
+
 export function ProductStoreProvider({ children }: { children: ReactNode }) {
-  const [products, setProducts] = useState<PremiumProduct[]>(getSeedProducts);
+  const [products, setProducts] = useState<CatalogSummaryProduct[]>([]);
+  const [fullProducts, setFullProducts] = useState<PremiumProduct[]>([]);
   const [ready, setReady] = useState(false);
+  const [adminReady, setAdminReady] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function hydrate() {
-      const local = loadProducts();
-
+    async function hydrateShop() {
       try {
         const response = await fetch("/api/catalog/products", {
           credentials: "same-origin",
         });
-        if (response.ok) {
-          const data = (await response.json()) as {
-            products?: PremiumProduct[];
-            persisted?: boolean;
-            promotions?: Promotion[];
-            gadgetPriceOverrides?: GadgetPriceOverrides;
-          };
-          const remote = Array.isArray(data.products)
-            ? data.products.map(normalizeProduct)
-            : [];
-          if (!cancelled) {
-            setActivePromotions(Array.isArray(data.promotions) ? data.promotions : []);
-            setActiveGadgetPriceOverrides(data.gadgetPriceOverrides ?? {});
-          }
-
-          // Always prefer the server catalog for shop + checkout. localStorage
-          // may contain admin stock that Vercel does not have.
-          if (!cancelled && remote.length > 0) {
-            setProducts(remote);
-            if (data.persisted) {
-              saveProducts(remote);
-            }
-            setReady(true);
-            if (
-              !data.persisted &&
-              window.location.pathname.startsWith("/admin")
-            ) {
-              void pushCatalogToServer(local);
-            }
-            return;
-          }
+        if (!response.ok) {
+          if (!cancelled) setReady(true);
+          return;
         }
-      } catch {
-        // Fall through to local.
-      }
+        const data = (await response.json()) as {
+          products?: CatalogSummaryProduct[];
+          persisted?: boolean;
+          promotions?: Promotion[];
+          gadgetPriceOverrides?: GadgetPriceOverrides;
+        };
+        const remote = Array.isArray(data.products) ? data.products : [];
+        if (cancelled) return;
 
-      if (!cancelled) {
-        setProducts(local);
+        setActivePromotions(Array.isArray(data.promotions) ? data.promotions : []);
+        setActiveGadgetPriceOverrides(data.gadgetPriceOverrides ?? {});
+        setProducts(remote);
+        setSearchSummaries(remote);
         setReady(true);
+      } catch {
+        if (!cancelled) setReady(true);
       }
     }
 
-    void hydrate();
+    async function hydrateAdmin() {
+      if (!isAdminPath()) {
+        setAdminReady(true);
+        return;
+      }
+      try {
+        const response = await fetch("/api/admin/products", {
+          credentials: "same-origin",
+        });
+        if (!response.ok) {
+          if (!cancelled) setAdminReady(true);
+          return;
+        }
+        const data = (await response.json()) as { products?: PremiumProduct[] };
+        if (!cancelled && Array.isArray(data.products)) {
+          setFullProducts(data.products);
+        }
+      } catch {
+        // Admin can retry on next navigation.
+      } finally {
+        if (!cancelled) setAdminReady(true);
+      }
+    }
+
+    void hydrateShop();
+    void hydrateAdmin();
     return () => {
       cancelled = true;
     };
@@ -119,21 +126,21 @@ export function ProductStoreProvider({ children }: { children: ReactNode }) {
 
   const updateProduct = useCallback((product: PremiumProduct) => {
     const next = persistProduct(product);
-    setProducts(next);
+    setFullProducts(next);
     invalidateSearchIndex();
     void pushCatalogToServer(next);
   }, []);
 
   const updateProducts = useCallback((nextList: PremiumProduct[]) => {
     const next = persistProducts(nextList);
-    setProducts(next);
+    setFullProducts(next);
     invalidateSearchIndex();
     void pushCatalogToServer(next);
   }, []);
 
   const setProductsState = useCallback((next: PremiumProduct[]) => {
     saveProducts(next);
-    setProducts(next);
+    setFullProducts(next);
     invalidateSearchIndex();
     void pushCatalogToServer(next);
   }, []);
@@ -145,19 +152,15 @@ export function ProductStoreProvider({ children }: { children: ReactNode }) {
       });
       if (!response.ok) return;
       const data = (await response.json()) as {
-        products?: PremiumProduct[];
-        persisted?: boolean;
+        products?: CatalogSummaryProduct[];
         promotions?: Promotion[];
         gadgetPriceOverrides?: GadgetPriceOverrides;
       };
       setActivePromotions(Array.isArray(data.promotions) ? data.promotions : []);
       setActiveGadgetPriceOverrides(data.gadgetPriceOverrides ?? {});
-      if (!data.persisted || !Array.isArray(data.products) || data.products.length === 0) {
-        return;
-      }
-      const remote = data.products.map(normalizeProduct);
-      saveProducts(remote);
-      setProducts(remote);
+      if (!Array.isArray(data.products) || data.products.length === 0) return;
+      setProducts(data.products);
+      setSearchSummaries(data.products);
       invalidateSearchIndex();
     } catch {
       // Keep current state; next hydration/refresh retries.
@@ -166,17 +169,29 @@ export function ProductStoreProvider({ children }: { children: ReactNode }) {
 
   const resetToSeed = useCallback(() => {
     const next = resetProductsToSeed();
-    setProducts(next);
+    setFullProducts(next);
     invalidateSearchIndex();
     void pushCatalogToServer(next);
   }, []);
+
+  const getProductById = useCallback(
+    (id: string) => products.find((product) => product.id === id),
+    [products],
+  );
+
+  const getProductBySlug = useCallback(
+    (slug: string) => products.find((product) => product.slug === slug),
+    [products],
+  );
 
   const value = useMemo(
     () => ({
       products,
       ready,
-      getProductById: (id: string) => products.find((p) => p.id === id),
-      getProductBySlug: (slug: string) => products.find((p) => p.slug === slug),
+      getProductById,
+      getProductBySlug,
+      fullProducts,
+      adminReady,
       updateProduct,
       updateProducts,
       setProductsState,
@@ -186,6 +201,10 @@ export function ProductStoreProvider({ children }: { children: ReactNode }) {
     [
       products,
       ready,
+      getProductById,
+      getProductBySlug,
+      fullProducts,
+      adminReady,
       updateProduct,
       updateProducts,
       setProductsState,

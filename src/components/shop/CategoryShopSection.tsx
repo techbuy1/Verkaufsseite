@@ -15,7 +15,7 @@ import {
   type BrandFilterValue,
   type SortOption,
 } from "@/lib/filterProducts";
-import { premiumToLegacyProduct } from "@/lib/productAdapters";
+import { summaryToLegacyProduct } from "@/lib/catalogSummary";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { ProductCard } from "@/components/ProductCard";
 import { BrandFilter } from "@/components/shop/BrandFilter";
@@ -46,12 +46,13 @@ export function CategoryShopSection({
     if (storeProducts.length > 0) {
       const devices = storeProducts
         .filter((product) => product.catalogCategory === categoryId)
-        .map(premiumToLegacyProduct);
+        .map(summaryToLegacyProduct);
       const accessories = getAccessoryProducts().filter(
         (product) => product.catalogCategory === categoryId,
       );
       return [...devices, ...accessories];
     }
+    if (!ready) return [];
     return getCatalogProductsByCategory(categoryId).map(
       (product) => getProductById(product.id) ?? product,
     );

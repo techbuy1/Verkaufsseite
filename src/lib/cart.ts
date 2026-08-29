@@ -8,7 +8,6 @@ import {
   getProductPrice,
   getStorageOption,
 } from "@/data/premiumCatalog";
-import { getProductById as getStoredProductById } from "@/lib/productStore";
 import { getProductById } from "@/data/catalogProducts";
 import {
   getConditionLabel,
@@ -24,7 +23,10 @@ import { productNeedsDeviceSelection, resolveDeviceLabel } from "@/lib/deviceCom
 import type { AddToCartPayload, ConditionId, PremiumProduct } from "@/types/product";
 
 function resolveProduct(productId: string): PremiumProduct | undefined {
-  return getStoredProductById(productId) ?? getPremiumProductById(productId);
+  // Shop no longer persists the full catalog in localStorage. Seed is only
+  // used when it actually has sellable stock (dev/admin). Otherwise the cart
+  // uses the PDP snapshot on the payload.
+  return getPremiumProductById(productId);
 }
 
 export interface CartItem {
@@ -65,13 +67,40 @@ export function createCartLineId(
 
 export function getMaxQuantityForCartItem(item: CartItem): number {
   const product = resolveProduct(item.productId);
-  if (!product) return 99;
+  if (!product) return item.stock && item.stock > 0 ? item.stock : 99;
 
   const colorId = item.color ?? getDefaultAvailableColorId(product);
   const storage = item.storage ?? getDefaultAvailableStorage(product, colorId).storage;
   const condition =
     item.condition ?? getDefaultAvailableConditionId(product, colorId, storage);
-  return getVariantStock(product, colorId, storage, condition);
+  const live = getVariantStock(product, colorId, storage, condition);
+  if (live > 0) return live;
+  return item.stock && item.stock > 0 ? item.stock : 99;
+}
+
+function buildSnapshotCartItem(payload: AddToCartPayload): CartItem | null {
+  if (typeof payload.unitPrice !== "number" || payload.unitPrice <= 0) return null;
+  const condition: ConditionId = isConditionId(payload.condition) ? payload.condition : "new";
+  const colorId = payload.colorId ?? "default";
+  const storage = payload.storage ?? "Standard";
+  return {
+    lineId: createCartLineId(payload.productId, colorId, storage, condition, payload.deviceId),
+    productId: payload.productId,
+    name: payload.name ?? payload.productId,
+    image: payload.image ?? "",
+    price: payload.unitPrice,
+    quantity: payload.quantity ?? 1,
+    slug: payload.slug,
+    brand: payload.brand,
+    color: colorId,
+    colorName: payload.colorName,
+    storage,
+    condition,
+    conditionLabel: getConditionLabel(condition),
+    stock: payload.stock ?? 99,
+    deviceId: payload.deviceId,
+    deviceLabel: resolveDeviceLabel(payload.deviceId),
+  };
 }
 
 export function buildCartItem(payload: AddToCartPayload): CartItem | null {
@@ -108,7 +137,16 @@ export function buildCartItem(payload: AddToCartPayload): CartItem | null {
       resolvedCondition,
     );
 
-    if (!validation.ok) return null;
+    if (!validation.ok) {
+      return buildSnapshotCartItem({
+        ...payload,
+        name: payload.name ?? product.name,
+        brand: payload.brand ?? product.brand,
+        slug: payload.slug ?? product.slug,
+        image: payload.image ?? color.image,
+        colorName: payload.colorName ?? color.colorName,
+      });
+    }
 
     return {
       lineId: createCartLineId(
@@ -133,6 +171,9 @@ export function buildCartItem(payload: AddToCartPayload): CartItem | null {
       stock: validation.maxQuantity,
     };
   }
+
+  const snapshot = buildSnapshotCartItem(payload);
+  if (snapshot) return snapshot;
 
   const legacy = getProductById(payload.productId);
   if (!legacy) return null;
@@ -292,6 +333,8 @@ export function resolveCartItemPrice(item: CartItem): CartItem {
     storage: storage.storage,
     condition,
   });
+  const liveStock = getVariantStock(product, colorId, storage.storage, condition);
+  if (liveStock <= 0) return item;
 
   return {
     ...item,

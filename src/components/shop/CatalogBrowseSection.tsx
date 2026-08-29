@@ -19,7 +19,7 @@ import {
   type SortOption,
 } from "@/lib/filterProducts";
 import { getProductsByBrandAndCategory } from "@/lib/catalog";
-import { premiumToLegacyProduct } from "@/lib/productAdapters";
+import { summaryToLegacyProduct } from "@/lib/catalogSummary";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { ProductCard } from "@/components/ProductCard";
 import { BrandFilter } from "@/components/shop/BrandFilter";
@@ -71,6 +71,7 @@ function ProductGrid({
           variant="dark"
           size={compact ? "compact" : "default"}
           index={index}
+          priority={index < 4}
         />
       ))}
     </div>
@@ -108,7 +109,7 @@ export function CatalogBrowseSection({
   const allProducts = useMemo(() => {
     void ready;
     if (storeProducts.length > 0) {
-      let devices = storeProducts.map(premiumToLegacyProduct);
+      let devices = storeProducts.map(summaryToLegacyProduct);
       if (categoryId) {
         devices = devices.filter((product) => product.catalogCategory === categoryId);
       }
@@ -123,6 +124,7 @@ export function CatalogBrowseSection({
       }
       return merged;
     }
+    if (!ready) return [];
     if (categoryId && brand) {
       return getProductsByBrandAndCategory(brand, categoryId);
     }

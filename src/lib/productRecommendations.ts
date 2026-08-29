@@ -90,9 +90,10 @@ export function getPriceAlternatives(
 export function getProductPageRecommendations(
   current: PremiumProduct,
   price: number,
+  catalog?: Product[],
 ): ProductRecommendationSection[] {
   const used = new Set<string>([current.id]);
-  const pool = getBuyableCatalogProducts();
+  const pool = (catalog ?? getBuyableCatalogProducts()).filter((product) => !product.soldOut);
   const sections: ProductRecommendationSection[] = [];
 
   const similar = uniqueTake(

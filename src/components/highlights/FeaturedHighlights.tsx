@@ -1,36 +1,16 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { featuredHighlightProducts } from "@/data/featuredHighlights";
 import { formatPrice } from "@/data/products";
-import { getColorDefinitionsForSlug } from "@/data/productImageMap";
-import { resolvePremiumProduct } from "@/lib/catalog";
-import { isProductInStock } from "@/lib/productAvailability";
-import { getProductPrice, getStorageOptionsForColor } from "@/lib/productVariants";
 import { useProductStore } from "@/context/ProductStoreContext";
 import { Reveal } from "../motion/Reveal";
 import { SplitHeadline } from "../motion/SplitHeadline";
 import { DeviceStage } from "./DeviceStage";
 import { HIGHLIGHT_STAT_ICONS } from "./HighlightIcons";
 import { HighlightWordCarousel } from "./HighlightWordCarousel";
-
-// Three.js/R3F are heavy — split into their own chunk and only fetched once
-// the highlights section actually needs to render a 3D-capable product, so
-// visitors who never reach it (or land on the non-3D product) never pay for it.
-const DeviceViewer3D = dynamic(
-  () => import("@/components/product3d/DeviceViewer3D").then((mod) => mod.DeviceViewer3D),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex aspect-[3/4] w-full max-w-[380px] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-accent" />
-      </div>
-    ),
-  },
-);
 
 export function FeaturedHighlights() {
   const prefersReducedMotion = useReducedMotion();
@@ -40,8 +20,8 @@ export function FeaturedHighlights() {
   const availableHighlights = useMemo(() => {
     void ready;
     return featuredHighlightProducts.filter((entry) => {
-      const live = getProductById(entry.productId) ?? resolvePremiumProduct(entry.productId);
-      return live ? isProductInStock(live) : false;
+      const live = getProductById(entry.productId);
+      return live ? live.inStock : false;
     });
   }, [getProductById, ready]);
 
@@ -50,12 +30,16 @@ export function FeaturedHighlights() {
       ? 0
       : Math.min(activeIndex, availableHighlights.length - 1);
   const active = availableHighlights[safeIndex];
-  const product = active
-    ? getProductById(active.productId) ?? resolvePremiumProduct(active.productId)
-    : undefined;
+  const product = active ? getProductById(active.productId) : undefined;
   const colors = useMemo(
-    () => (active ? getColorDefinitionsForSlug(active.slug) ?? [] : []),
-    [active],
+    () =>
+      (product?.colors ?? []).map((color) => ({
+        id: color.id,
+        name: color.name,
+        hex: color.hex,
+        image: color.image,
+      })),
+    [product],
   );
 
   const [selectedColorId, setSelectedColorId] = useState<string | undefined>(colors[0]?.id);
@@ -65,8 +49,8 @@ export function FeaturedHighlights() {
   const selectedColor = colors.find((color) => color.id === activeColorId) ?? colors[0];
 
   const storageOptions = useMemo(
-    () => (product && activeColorId ? getStorageOptionsForColor(product, activeColorId) : []),
-    [product, activeColorId],
+    () => (product?.storageOptions ?? []).map((storage) => ({ storage })),
+    [product],
   );
   const [selectedStorage, setSelectedStorage] = useState<string | undefined>(undefined);
   const activeStorage = storageOptions.some((option) => option.storage === selectedStorage)
@@ -85,7 +69,7 @@ export function FeaturedHighlights() {
 
   if (!active || !product || !selectedColor) return null;
 
-  const price = activeStorage ? getProductPrice(product, activeStorage, activeColorId) : 0;
+  const price = product?.priceFrom ?? 0;
 
   function selectProduct(index: number) {
     if (index === safeIndex) return;
@@ -128,7 +112,7 @@ export function FeaturedHighlights() {
           />
           <Reveal variant="up-soft" delay={0.2}>
             <p className="mt-4 text-[17px] leading-relaxed text-text-secondary md:text-[19px]">
-              Zwei Geräte im Detail — dreh sie, wechsle die Farbe, entdecke, was sie besonders macht.
+              Zwei Geräte im Detail — wechsle die Farbe und entdecke, was sie besonders macht.
             </p>
           </Reveal>
         </div>
@@ -189,27 +173,13 @@ export function FeaturedHighlights() {
             className="grid grid-cols-1 items-center gap-7 md:grid-cols-2 md:gap-8 lg:gap-12"
           >
             <div className="order-1 md:order-1">
-              {active.use3D && active.modelPath ? (
-                <DeviceViewer3D
-                  key={active.productId}
-                  modelPath={active.modelPath}
-                  colorHex={selectedColor.hex}
-                  accentColor={active.glowColor}
-                  fallbackImage={selectedColor.image}
-                  fallbackImageAlt={`${product.name} – ${selectedColor.name}`}
-                  screenTextureUrl={selectedColor.wallpaper}
-                  colorModelPath={selectedColor.model}
-                  className="mx-auto aspect-[3/4] w-full max-w-[380px]"
-                />
-              ) : (
-                <DeviceStage
-                  image={selectedColor.image}
-                  alt={`${product.name} – ${selectedColor.name}`}
-                  hotspots={[]}
-                  accentColor={active.glowColor}
-                  showHotspots={false}
-                />
-              )}
+              <DeviceStage
+                image={selectedColor.image}
+                alt={`${product.name} – ${selectedColor.name}`}
+                hotspots={[]}
+                accentColor={active.glowColor}
+                showHotspots={false}
+              />
             </div>
 
             <div className="order-2 flex flex-col items-center text-center md:order-2 md:items-start md:text-left">

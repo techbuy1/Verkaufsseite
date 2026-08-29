@@ -179,10 +179,19 @@ export interface HomeProductSection {
   products: MerchandisedProduct[];
 }
 
-export function buildHomeProductSections(): HomeProductSection[] {
+export function buildHomeProductSections(deviceProducts?: Product[]): HomeProductSection[] {
+  const buyable = (deviceProducts ?? getBuyableCatalogProducts()).filter(
+    (product) => !product.soldOut,
+  );
+  const pick = (items: Product[], limit = DEFAULT_RAIL_LIMIT) => uniqueById(items, limit);
+
   const sections: HomeProductSection[] = [];
 
-  const deals = getDealProducts();
+  const deals = pick(
+    buyable.filter((product) => Boolean(product.discount) || product.badge === "Sale")
+      .concat(buyable)
+      .filter((product, index, list) => list.findIndex((entry) => entry.id === product.id) === index),
+  );
   if (deals.length >= MIN_RAIL_SIZE) {
     sections.push({
       id: "deals",
@@ -193,7 +202,9 @@ export function buildHomeProductSections(): HomeProductSection[] {
     });
   }
 
-  const smartphones = getSmartphoneHighlights();
+  const smartphones = pick(
+    buyable.filter((product) => product.catalogCategory === "smartphones"),
+  );
   if (smartphones.length >= MIN_RAIL_SIZE) {
     sections.push({
       id: "smartphones",
@@ -203,7 +214,9 @@ export function buildHomeProductSections(): HomeProductSection[] {
     });
   }
 
-  const apple = getBrandHighlights("Apple");
+  const apple = pick(
+    buyable.filter((product) => product.brand.toLowerCase() === "apple"),
+  );
   if (apple.length >= MIN_RAIL_SIZE) {
     sections.push({
       id: "apple",
@@ -213,7 +226,9 @@ export function buildHomeProductSections(): HomeProductSection[] {
     });
   }
 
-  const samsung = getBrandHighlights("Samsung");
+  const samsung = pick(
+    buyable.filter((product) => product.brand.toLowerCase() === "samsung"),
+  );
   if (samsung.length >= MIN_RAIL_SIZE) {
     sections.push({
       id: "samsung",
@@ -223,7 +238,8 @@ export function buildHomeProductSections(): HomeProductSection[] {
     });
   }
 
-  const value = getValueProducts();
+  const mid = buyable.filter((product) => product.price >= 400 && product.price <= 900);
+  const value = pick(mid.length >= MIN_RAIL_SIZE ? mid : [...buyable].sort((a, b) => a.price - b.price));
   if (value.length >= MIN_RAIL_SIZE) {
     sections.push({
       id: "value",
@@ -232,7 +248,7 @@ export function buildHomeProductSections(): HomeProductSection[] {
     });
   }
 
-  const under500 = getBudgetProducts(500);
+  const under500 = pick(buyable.filter((product) => product.price <= 500));
   if (under500.length >= MIN_RAIL_SIZE) {
     sections.push({
       id: "under-500",
@@ -241,7 +257,8 @@ export function buildHomeProductSections(): HomeProductSection[] {
     });
   }
 
-  const newArrivals = getNewArrivals();
+  const newest = buyable.filter((product) => product.badge === "Neu");
+  const newArrivals = pick(newest.length >= MIN_RAIL_SIZE ? newest : buyable);
   if (newArrivals.length >= MIN_RAIL_SIZE) {
     sections.push({
       id: "new",
@@ -250,7 +267,7 @@ export function buildHomeProductSections(): HomeProductSection[] {
     });
   }
 
-  const more = getMoreRecommendations();
+  const more = pick([...buyable].sort((a, b) => b.price - a.price));
   if (more.length >= MIN_RAIL_SIZE) {
     sections.push({
       id: "more",

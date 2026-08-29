@@ -94,7 +94,7 @@ function emptyForm(): FormState {
 }
 
 export default function AdminPromotionsPage() {
-  const { products, ready } = useProductStore();
+  const { fullProducts: products, adminReady: ready } = useProductStore();
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<FormState | null>(null);

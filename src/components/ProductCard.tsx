@@ -13,6 +13,7 @@ interface ProductCardProps {
   variant?: "light" | "dark";
   size?: "default" | "compact";
   index?: number;
+  priority?: boolean;
 }
 
 const IMAGE_HEIGHT_COMPACT = "h-[96px]";
@@ -22,6 +23,7 @@ const IMAGE_HEIGHT_DEFAULT = "h-[190px] md:h-[210px]";
 export function ProductCard({
   product,
   size = "default",
+  priority = false,
 }: ProductCardProps) {
   const { toggleWishlist, isInWishlist } = useShop();
   const [selectedColorId, setSelectedColorId] = useState(product.colors?.[0]?.id);
@@ -83,6 +85,7 @@ export function ProductCard({
             src={imageSrc}
             alt={`${product.name}${colorLabel ? ` – ${colorLabel}` : ""}`}
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            priority={priority}
             className="object-contain"
             fallbackType={product.imageType}
           />
@@ -164,6 +167,7 @@ export function ProductCard({
           src={imageSrc}
           alt={`${product.name}${colorLabel ? ` – ${colorLabel}` : ""}`}
           sizes="(max-width: 768px) 100vw, 33vw"
+          priority={priority}
           className="object-contain p-4"
           fallbackType={product.imageType}
         />

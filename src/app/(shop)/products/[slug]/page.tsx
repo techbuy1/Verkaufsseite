@@ -3,8 +3,9 @@ import type { Metadata } from "next";
 import type { Product } from "@/data/products";
 import { getPremiumProductBySlug } from "@/data/premiumCatalog";
 import { getCatalogProductBySlug, resolvePremiumProductBySlug } from "@/lib/catalog";
-import { getProductMinAvailablePrice } from "@/lib/productAvailability";
+import { getProductMinAvailablePrice, isProductVisibleInShop } from "@/lib/productAvailability";
 import { isProductPageReachable } from "@/lib/productAvailability";
+import { premiumToLegacyProduct } from "@/lib/productAdapters";
 import { getProductPageRecommendations } from "@/lib/productRecommendations";
 import { buildProductJsonLd, buildProductMetadata } from "@/lib/productSeo";
 import { isAccessoryCatalogProduct } from "@/lib/accessoryDetail";
@@ -92,7 +93,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   const product = resolved.product;
   const price = getProductMinAvailablePrice(product);
-  const recommendations = getProductPageRecommendations(product, price);
+  const { products: serverProducts } = await readServerProducts();
+  const recommendations = getProductPageRecommendations(
+    product,
+    price,
+    serverProducts.filter(isProductVisibleInShop).map(premiumToLegacyProduct),
+  );
   const jsonLd = buildProductJsonLd(product);
 
   return (

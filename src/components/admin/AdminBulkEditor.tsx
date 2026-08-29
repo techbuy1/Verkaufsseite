@@ -31,7 +31,7 @@ const MODE_OPTIONS: { value: BulkPriceMode; label: string }[] = [
 ];
 
 export function AdminBulkEditor() {
-  const { products, ready, setProductsState } = useProductStore();
+  const { fullProducts: products, adminReady: ready, setProductsState } = useProductStore();
   const [filters, setFilters] = useState<BulkFilters>({ availability: "all" });
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [mode, setMode] = useState<BulkPriceMode>("set");

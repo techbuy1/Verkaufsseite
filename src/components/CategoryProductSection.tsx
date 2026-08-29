@@ -6,8 +6,8 @@ import {
   catalogCategories,
   type CatalogCategoryId,
 } from "@/data/catalogCategories";
-import { getHomepageProductsByCategory, getProductById } from "@/data/products";
 import { useProductStore } from "@/context/ProductStoreContext";
+import { summaryToLegacyProduct } from "@/lib/catalogSummary";
 import { sortProducts } from "@/lib/filterProducts";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { CategoryProductCarousel } from "./CategoryProductCarousel";
@@ -116,11 +116,10 @@ export function CategoryProductSection() {
   // Homepage: nur Geräte mit Bestand (reaktiv auf Admin-Store).
   const products = useMemo(() => {
     void ready;
-    void storeProducts;
     return sortProducts(
-      getHomepageProductsByCategory(activeCategory).map(
-        (product) => getProductById(product.id) ?? product,
-      ),
+      storeProducts
+        .filter((product) => product.catalogCategory === activeCategory && product.inStock)
+        .map(summaryToLegacyProduct),
       "recommended",
     );
   }, [activeCategory, ready, storeProducts]);

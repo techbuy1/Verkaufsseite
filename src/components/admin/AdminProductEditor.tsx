@@ -58,8 +58,8 @@ const compactInputClass =
   "field-input rounded-[10px] border-[#d2d2d7]/60 bg-white px-3 py-2 text-[13px] text-[#1d1d1f]";
 
 export function AdminProductEditor({ productId }: AdminProductEditorProps) {
-  const { getProductById, updateProduct, products } = useProductStore();
-  const source = getProductById(productId);
+  const { fullProducts: products, updateProduct } = useProductStore();
+  const source = products.find((entry) => entry.id === productId);
   const [draft, setDraft] = useState<PremiumProduct | null>(source ?? null);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -72,9 +72,9 @@ export function AdminProductEditor({ productId }: AdminProductEditorProps) {
   }, []);
 
   useEffect(() => {
-    const next = getProductById(productId);
+    const next = products.find((entry) => entry.id === productId);
     if (next) setDraft(next);
-  }, [productId, products, getProductById]);
+  }, [productId, products]);
 
   const previewColor = useMemo(
     () => draft?.images[0],

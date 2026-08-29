@@ -9,6 +9,9 @@ import {
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { Product } from "@/data/products";
+import { useProductStore } from "@/context/ProductStoreContext";
+import { summaryToLegacyProduct } from "@/lib/catalogSummary";
+import { getAccessoryProducts } from "@/lib/catalog";
 import { ManufacturerFilterBar } from "@/components/shop/ManufacturerFilterBar";
 import {
   applyStoreFilters,
@@ -28,6 +31,15 @@ interface StorePageContentProps {
 }
 
 export function StorePageContent({ initialProducts }: StorePageContentProps) {
+  const { products: summaries, ready } = useProductStore();
+  const catalogProducts = useMemo(() => {
+    if (!ready || summaries.length === 0) return initialProducts;
+    return [
+      ...summaries.map(summaryToLegacyProduct),
+      ...getAccessoryProducts().filter((product) => !product.hiddenFromListing),
+    ];
+  }, [initialProducts, ready, summaries]);
+
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -48,8 +60,8 @@ export function StorePageContent({ initialProducts }: StorePageContentProps) {
   }, [filters]);
 
   const filteredCount = useMemo(
-    () => applyStoreFilters(initialProducts, filters).length,
-    [initialProducts, filters],
+    () => applyStoreFilters(catalogProducts, filters).length,
+    [catalogProducts, filters],
   );
 
   const updateUrl = useCallback(
@@ -176,7 +188,7 @@ export function StorePageContent({ initialProducts }: StorePageContentProps) {
       <div className="mx-auto max-w-[1280px] px-5 py-8 md:px-8 lg:grid lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-8 lg:px-10 lg:py-10">
         <StoreFilterSidebar
           filters={filters}
-          products={initialProducts}
+          products={catalogProducts}
           onChange={applyFilters}
           className="hidden lg:block"
         />
@@ -184,7 +196,7 @@ export function StorePageContent({ initialProducts }: StorePageContentProps) {
         <div className="min-w-0">
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-[14px] text-text-secondary">
-              {filteredCount} von {initialProducts.length} Produkten
+              {filteredCount} von {catalogProducts.length} Produkten
               {hasActiveStoreFilters(filters) ? " (gefiltert)" : ""}
             </p>
 
@@ -210,7 +222,7 @@ export function StorePageContent({ initialProducts }: StorePageContentProps) {
           >
             <StoreProductGridView
               filters={filters}
-              allProducts={initialProducts}
+              allProducts={catalogProducts}
               onResetFilters={resetFilters}
               onCategorySelect={(category) =>
                 applyFilters({ category, series: "all" })
@@ -223,7 +235,7 @@ export function StorePageContent({ initialProducts }: StorePageContentProps) {
       <StoreMobileFilterSheet
         open={mobileFiltersOpen}
         filters={draftFilters}
-        products={initialProducts}
+        products={catalogProducts}
         onChange={(partial) => setDraftFilters((current) => ({ ...current, ...partial }))}
         onClose={() => {
           setDraftFilters(filters);

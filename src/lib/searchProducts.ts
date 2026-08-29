@@ -1,8 +1,8 @@
-import {
-  getShopCatalogProducts,
-  resolvePremiumProductBySlug,
-} from "@/lib/catalog";
+import { accessoryProducts } from "@/data/accessoryCatalog";
+import { applyGadgetPriceOverride } from "@/lib/gadgetPricing";
+import { summaryToLegacyProduct } from "@/lib/catalogSummary";
 import { formatPrice, type Product } from "@/data/products";
+import type { CatalogSummaryProduct } from "@/types/catalogSummary";
 
 export interface SearchableProduct extends Product {
   imageSrc: string;
@@ -16,20 +16,23 @@ interface SearchIndexEntry {
   haystack: string;
 }
 
-/**
- * Building the catalog is not cheap (syncs variants/prices/colors for every
- * product) and neither is re-resolving each product's premium record — doing
- * both from scratch on every keystroke (as this used to) freezes the page
- * while typing. Index built once per session and reused for every search.
- */
+let summaryCatalog: CatalogSummaryProduct[] = [];
 let cachedIndex: SearchIndexEntry[] | null = null;
 
+export function setSearchSummaries(products: CatalogSummaryProduct[]): void {
+  summaryCatalog = products;
+  cachedIndex = null;
+}
+
 function buildSearchIndex(): SearchIndexEntry[] {
-  return getShopCatalogProducts().map((product) => {
-    const premium = resolvePremiumProductBySlug(product.slug);
+  const devices = summaryCatalog.map(summaryToLegacyProduct);
+  const accessories = accessoryProducts
+    .filter((product) => !product.hiddenFromListing)
+    .map((product) => applyGadgetPriceOverride(product));
+  return [...devices, ...accessories].map((product) => {
     const searchable: SearchableProduct = {
       ...product,
-      generation: premium?.generation,
+      generation: product.generation,
       sku: product.id.toUpperCase().replace(/-/g, ""),
     };
     const haystack = [
@@ -39,9 +42,9 @@ function buildSearchIndex(): SearchIndexEntry[] {
       product.slug.replace(/-/g, " "),
       product.storage ?? "",
       product.color ?? "",
-      premium?.generation ?? "",
-      premium?.model ?? "",
-      ...(premium?.keywords ?? []),
+      product.generation ?? "",
+      product.model ?? "",
+      ...(summaryCatalog.find((entry) => entry.id === product.id)?.keywords ?? []),
     ]
       .join(" ")
       .toLowerCase();
@@ -58,7 +61,6 @@ export function getSearchCatalog(): SearchableProduct[] {
   return getSearchIndex().map((entry) => entry.product);
 }
 
-/** Call after admin edits change the catalog so search picks up new/changed products. */
 export function invalidateSearchIndex(): void {
   cachedIndex = null;
 }

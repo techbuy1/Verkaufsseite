@@ -9,27 +9,19 @@ import { premiumToLegacyProduct } from "@/lib/productAdapters";
 import {
   isProductInStock,
 } from "@/lib/productAvailability";
-import { getProductById as getStoredProductById, loadProducts } from "@/lib/productStore";
 import type { PremiumProduct } from "@/types/product";
 import { accessoryProducts } from "@/data/accessoryCatalog";
 import { applyGadgetPriceOverride } from "@/lib/gadgetPricing";
 
 export function getAllPremiumProducts(): PremiumProduct[] {
-  if (typeof window !== "undefined") {
-    return loadProducts();
-  }
   return premiumProducts;
 }
 
 export function resolvePremiumProduct(id: string): PremiumProduct | undefined {
-  return getStoredProductById(id) ?? getPremiumProductById(id);
+  return getPremiumProductById(id);
 }
 
 export function resolvePremiumProductBySlug(slug: string): PremiumProduct | undefined {
-  if (typeof window !== "undefined") {
-    const stored = loadProducts().find((product) => product.slug === slug);
-    if (stored) return stored;
-  }
   return getPremiumProductBySlug(slug);
 }
 

@@ -73,12 +73,6 @@ export function DeviceStage({ image, alt, hotspots, accentColor, showHotspots }:
     updateFromPoint(event.clientX, event.clientY);
   };
 
-  const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (prefersReducedMotion) return;
-    const touch = event.touches[0];
-    if (!touch) return;
-    updateFromPoint(touch.clientX, touch.clientY);
-  };
 
   return (
     <div className="relative flex items-center justify-center">
@@ -105,7 +99,6 @@ export function DeviceStage({ image, alt, hotspots, accentColor, showHotspots }:
           }}
           onMouseMove={handleMouseMove}
           onMouseLeave={reset}
-          onTouchMove={handleTouchMove}
           onTouchEnd={reset}
         >
           <Image
