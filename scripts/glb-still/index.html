@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <title>GLB still renderer</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #ffffff;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from "three";
+      import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+
+      const params = new URLSearchParams(location.search);
+      const modelUrl = params.get("model");
+      const view = params.get("view") === "back" ? "back" : "front";
+      const tint = params.get("tint") || "";
+      const wallpaperUrl = params.get("wallpaper") || "";
+      const width = Number(params.get("w") || 1200);
+      const height = Number(params.get("h") || 1600);
+
+      function normalizePartName(value) {
+        return value
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/с/g, "c");
+      }
+
+      function isColorableHousingPart(meshName, materialName) {
+        const name = normalizePartName(`${meshName} ${materialName}`);
+        if (name.includes("glass back")) return true;
+        if (name.includes("frosted glass") || name.includes("frosted")) return true;
+        if (name.includes("anodized") || name.includes("aluminum") || name.includes("aluminium")) {
+          return true;
+        }
+        if (name.includes("metal mesh")) return true;
+        if (name.includes("glass screen")) return false;
+        if (name.includes("glass camera") || name.includes("glass cam")) return false;
+        return ["frame", "body", "housing", "case", "chassis", "shell", "rahmen", "gehaeuse", "pens", "pen", "buttons"].some(
+          (hint) => name.includes(hint),
+        );
+      }
+
+      function isScreenPart(meshName, materialName) {
+        const name = normalizePartName(`${meshName} ${materialName}`);
+        if (name.includes("glass screen") || name.includes("glass back")) return false;
+        return name.includes("screen") || name.includes("display") || name.includes("oled") || name.includes("lcd");
+      }
+
+      function applyTint(root, hex) {
+        if (!hex) return;
+        const color = new THREE.Color(hex);
+        root.traverse((child) => {
+          if (!child.isMesh) return;
+          const materials = Array.isArray(child.material) ? child.material : [child.material];
+          for (const material of materials) {
+            if (!material || !material.color) continue;
+            if (!isColorableHousingPart(child.name || "", material.name || "")) continue;
+            material.color = color.clone();
+            if ("emissive" in material) material.emissive = color.clone().multiplyScalar(0.04);
+            material.needsUpdate = true;
+          }
+        });
+      }
+
+      async function applyWallpaper(root, url) {
+        if (!url) return;
+        const texture = await new THREE.TextureLoader().loadAsync(url);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.flipY = false;
+        root.traverse((child) => {
+          if (!child.isMesh) return;
+          const materials = Array.isArray(child.material) ? child.material : [child.material];
+          for (const material of materials) {
+            if (!material) continue;
+            if (!isScreenPart(child.name || "", material.name || "")) continue;
+            material.map = texture;
+            material.color = new THREE.Color(0xffffff);
+            material.needsUpdate = true;
+          }
+        });
+      }
+
+      function isAncestorVisible(node) {
+        let current = node;
+        while (current) {
+          if (current.visible === false) return false;
+          current = current.parent;
+        }
+        return true;
+      }
+
+      function hideShowcaseExtras(root) {
+        root.traverse((child) => {
+          const name = child.name || "";
+          if (name === "SAMSUNG_Galaxy_S26_Ultra001" || /^pens/i.test(name)) {
+            child.visible = false;
+          }
+        });
+      }
+
+      function visibleBox(object) {
+        const box = new THREE.Box3();
+        object.traverse((child) => {
+          if (!child.isMesh || !isAncestorVisible(child)) return;
+          box.expandByObject(child);
+        });
+        return box;
+      }
+
+      function averageMeshCenter(object, predicate) {
+        const sum = new THREE.Vector3();
+        let count = 0;
+        object.traverse((child) => {
+          if (!child.isMesh || !isAncestorVisible(child)) return;
+          const materials = Array.isArray(child.material) ? child.material : [child.material];
+          const materialName = materials.map((material) => material?.name || "").join(" ");
+          if (!predicate(child.name || "", materialName)) return;
+          const center = new THREE.Box3().setFromObject(child).getCenter(new THREE.Vector3());
+          sum.add(center);
+          count += 1;
+        });
+        return count ? { center: sum.divideScalar(count), count } : null;
+      }
+
+      function isFrontMarker(meshName, materialName) {
+        const name = normalizePartName(`${meshName} ${materialName}`);
+        return (
+          name.includes("oled") ||
+          name.includes("glass screen") ||
+          name.includes("display frame") ||
+          (name.includes("screen") && !name.includes("glass back"))
+        );
+      }
+
+      function isRearMarker(meshName, materialName) {
+        const name = normalizePartName(`${meshName} ${materialName}`);
+        if (name.includes("glass screen") || name.includes("oled")) return false;
+        return (
+          name.includes("camera") ||
+          name.includes("frosted glass") ||
+          name.includes("glass back") ||
+          name.includes("logo")
+        );
+      }
+
+      function frameOrthographic(camera3d, object, viewName) {
+        hideShowcaseExtras(object);
+        object.updateMatrixWorld(true);
+
+        const box = visibleBox(object);
+        const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
+        object.position.sub(center);
+        object.updateMatrixWorld(true);
+
+        const dims = [
+          { axis: "x", size: size.x },
+          { axis: "y", size: size.y },
+          { axis: "z", size: size.z },
+        ].sort((a, b) => a.size - b.size);
+        const depth = dims[0].axis;
+
+        const screen = averageMeshCenter(object, isFrontMarker);
+        const rear = averageMeshCenter(object, isRearMarker);
+        let frontSign = -1;
+        if (screen && rear) {
+          frontSign = screen.center[depth] < rear.center[depth] ? -1 : 1;
+        } else if (screen) {
+          frontSign = screen.center[depth] < 0 ? -1 : 1;
+        }
+
+        const sign = viewName === "front" ? frontSign : -frontSign;
+        const distance = Math.max(size.x, size.y, size.z) * 2.4;
+        const position = new THREE.Vector3();
+        position[depth] = sign * distance;
+        camera3d.position.copy(position);
+        camera3d.up.set(0, 1, 0);
+        if (depth === "y") camera3d.up.set(0, 0, 1);
+        camera3d.lookAt(0, 0, 0);
+
+        const fittedSize = visibleBox(object).getSize(new THREE.Vector3());
+        const aspect = width / height;
+        const pad = 1.08;
+        const spanX = depth === "x" ? fittedSize.z : fittedSize.x;
+        const spanY = depth === "y" ? fittedSize.z : fittedSize.y;
+        let halfH = Math.max(spanY, spanX / aspect) * 0.5 * pad;
+        camera3d.top = halfH;
+        camera3d.bottom = -halfH;
+        camera3d.left = -halfH * aspect;
+        camera3d.right = halfH * aspect;
+        camera3d.near = 0.01;
+        camera3d.far = distance * 8;
+        camera3d.updateProjectionMatrix();
+      }
+
+      const renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+        preserveDrawingBuffer: true,
+        powerPreference: "high-performance",
+      });
+      renderer.setPixelRatio(1);
+      renderer.setSize(width, height, false);
+      renderer.setClearColor(0xffffff, 1);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.05;
+      document.body.appendChild(renderer.domElement);
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xffffff);
+      const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 100);
+
+      scene.add(new THREE.AmbientLight(0xffffff, 0.72));
+      const key = new THREE.DirectionalLight(0xffffff, 1.15);
+      key.position.set(2.2, 3.4, 4.2);
+      scene.add(key);
+      const fill = new THREE.DirectionalLight(0xffffff, 0.45);
+      fill.position.set(-3.2, 1.2, 2.4);
+      scene.add(fill);
+      const rim = new THREE.DirectionalLight(0xffffff, 0.35);
+      rim.position.set(0.4, 1.8, -3.6);
+      scene.add(rim);
+
+      window.__STILL_ERROR = "";
+      window.__STILL_READY = false;
+      window.__STILL_DATA_URL = "";
+
+      try {
+        if (!modelUrl) throw new Error("model query param missing");
+        const gltf = await new GLTFLoader().loadAsync(modelUrl);
+        const root = gltf.scene;
+        scene.add(root);
+        applyTint(root, tint);
+        await applyWallpaper(root, wallpaperUrl);
+        frameOrthographic(camera, root, view);
+        renderer.render(scene, camera);
+        window.__STILL_DATA_URL = renderer.domElement.toDataURL("image/png");
+        window.__STILL_READY = true;
+        document.title = "READY";
+      } catch (error) {
+        window.__STILL_ERROR = error instanceof Error ? error.message : String(error);
+        document.title = "ERROR";
+      }
+    </script>
+  </body>
+</html>

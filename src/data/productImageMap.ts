@@ -42,9 +42,10 @@ export { BRAND_HERO_IMAGES } from "./heroImageAssets";
 export const PRODUCT_COLOR_IMAGES: Record<string, ColorImageDefinition[]> = Object.fromEntries(
   Object.entries(PRODUCT_IMAGE_REGISTRY).map(([slug, colors]) => [
     slug,
-    colors.map(({ file, wallpaper, model, ...color }) => ({
+    colors.map(({ file, wallpaper, model, angles, ...color }) => ({
       ...color,
       image: assetPath(file),
+      angles: angles?.map((angle) => assetPath(angle)),
       wallpaper: wallpaper ? assetPath(wallpaper) : undefined,
       model: model ? assetPath(model) : undefined,
       imageMissing: false,

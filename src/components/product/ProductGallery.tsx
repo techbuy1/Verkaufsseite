@@ -89,7 +89,7 @@ export const ProductGallery = memo(function ProductGallery({
       <div
         className={
           dual
-            ? "grid grid-cols-1 items-end gap-8 sm:grid-cols-2 sm:gap-5 md:gap-8"
+            ? "grid grid-cols-1 items-center gap-8 sm:grid-cols-2 sm:gap-6 md:gap-10"
             : "mx-auto w-full max-w-[440px] lg:max-w-none"
         }
       >
