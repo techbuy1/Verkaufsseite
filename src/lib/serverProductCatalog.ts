@@ -1,5 +1,6 @@
 import { mkdir, readFile, unlink, writeFile } from "fs/promises";
 import path from "path";
+import bundledServerCatalog from "@/data/server-catalog.json";
 import type { PremiumProduct } from "@/types/product";
 import { getSeedProducts, normalizeProduct } from "@/lib/productStore";
 import {
@@ -70,22 +71,40 @@ function mergeWithSeed(stored: PremiumProduct[]): PremiumProduct[] {
   return merged;
 }
 
+function catalogFromBundled(): PremiumProduct[] | null {
+  if (!Array.isArray(bundledServerCatalog) || bundledServerCatalog.length === 0) {
+    return null;
+  }
+  return mergeWithSeed(
+    (bundledServerCatalog as PremiumProduct[]).map(normalizeProduct),
+  );
+}
+
 /**
  * Server catalog for checkout + shop hydration.
- * Admin saves overwrite seed prices; missing products fall back to seed.
+ * 1) Admin file `.data/products-catalog.json` when present (local / durable disk)
+ * 2) Bundled `src/data/server-catalog.json` — ships with the Vercel build
+ * 3) Seed catalog (zero sellable stock) only as last resort
  */
 export async function readServerProducts(): Promise<ServerCatalogResult> {
   try {
     const raw = await readFile(PRODUCTS_FILE, "utf8");
     const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      return { products: getSeedProducts(), persisted: false };
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      const normalized = (parsed as PremiumProduct[]).map(normalizeProduct);
+      return { products: mergeWithSeed(normalized), persisted: true };
     }
-    const normalized = (parsed as PremiumProduct[]).map(normalizeProduct);
-    return { products: mergeWithSeed(normalized), persisted: true };
   } catch {
-    return { products: getSeedProducts(), persisted: false };
+    // Serverless hosts have no writable .data — use the bundled snapshot.
   }
+
+  const bundled = catalogFromBundled();
+  if (bundled) {
+    return { products: bundled, persisted: true };
+  }
+
+  console.error("[catalog] bundled server catalog is missing");
+  return { products: getSeedProducts(), persisted: false };
 }
 
 export async function writeServerProducts(

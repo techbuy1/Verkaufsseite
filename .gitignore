@@ -32,8 +32,9 @@ yarn-error.log*
 .env*
 !.env.example
 
-# local stripe fulfillment log
-.data/
+# local runtime data (orders, locks) — catalog must ship to Vercel
+.data/*
+!.data/products-catalog.json
 
 # typescript
 *.tsbuildinfo

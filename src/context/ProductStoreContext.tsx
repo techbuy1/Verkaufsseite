@@ -84,18 +84,18 @@ export function ProductStoreProvider({ children }: { children: ReactNode }) {
             setActiveGadgetPriceOverrides(data.gadgetPriceOverrides ?? {});
           }
 
-          if (!cancelled && data.persisted && remote.length > 0) {
-            saveProducts(remote);
+          // Always prefer the server catalog for shop + checkout. localStorage
+          // may contain admin stock that Vercel does not have.
+          if (!cancelled && remote.length > 0) {
             setProducts(remote);
+            if (data.persisted) {
+              saveProducts(remote);
+            }
             setReady(true);
-            return;
-          }
-
-          // No server catalog yet — keep local edits; migrate from admin only.
-          if (!cancelled) {
-            setProducts(local);
-            setReady(true);
-            if (window.location.pathname.startsWith("/admin")) {
+            if (
+              !data.persisted &&
+              window.location.pathname.startsWith("/admin")
+            ) {
               void pushCatalogToServer(local);
             }
             return;
