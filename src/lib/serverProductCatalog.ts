@@ -82,20 +82,24 @@ function catalogFromBundled(): PremiumProduct[] | null {
 
 /**
  * Server catalog for checkout + shop hydration.
- * 1) Admin file `.data/products-catalog.json` when present (local / durable disk)
- * 2) Bundled `src/data/server-catalog.json` — ships with the Vercel build
- * 3) Seed catalog (zero sellable stock) only as last resort
+ * - Production / Vercel: bundled `src/data/server-catalog.json` only
+ * - Local: `.data/products-catalog.json` when present, otherwise the bundle
+ * - Seed catalog (zero sellable stock) only as last resort
+ *
+ * Production must not depend on a writable or traced `.data` file.
  */
 export async function readServerProducts(): Promise<ServerCatalogResult> {
-  try {
-    const raw = await readFile(PRODUCTS_FILE, "utf8");
-    const parsed = JSON.parse(raw) as unknown;
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      const normalized = (parsed as PremiumProduct[]).map(normalizeProduct);
-      return { products: mergeWithSeed(normalized), persisted: true };
+  if (!process.env.VERCEL) {
+    try {
+      const raw = await readFile(PRODUCTS_FILE, "utf8");
+      const parsed = JSON.parse(raw) as unknown;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const normalized = (parsed as PremiumProduct[]).map(normalizeProduct);
+        return { products: mergeWithSeed(normalized), persisted: true };
+      }
+    } catch {
+      // Local override missing — use the bundled snapshot.
     }
-  } catch {
-    // Serverless hosts have no writable .data — use the bundled snapshot.
   }
 
   const bundled = catalogFromBundled();
