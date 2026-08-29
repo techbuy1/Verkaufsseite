@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { validateCheckoutCustomer } from "@/lib/checkoutCustomer";
+import { publicCheckoutError } from "@/lib/checkoutErrors";
 import { logMissingEnv, missingConfigMessage } from "@/lib/env";
 import { createPayPalOrder, isPayPalConfigured } from "@/lib/paypal";
 import { createPendingOrder, updateOrder } from "@/lib/orderStore";
@@ -91,14 +92,8 @@ export async function POST(request: Request) {
       currency: validated.cart.currency,
     });
   } catch (error) {
-    console.error("[paypal/create-order]", error);
     return NextResponse.json(
-      {
-        message:
-          error instanceof Error
-            ? error.message
-            : "PayPal-Bestellung konnte nicht erstellt werden.",
-      },
+      { message: publicCheckoutError(error, "paypal/create-order") },
       { status: 500 },
     );
   }

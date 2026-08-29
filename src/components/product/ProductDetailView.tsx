@@ -348,7 +348,7 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
 
       <div className="bg-background pb-10 pt-[72px] md:pt-[76px]">
         <div className="mx-auto max-w-[1280px] px-5 md:px-8 lg:px-10">
-          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-8 xl:gap-12">
+          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] lg:gap-8 xl:gap-12">
             <aside className="lg:sticky lg:top-24 lg:self-start">
               <div className="pt-3 lg:pt-4">
                 <ProductMediaPanel

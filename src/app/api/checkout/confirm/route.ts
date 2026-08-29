@@ -4,6 +4,7 @@ import {
   findOrderById,
   findOrderByStripeSessionId,
 } from "@/lib/orderStore";
+import { publicCheckoutError } from "@/lib/checkoutErrors";
 import { logMissingEnv, missingConfigMessage } from "@/lib/env";
 import { getSiteUrl } from "@/lib/siteUrl";
 import { getStripe } from "@/lib/stripe";
@@ -83,14 +84,8 @@ export async function GET(request: Request) {
       total: order?.total ?? null,
     });
   } catch (error) {
-    console.error("[stripe/confirm]", error);
     return NextResponse.json(
-      {
-        message:
-          error instanceof Error
-            ? error.message
-            : "Zahlung konnte nicht geprüft werden.",
-      },
+      { message: publicCheckoutError(error, "stripe/confirm") },
       { status: 500 },
     );
   }

@@ -7,6 +7,7 @@ import {
   type CheckoutLineInput,
 } from "@/lib/serverCheckout";
 import type { DeviceUpsellSelectionInput } from "@/lib/checkoutUpsell";
+import { publicCheckoutError } from "@/lib/checkoutErrors";
 import { logMissingEnv, missingConfigMessage } from "@/lib/env";
 import {
   getSiteUrl,
@@ -217,14 +218,8 @@ export async function POST(request: Request) {
       orderNumber: pending.orderNumber,
     });
   } catch (error) {
-    console.error("[stripe/checkout]", error);
     return NextResponse.json(
-      {
-        message:
-          error instanceof Error
-            ? error.message
-            : "Stripe Checkout konnte nicht gestartet werden.",
-      },
+      { message: publicCheckoutError(error, "stripe/checkout") },
       { status: 500 },
     );
   }

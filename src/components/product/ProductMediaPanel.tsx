@@ -20,16 +20,13 @@ export const ProductMediaPanel = memo(function ProductMediaPanel({
 }: ProductMediaPanelProps) {
   return (
     <div className="w-full">
-      <div className="overflow-hidden rounded-[20px] border border-border bg-white shadow-[var(--shadow-card)]">
-        <div className="px-3 py-4 md:px-5 md:py-6">
-          <ProductGallery
-            images={images}
-            alt={alt}
-            activeIndex={activeIndex}
-            fallbackType={fallbackType}
-            stageClassName="bg-transparent"
-          />
-        </div>
+      <div className="rounded-[28px] bg-[#f5f5f7] px-4 py-7 sm:px-6 sm:py-9 md:px-8 md:py-10">
+        <ProductGallery
+          images={images}
+          alt={alt}
+          activeIndex={activeIndex}
+          fallbackType={fallbackType}
+        />
       </div>
     </div>
   );

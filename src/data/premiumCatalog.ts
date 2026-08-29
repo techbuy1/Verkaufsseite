@@ -258,19 +258,19 @@ const productSeeds: ProductSeed[] = [
         id: "cosmic-orange",
         colorName: "Cosmic Orange",
         colorCode: "#e8622a",
-        image: assetPath(`${appleBase}/iPhone 17 Pro /Apple_iPhone17Pro_Orange.png`),
+        image: assetPath(`${appleBase}/iPhone 17 Pro Max /17ProMaxOrange.png`),
       },
       {
         id: "deep-blue",
         colorName: "Deep Blue",
         colorCode: "#2f3b52",
-        image: assetPath(`${appleBase}/iPhone 17 Pro /iPhone17Pro_DeepBlue.png`),
+        image: assetPath(`${appleBase}/iPhone 17 Pro Max /17ProMaxDeepBlue.png`),
       },
       {
         id: "silver",
         colorName: "Silver",
         colorCode: "#e3e4e5",
-        image: assetPath(`${appleBase}/iPhone 17 Pro /apple_iphone_17_pro_1_1_1_1.png`),
+        image: assetPath(`${appleBase}/iPhone 17 Pro Max /17ProMaxSilber.png`),
       },
     ],
     storageOptions: [

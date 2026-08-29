@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { attachVerifiedDisplayImages } from "@/lib/productDisplayImages";
 import { readServerProducts } from "@/lib/serverProductCatalog";
 
 export const runtime = "nodejs";
@@ -22,5 +23,9 @@ export async function GET(
     return NextResponse.json({ message: "Produkt nicht gefunden." }, { status: 404 });
   }
 
-  return NextResponse.json({ ok: true, persisted, product });
+  return NextResponse.json({
+    ok: true,
+    persisted,
+    product: attachVerifiedDisplayImages(product),
+  });
 }

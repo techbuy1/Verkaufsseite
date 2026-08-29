@@ -101,6 +101,7 @@ export const PRODUCT_IMAGE_REGISTRY: Record<string, RegistryColorEntry[]> = {
       name: "Cosmic Orange",
       hex: "#e8622a",
       file: `${IPHONE_17}/iPhone 17 Pro /Apple_iPhone17Pro_Orange.png`,
+      angles: ["images/hero/collage/iphone-17-pro-cosmic-orange/back.png"],
       wallpaper: "images/products/Apple/iPhone-17-Pro-wallpapers/cosmic-orange.png",
       model: "models/iphone-17-pro-cosmic-orange.glb",
     },
@@ -122,7 +123,15 @@ export const PRODUCT_IMAGE_REGISTRY: Record<string, RegistryColorEntry[]> = {
     },
   ],
   "iphone-17-pro-max": [
-    { id: "cosmic-orange", name: "Cosmic Orange", hex: "#e8622a", file: `${IPHONE_17}/iPhone 17 Pro Max /17ProMaxOrange.png` },
+    {
+      id: "cosmic-orange",
+      name: "Cosmic Orange",
+      hex: "#e8622a",
+      file: `${IPHONE_17}/iPhone 17 Pro Max /17ProMaxOrange.png`,
+      // Own Pro Max fronts exist; no dedicated Pro Max back asset — Cosmic Orange
+      // back is the same colourway still used for the Pro collage.
+      angles: ["images/hero/collage/iphone-17-pro-cosmic-orange/back.png"],
+    },
     { id: "deep-blue", name: "Deep Blue", hex: "#2f3b52", file: `${IPHONE_17}/iPhone 17 Pro Max /17ProMaxDeepBlue.png` },
     { id: "silver", name: "Silver", hex: "#e3e4e5", file: `${IPHONE_17}/iPhone 17 Pro Max /17ProMaxSilber.png` },
   ],
