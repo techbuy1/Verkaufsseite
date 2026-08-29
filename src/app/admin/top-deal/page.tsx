@@ -73,7 +73,7 @@ export default function AdminTopDealPage() {
     // value has loaded client-side, otherwise SSR and hydration disagree.
     return (
       <div className="mx-auto max-w-[900px]">
-        <h1 className="text-[28px] font-bold tracking-tight text-[#1d1d1f]">Top Deal der Woche</h1>
+        <h1 className="admin-page-title">Top Deal der Woche</h1>
         <p className="mt-2 text-[15px] text-[#6e6e73]">Lade Konfiguration …</p>
       </div>
     );
@@ -81,19 +81,19 @@ export default function AdminTopDealPage() {
 
   return (
     <div className="mx-auto max-w-[900px]">
-      <h1 className="text-[28px] font-bold tracking-tight text-[#1d1d1f]">Top Deal der Woche</h1>
+      <h1 className="admin-page-title">Top Deal der Woche</h1>
       <p className="mt-2 text-[15px] text-[#6e6e73]">
         Konfiguriere das Produkt, den Rabatt und den Countdown für die Deal-Sektion auf der Startseite.
       </p>
 
       <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-[1fr_320px]">
         <div className="space-y-5 rounded-[18px] border border-[#d2d2d7]/40 bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-          <label className="flex items-center gap-2.5 text-[14px] font-medium text-[#1d1d1f]">
+          <label className="flex items-center gap-2.5 text-[14px] font-medium text-text-primary">
             <input
               type="checkbox"
               checked={form.active}
               onChange={(event) => patch({ active: event.target.checked })}
-              className="h-4 w-4 accent-[#16c66a]"
+              className="h-4 w-4 accent-accent"
             />
             Sektion auf der Startseite anzeigen
           </label>
@@ -202,7 +202,7 @@ export default function AdminTopDealPage() {
             <button
               type="button"
               onClick={handleSave}
-              className="inline-flex min-h-[42px] items-center justify-center rounded-full bg-[#16c66a] px-6 text-[14px] font-semibold text-white transition-colors hover:bg-[#12a85a]"
+              className="btn-techbuy-primary min-h-[42px] px-6 text-[14px]"
             >
               Änderungen speichern
             </button>
@@ -212,11 +212,11 @@ export default function AdminTopDealPage() {
                 resetToSeed();
                 setSavedAt(Date.now());
               }}
-              className="inline-flex min-h-[42px] items-center justify-center rounded-full border border-[#d2d2d7] px-5 text-[14px] font-medium text-[#1d1d1f] transition-colors hover:bg-[#f5f5f7]"
+              className="btn-techbuy-secondary min-h-[42px] px-5 text-[14px]"
             >
               Zurücksetzen
             </button>
-            {savedAt && <span className="text-[13px] text-[#16c66a]">Gespeichert.</span>}
+            {savedAt && <span className="text-[13px] text-accent">Gespeichert.</span>}
           </div>
         </div>
 
@@ -230,7 +230,7 @@ export default function AdminTopDealPage() {
           <div className="mt-3 flex items-end gap-2">
             <span className="text-[13px] text-white/40 line-through">{formatPrice(originalPrice)}</span>
             <span className="text-[22px] font-bold">{formatPrice(dealPrice)}</span>
-            <span className="mb-1 rounded-full bg-[#16c66a]/15 px-2 py-0.5 text-[11px] font-semibold text-[#16c66a]">
+            <span className="mb-1 rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent">
               -{form.discountPercent}%
             </span>
           </div>

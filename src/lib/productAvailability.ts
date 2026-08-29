@@ -6,14 +6,17 @@ import type {
 } from "@/types/product";
 import {
   ensureStorageConditions,
-  getConditionOption,
+  getConditionSavings,
   getDefaultAvailableCondition,
-  getEffectiveConditionStock,
+  getEffectivePriceForConditionEntry,
+  getNewBasePriceFromOption,
   getPurchasableConditions,
   getStorageMinAvailablePrice,
   getStorageOptionTotalStock,
   isConditionId,
 } from "@/lib/conditions";
+import { getActiveConditionPricingRules } from "@/lib/pricing";
+import { applyPromotionToPrice, findApplicablePromotion, getActivePromotions } from "@/lib/promotions";
 import {
   getDefaultColor,
   getDefaultStorage,
@@ -70,7 +73,10 @@ export function getConditionStock(
 ): number {
   const synced = syncProductVariants(product);
   const option = getStorageOption(synced, storage, colorId);
-  return getEffectiveConditionStock(option, condition);
+  const ensured = ensureStorageConditions(option);
+  const entry = ensured.conditions?.find((c) => c.condition === condition);
+  if (!entry || !entry.active) return 0;
+  return Math.max(0, Math.floor(entry.stock));
 }
 
 export function getVariantStock(
@@ -153,12 +159,50 @@ export function getProductAvailabilityStatus(
 }
 
 /**
- * A product stays reachable via its detail page as long as it isn't manually
- * archived — running out of stock marks it "Ausverkauft" rather than 404ing.
- * Homepage listings use {@link isProductInStock} instead.
+ * Geräte ohne Bestand automatisch archivieren; bei Wiederauffüllung
+ * wieder freischalten (nur wenn zuvor stockArchived gesetzt war).
+ */
+export function syncStockArchiveState(product: PremiumProduct): PremiumProduct {
+  const synced = syncProductVariants(product);
+
+  if (isPresaleProduct(synced)) {
+    return synced.stockArchived
+      ? { ...synced, stockArchived: false }
+      : synced;
+  }
+
+  const total = getTotalStock(synced);
+
+  if (total <= 0) {
+    return { ...synced, manualArchive: true, stockArchived: true };
+  }
+
+  if (synced.stockArchived) {
+    return { ...synced, manualArchive: false, stockArchived: false };
+  }
+
+  return synced;
+}
+
+/**
+ * Shop-Sichtbarkeit: nur nicht manuell archivierte Geräte mit Bestand
+ * (oder aktiver Vorverkauf).
  */
 export function isProductVisibleInShop(product: PremiumProduct): boolean {
-  return !product.manualArchive;
+  if (product.manualArchive) return false;
+  if (isPresaleProduct(product)) return true;
+  return getTotalStock(product) > 0;
+}
+
+/**
+ * Produktdetailseite darf geladen werden — auch ohne Bestand, damit ein
+ * ausverkauftes Gerät eine „Ausverkauft“-Seite zeigt statt 404. Nur Geräte,
+ * die ein Admin bewusst (nicht nur wegen Bestand 0) archiviert hat, bleiben
+ * unerreichbar.
+ */
+export function isProductPageReachable(product: PremiumProduct): boolean {
+  if (!product.manualArchive) return true;
+  return Boolean(product.stockArchived);
 }
 
 /** True when the product has sellable stock (or is intentionally in presale). */
@@ -186,14 +230,27 @@ export function getInStockPremiumProducts(products: PremiumProduct[]): PremiumPr
   return products.filter(isProductInStock);
 }
 
-export function getProductMinAvailablePrice(product: PremiumProduct): number {
+function computeMinAvailablePrice(product: PremiumProduct, applyPromo: boolean): number {
   const variants = getProductVariants(syncProductVariants(product));
+  const promotions = applyPromo ? getActivePromotions() : [];
   let min = Infinity;
 
   for (const variant of variants) {
     for (const option of variant.storageOptions) {
-      const price = getStorageMinAvailablePrice(option);
-      if (price !== null && price > 0 && price < min) {
+      const regularPrice = getStorageMinAvailablePrice(option);
+      if (regularPrice === null || !(regularPrice > 0)) continue;
+
+      const promotion = applyPromo
+        ? findApplicablePromotion(promotions, product.id, {
+            colorId: variant.id,
+            storage: option.storage,
+          })
+        : undefined;
+      const price = promotion
+        ? applyPromotionToPrice(regularPrice, promotion, product.id) ?? regularPrice
+        : regularPrice;
+
+      if (price < min) {
         min = price;
       }
     }
@@ -216,6 +273,16 @@ export function getProductMinAvailablePrice(product: PremiumProduct): number {
   }
 
   return min === Infinity ? 0 : Math.round(min * 100) / 100;
+}
+
+/** Niedrigster verfügbarer Preis inkl. eines eventuell aktiven Angebots. */
+export function getProductMinAvailablePrice(product: PremiumProduct): number {
+  return computeMinAvailablePrice(product, true);
+}
+
+/** Niedrigster verfügbarer Preis ohne Angebot — für den Streichpreis auf Karten. */
+export function getProductMinAvailableRegularPrice(product: PremiumProduct): number {
+  return computeMinAvailablePrice(product, false);
 }
 
 export function getProductMinAvailableConditionLabel(
@@ -263,6 +330,14 @@ export function getDefaultAvailableConditionId(
   storage: string,
 ): ConditionId {
   const option = getStorageOption(syncProductVariants(product), storage, colorId);
+  const ensured = ensureStorageConditions(option);
+  const allowZero = isPresaleProduct(product);
+
+  const withOwnStock = (ensured.conditions ?? []).filter(
+    (entry) => entry.active && entry.price > 0 && (entry.stock > 0 || allowZero),
+  );
+  if (withOwnStock.length > 0) return withOwnStock[0].condition;
+
   return getDefaultAvailableCondition(option).condition;
 }
 
@@ -295,16 +370,14 @@ export function getConditionAvailabilityMap(
   const option = getStorageOption(syncProductVariants(product), storage, colorId);
   const ensured = ensureStorageConditions(option);
   const allowZero = isPresaleProduct(product);
-  const basePrice =
-    ensured.conditions?.find((entry) => entry.condition === "new")?.price ||
-    ensured.price ||
-    0;
+  const rules = getActiveConditionPricingRules();
+  const basePrice = getNewBasePriceFromOption(ensured);
 
   return Object.fromEntries(
     (ensured.conditions ?? []).map((entry) => {
-      const stock = getEffectiveConditionStock(ensured, entry.condition);
-      const price = entry.price;
-      const savings = Math.max(0, Math.round((basePrice - price) * 100) / 100);
+      const stock = Math.max(0, Math.floor(entry.stock));
+      const price = getEffectivePriceForConditionEntry(ensured, entry, rules);
+      const savings = getConditionSavings(basePrice, entry.condition, rules);
       return [
         entry.condition,
         {
@@ -335,6 +408,99 @@ export function getConditionAvailabilityMap(
       basePrice: number;
     }
   >;
+}
+
+export type ConditionAvailabilityEntry = {
+  available: boolean;
+  stock: number;
+  active: boolean;
+  price: number;
+  label: string;
+  note?: string;
+  savings: number;
+  basePrice: number;
+};
+
+function colorStorageKey(colorId: string, storage: string): string {
+  return `${colorId}::${storage}`;
+}
+
+/** Pre-indexed variant data for fast PDP lookups — built once per product. */
+export interface ProductConfigIndex {
+  synced: PremiumProduct;
+  colorAvailability: Record<string, boolean>;
+  storageByColor: Record<string, Record<string, number>>;
+  storageOptionsByColor: Record<string, StorageOption[]>;
+  conditionsByKey: Record<string, Record<ConditionId, ConditionAvailabilityEntry>>;
+}
+
+export function buildProductConfigIndex(product: PremiumProduct): ProductConfigIndex {
+  const synced = syncProductVariants(product);
+  const rules = getActiveConditionPricingRules();
+  const allowZero = isPresaleProduct(product);
+  const stockFallback = synced.stock ?? DEFAULT_VARIANT_STOCK;
+
+  const colorAvailability = Object.fromEntries(
+    synced.images.map((image) => [image.id, isColorAvailable(synced, image.id)]),
+  );
+
+  const storageByColor: Record<string, Record<string, number>> = {};
+  const storageOptionsByColor: Record<string, StorageOption[]> = {};
+  const conditionsByKey: Record<string, Record<ConditionId, ConditionAvailabilityEntry>> = {};
+
+  for (const variant of getProductVariants(synced)) {
+    storageOptionsByColor[variant.id] = variant.storageOptions;
+    storageByColor[variant.id] = Object.fromEntries(
+      variant.storageOptions.map((option) => [
+        option.storage,
+        getStorageOptionStock(option, stockFallback),
+      ]),
+    );
+
+    for (const option of variant.storageOptions) {
+      const ensured = ensureStorageConditions(option);
+      const basePrice = getNewBasePriceFromOption(ensured);
+      const key = colorStorageKey(variant.id, option.storage);
+
+      conditionsByKey[key] = Object.fromEntries(
+        (ensured.conditions ?? []).map((entry) => {
+          const stock = Math.max(0, Math.floor(entry.stock));
+          const price = getEffectivePriceForConditionEntry(ensured, entry, rules);
+          const savings = getConditionSavings(basePrice, entry.condition, rules);
+          return [
+            entry.condition,
+            {
+              available:
+                entry.active && price > 0 && (stock > 0 || allowZero),
+              stock,
+              active: entry.active,
+              price,
+              label: entry.label,
+              note: entry.note,
+              savings,
+              basePrice,
+            },
+          ];
+        }),
+      ) as Record<ConditionId, ConditionAvailabilityEntry>;
+    }
+  }
+
+  return {
+    synced,
+    colorAvailability,
+    storageByColor,
+    storageOptionsByColor,
+    conditionsByKey,
+  };
+}
+
+export function getConditionAvailabilityFromIndex(
+  index: ProductConfigIndex,
+  colorId: string,
+  storage: string,
+): Record<ConditionId, ConditionAvailabilityEntry> {
+  return index.conditionsByKey[colorStorageKey(colorId, storage)] ?? {};
 }
 
 export interface PurchaseValidationResult {
@@ -544,7 +710,7 @@ export function getAdminStatusLabel(product: PremiumProduct): {
     return { emoji: "🔵", label: "Vorverkauf", shopVisible: true };
   }
   if (status === "out_of_stock") {
-    return { emoji: "⚫", label: "Ausverkauft", shopVisible: true };
+    return { emoji: "⚫", label: "Ausverkauft · archiviert", shopVisible: false };
   }
   if (isLowStockProduct(product)) {
     return { emoji: "🟠", label: "Niedriger Bestand", shopVisible: true };

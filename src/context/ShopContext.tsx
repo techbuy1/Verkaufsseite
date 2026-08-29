@@ -7,6 +7,7 @@ import {
   useEffect,
   useMemo,
   useReducer,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -21,6 +22,7 @@ import {
   type CartItem,
 } from "@/lib/cart";
 import type { AddToCartPayload } from "@/types/product";
+import { useProductStoreOptional } from "@/context/ProductStoreContext";
 
 type CartAction =
   | { type: "ADD"; payload: AddToCartPayload }
@@ -69,7 +71,7 @@ function cartReducer(state: CartItem[], action: CartAction): CartItem[] {
     case "CLEAR":
       return [];
     case "RESTORE":
-      return action.items.map(resolveCartItemPrice);
+      return action.items.map(resolveCartItemPrice).filter((item) => item.quantity > 0);
     default:
       return state;
   }
@@ -79,6 +81,9 @@ interface ShopContextValue {
   cartItems: CartItem[];
   cartCount: number;
   cartSubtotal: number;
+  /** Set when stock changes (admin sets Bestand 0) removed an item from the cart. */
+  removedCartNotice: string | null;
+  dismissRemovedCartNotice: () => void;
   wishlist: Set<string>;
   isSearchOpen: boolean;
   isMobileMenuOpen: boolean;
@@ -111,6 +116,11 @@ function parseStoredWishlist(raw: string | null): Set<string> {
 
 const ShopContext = createContext<ShopContextValue | null>(null);
 
+const ShopCartActionsContext = createContext<Pick<
+  ShopContextValue,
+  "addToCart" | "openCart"
+> | null>(null);
+
 export function ShopProvider({ children }: { children: ReactNode }) {
   const [cartItems, dispatch] = useReducer(cartReducer, []);
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
@@ -118,6 +128,10 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [removedCartNotice, setRemovedCartNotice] = useState<string | null>(null);
+  const cartItemsRef = useRef(cartItems);
+  cartItemsRef.current = cartItems;
+  const productStore = useProductStoreOptional();
 
   useEffect(() => {
     const stored = parseStoredCart(localStorage.getItem(CART_STORAGE_KEY));
@@ -137,6 +151,29 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     if (!isHydrated) return;
     localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(Array.from(wishlist)));
   }, [wishlist, isHydrated]);
+
+  // Re-check stock whenever the (server-truth) product catalog changes —
+  // admin can set Bestand to 0 while an item already sits in someone's cart.
+  useEffect(() => {
+    if (!isHydrated || !productStore?.ready) return;
+    const current = cartItemsRef.current;
+    if (current.length === 0) return;
+
+    const revalidated = current.map(resolveCartItemPrice);
+    const removedNames = current
+      .filter((item, index) => item.quantity > 0 && revalidated[index].quantity <= 0)
+      .map((item) => (item.brand ? `${item.brand} ${item.name}` : item.name));
+
+    if (removedNames.length === 0) return;
+
+    dispatch({ type: "RESTORE", items: revalidated });
+    setRemovedCartNotice(
+      removedNames.length === 1
+        ? `„${removedNames[0]}“ ist inzwischen ausverkauft und wurde aus deinem Warenkorb entfernt.`
+        : `${removedNames.length} Artikel in deinem Warenkorb sind inzwischen ausverkauft und wurden entfernt.`,
+    );
+    // Only re-run when the catalog itself changes, not on every cart edit.
+  }, [isHydrated, productStore?.ready, productStore?.products]);
 
   const addToCart = useCallback(
     (productIdOrPayload: string | AddToCartPayload, quantity = 1) => {
@@ -179,11 +216,17 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     [wishlist],
   );
 
+  const dismissRemovedCartNotice = useCallback(() => {
+    setRemovedCartNotice(null);
+  }, []);
+
   const value = useMemo<ShopContextValue>(
     () => ({
       cartItems,
       cartCount: getCartItemCount(cartItems),
       cartSubtotal: getCartSubtotal(cartItems),
+      removedCartNotice,
+      dismissRemovedCartNotice,
       wishlist,
       isSearchOpen,
       isMobileMenuOpen,
@@ -203,6 +246,8 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     }),
     [
       cartItems,
+      removedCartNotice,
+      dismissRemovedCartNotice,
       wishlist,
       isSearchOpen,
       isMobileMenuOpen,
@@ -216,13 +261,31 @@ export function ShopProvider({ children }: { children: ReactNode }) {
     ],
   );
 
-  return <ShopContext.Provider value={value}>{children}</ShopContext.Provider>;
+  const cartActions = useMemo(
+    () => ({ addToCart, openCart: () => setIsCartOpen(true) }),
+    [addToCart],
+  );
+
+  return (
+    <ShopCartActionsContext.Provider value={cartActions}>
+      <ShopContext.Provider value={value}>{children}</ShopContext.Provider>
+    </ShopCartActionsContext.Provider>
+  );
 }
 
 export function useShop() {
   const context = useContext(ShopContext);
   if (!context) {
     throw new Error("useShop must be used within ShopProvider");
+  }
+  return context;
+}
+
+/** Stable cart actions — avoids PDP re-renders when cart contents change. */
+export function useShopCartActions() {
+  const context = useContext(ShopCartActionsContext);
+  if (!context) {
+    throw new Error("useShopCartActions must be used within ShopProvider");
   }
   return context;
 }

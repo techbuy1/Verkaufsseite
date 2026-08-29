@@ -42,6 +42,8 @@ export interface Product {
   name: string;
   brand: string;
   price: number;
+  /** Unrabattierter Preis — nur gesetzt, wenn ein aktives Angebot `price` bereits reduziert hat. */
+  regularPrice?: number;
   monthlyPrice?: number;
   badge?: "Neu" | "Sale";
   discount?: string;
@@ -59,6 +61,13 @@ export interface Product {
   priceFromConditionLabel?: string;
   /** Derzeit ohne Bestand — bleibt im Katalog sichtbar, aber als „Ausverkauft“ markiert. */
   soldOut?: boolean;
+  /**
+   * Legacy-ID/Alias für ältere Empfehlungslisten (z. B. Cross-Sell auf
+   * Geräteseiten) — bleibt per ID/Slug auflösbar, erscheint aber nicht
+   * zusätzlich als eigene Karte in Store/Homepage-Listings, wenn ein
+   * identisches modernes Produkt (gleicher Name/Preis) bereits gelistet ist.
+   */
+  hiddenFromListing?: boolean;
 }
 
 export type ProductImageType =

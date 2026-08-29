@@ -1,6 +1,8 @@
-import { Suspense } from "react";
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import { getStoreInitialProducts } from "@/lib/productMerchandising";
 import { StorePageContent } from "@/components/store/StorePageContent";
+import { StorePageLoading } from "@/components/store/StorePageLoading";
 
 export const metadata: Metadata = {
   title: "TechBuy Store — Alle Produkte",
@@ -8,18 +10,12 @@ export const metadata: Metadata = {
     "Entdecke unsere gesamte Auswahl an Smartphones, Tablets, Computern, Audio und Zubehör im TechBuy Store.",
 };
 
-function StoreFallback() {
-  return (
-    <div className="flex min-h-[50vh] items-center justify-center bg-background-secondary pt-[72px]">
-      <p className="text-[15px] text-text-secondary">Store wird geladen…</p>
-    </div>
-  );
-}
-
 export default function StorePage() {
+  const initialProducts = getStoreInitialProducts();
+
   return (
-    <Suspense fallback={<StoreFallback />}>
-      <StorePageContent />
+    <Suspense fallback={<StorePageLoading />}>
+      <StorePageContent initialProducts={initialProducts} />
     </Suspense>
   );
 }

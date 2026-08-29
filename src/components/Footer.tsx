@@ -6,7 +6,7 @@ const footerLinks = {
     { label: "Datenschutz", href: "/datenschutz" },
     { label: "Impressum", href: "/impressum" },
     { label: "AGB", href: "/agb" },
-    { label: "Widerruf", href: "/widerruf" },
+    { label: "Widerrufsrecht", href: "/widerruf#widerrufsrecht" },
   ],
   service: [
     { label: "Kontakt", href: "/kontakt" },
@@ -64,6 +64,12 @@ export function Footer() {
                   </li>
                 ))}
               </ul>
+              <Link
+                href="/widerruf"
+                className="mt-4 inline-flex min-h-[40px] items-center justify-center rounded-[980px] border border-white/15 bg-white/[0.06] px-4 text-[13px] font-medium text-[#F5F5F3] transition-colors hover:border-accent/40 hover:bg-accent/15 hover:text-accent"
+              >
+                Widerruf erklären
+              </Link>
             </div>
           </Reveal>
 

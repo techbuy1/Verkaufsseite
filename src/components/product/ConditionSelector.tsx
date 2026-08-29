@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
+import { formatPrice } from "@/data/products";
 import type { ConditionId } from "@/types/product";
 import {
   CONDITION_DEFINITIONS,
   CONDITION_IDS,
   getConditionDescription,
 } from "@/lib/conditions";
-import { formatPrice } from "@/data/products";
 
 export interface ConditionSelectorOption {
   condition: ConditionId;
@@ -17,7 +17,6 @@ export interface ConditionSelectorOption {
   active: boolean;
   available: boolean;
   note?: string;
-  /** Ersparnis gegenüber Neu */
   savings?: number;
   basePrice?: number;
 }
@@ -28,16 +27,17 @@ interface ConditionSelectorProps {
   onChange: (condition: ConditionId) => void;
 }
 
-export function ConditionSelector({
+export const ConditionSelector = memo(function ConditionSelector({
   options,
   selectedCondition,
   onChange,
 }: ConditionSelectorProps) {
   const [infoOpen, setInfoOpen] = useState(false);
+
   const visible = options.filter((option) => option.active);
   if (visible.length === 0) return null;
 
-  const selected = options.find((option) => option.condition === selectedCondition);
+  const selected = visible.find((option) => option.condition === selectedCondition);
 
   return (
     <div>
@@ -71,44 +71,44 @@ export function ConditionSelector({
 
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
         {visible.map((option) => {
-          const isSelected = option.condition === selectedCondition;
           const isAvailable = option.available;
-          const savings = option.savings ?? 0;
+          const isSelected = isAvailable && option.condition === selectedCondition;
 
           return (
             <button
               key={option.condition}
               type="button"
+              disabled={!isAvailable}
               aria-pressed={isSelected}
               aria-disabled={!isAvailable}
-              disabled={!isAvailable}
-              onClick={() => isAvailable && onChange(option.condition)}
-              className={`flex min-h-[92px] flex-col rounded-[16px] border px-3 py-3 text-left transition-all duration-200 ${
-                !isAvailable
-                  ? "cursor-not-allowed border-border bg-surface-hover text-text-muted opacity-70"
-                  : isSelected
-                    ? "border-accent bg-surface-card text-text-primary shadow-[0_8px_24px_rgba(232,98,42,0.16)] ring-1 ring-accent/30"
-                    : "border-border bg-surface-card text-text-primary shadow-[var(--shadow-card)] hover:border-text-muted/50"
+              aria-label={`Zustand ${option.label}${isAvailable ? "" : " – Ausverkauft"}`}
+              onClick={() => {
+                if (!isAvailable) return;
+                onChange(option.condition);
+              }}
+              className={`flex min-h-[64px] flex-col justify-center rounded-[16px] border px-3 py-3 text-left transition-[border-color,box-shadow,opacity] duration-150 ${
+                isSelected
+                  ? "border-accent bg-surface-card text-text-primary shadow-[0_8px_24px_rgba(232,98,42,0.16)] ring-1 ring-accent/30"
+                  : isAvailable
+                    ? "border-border bg-surface-card text-text-primary shadow-[var(--shadow-card)] hover:border-text-muted/50"
+                    : "cursor-not-allowed border-border/70 bg-background-secondary/80 text-text-secondary/70"
               }`}
             >
-              <span className="block text-[14px] font-semibold leading-snug tracking-tight">
+              <span
+                className={`block text-[14px] font-semibold leading-snug tracking-tight ${
+                  isAvailable ? "text-text-primary" : "text-text-secondary/80"
+                }`}
+              >
                 {option.label}
               </span>
               {isAvailable ? (
-                <>
-                  <span className="mt-1 block text-[15px] font-semibold tracking-tight">
-                    {formatPrice(option.price)}
-                  </span>
-                  {savings > 0 ? (
-                    <span className="mt-1 text-[12px] font-medium text-accent">
-                      −{formatPrice(savings)} günstiger
-                    </span>
-                  ) : (
-                    <span className="mt-1 text-[11px] text-text-muted">Basispreis</span>
-                  )}
-                </>
+                <span className="mt-1 text-[13px] font-medium text-text-secondary">
+                  {formatPrice(option.price)}
+                </span>
               ) : (
-                <span className="mt-1 block text-[11px] font-normal">Nicht verfügbar</span>
+                <span className="mt-1 text-[12px] font-medium text-text-secondary/70">
+                  Ausverkauft
+                </span>
               )}
             </button>
           );
@@ -122,4 +122,4 @@ export function ConditionSelector({
       )}
     </div>
   );
-}
+});

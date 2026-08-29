@@ -7,9 +7,9 @@ import {
   getAvailableSeries,
   getAvailableStorages,
   SORT_OPTIONS,
+  STORE_CATEGORY_TABS,
 } from "@/lib/storeCatalog";
 import type { Product } from "@/data/products";
-import { catalogCategories, type CatalogCategoryId } from "@/data/catalogCategories";
 import { BRAND_FILTER_OPTIONS } from "@/lib/filterProducts";
 
 interface StoreFilterSidebarProps {
@@ -42,6 +42,16 @@ export function StoreFilterSidebar({
         </h2>
       </div>
 
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={filters.availableOnly}
+          onChange={(e) => onChange({ availableOnly: e.target.checked })}
+          className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
+        />
+        <span className="text-[13px] font-medium text-text-primary">Nur verfügbare</span>
+      </label>
+
       <label className="block">
         <span className="mb-2 block text-[13px] font-medium text-text-primary">Kategorie</span>
         <select
@@ -55,9 +65,9 @@ export function StoreFilterSidebar({
           className="shop-filter-control w-full"
         >
           <option value="all">Alle Kategorien</option>
-          {catalogCategories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.label}
+          {STORE_CATEGORY_TABS.filter((tab) => tab.id !== "all").map((tab) => (
+            <option key={tab.id} value={tab.id}>
+              {tab.label}
             </option>
           ))}
         </select>
@@ -211,8 +221,4 @@ export function StoreSortSelect({
       </select>
     </label>
   );
-}
-
-export function getCategoryLabel(categoryId: CatalogCategoryId): string {
-  return catalogCategories.find((category) => category.id === categoryId)?.label ?? categoryId;
 }

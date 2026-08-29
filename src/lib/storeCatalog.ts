@@ -16,12 +16,15 @@ import {
 } from "@/lib/filterProducts";
 import { getProductVariants } from "@/lib/productVariants";
 
-export type StoreCategoryFilter = CatalogCategoryId | "all";
+export type StoreCategoryFilter = CatalogCategoryId | "all" | "panzerfolien" | "gadgets";
+
+export type StoreDisplayGroupId = "panzerfolien" | "gadgets" | "smartphones";
 
 export interface StoreFilters extends CatalogFilters {
   category: StoreCategoryFilter;
   search: string;
   series: string;
+  availableOnly: boolean;
 }
 
 export const DEFAULT_STORE_FILTERS: StoreFilters = {
@@ -29,19 +32,21 @@ export const DEFAULT_STORE_FILTERS: StoreFilters = {
   category: "all",
   search: "",
   series: "all",
+  availableOnly: true,
 };
 
 export const STORE_CATEGORY_TABS: { id: StoreCategoryFilter; label: string }[] = [
   { id: "all", label: "Alle" },
-  ...catalogCategories.map((category) => ({
-    id: category.id,
-    label: category.label,
-  })),
+  { id: "panzerfolien", label: "Panzerfolien" },
+  { id: "gadgets", label: "Gadgets" },
+  { id: "smartphones", label: "Smartphones" },
 ];
 
 const VALID_CATEGORIES = new Set<string>([
   "all",
-  ...catalogCategories.map((category) => category.id),
+  "panzerfolien",
+  "gadgets",
+  "smartphones",
 ]);
 
 const VALID_BRANDS = new Set<BrandFilterValue>([
@@ -58,11 +63,84 @@ const VALID_SORT: SortOption[] = [
   "newest",
   "price-asc",
   "price-desc",
+  "deals",
   "name-asc",
 ];
 
 function resolvePremium(product: Product): PremiumProduct | undefined {
   return resolvePremiumProductBySlug(product.slug);
+}
+
+export function isPanzerfolieProduct(product: Product): boolean {
+  return (
+    /panzerfolie|displayschutz/i.test(product.name) ||
+    /panzerfolie|displayschutz/.test(product.slug)
+  );
+}
+
+export function isGadgetProduct(product: Product): boolean {
+  if (product.catalogCategory !== "zubehoer" || isPanzerfolieProduct(product)) {
+    return false;
+  }
+  if (isHuellenProduct(product)) return false;
+
+  return (
+    /powerbank|adapter|ladegerät|ladegeraet|ladekabel/i.test(product.name) ||
+    /powerbank|adapter|ladeger|kabel/.test(product.slug)
+  );
+}
+
+export function isHuellenProduct(product: Product): boolean {
+  if (product.catalogCategory !== "zubehoer" || isPanzerfolieProduct(product)) {
+    return false;
+  }
+  return (
+    /hülle|huellen|silikon/i.test(product.name) ||
+    /huelle|huellen|silikon/.test(product.slug)
+  );
+}
+
+/** Startseite: Smartphones, Panzerfolien und Hüllen. */
+export function isHomepageCatalogProduct(product: Product): boolean {
+  return (
+    product.catalogCategory === "smartphones" ||
+    isPanzerfolieProduct(product) ||
+    isHuellenProduct(product)
+  );
+}
+
+/** Store-Katalog: nur Smartphones, Panzerfolien und Gadgets. */
+export function isStoreCatalogProduct(product: Product): boolean {
+  return (
+    product.catalogCategory === "smartphones" ||
+    isPanzerfolieProduct(product) ||
+    isGadgetProduct(product)
+  );
+}
+
+function dedupeProductsBySlug(products: Product[]): Product[] {
+  const seen = new Set<string>();
+  return products.filter((product) => {
+    if (seen.has(product.slug)) return false;
+    seen.add(product.slug);
+    return true;
+  });
+}
+
+export function filterStoreCatalogProducts(products: Product[]): Product[] {
+  return dedupeProductsBySlug(products.filter(isStoreCatalogProduct));
+}
+
+export function filterHomepageCatalogProducts(products: Product[]): Product[] {
+  return dedupeProductsBySlug(products.filter(isHomepageCatalogProduct));
+}
+
+function matchesStoreCategory(product: Product, category: StoreCategoryFilter): boolean {
+  if (category === "all") return true;
+  if (category === "panzerfolien") return isPanzerfolieProduct(product);
+  if (category === "gadgets") return isGadgetProduct(product);
+  if (category === "smartphones") return product.catalogCategory === "smartphones";
+  return product.catalogCategory === category;
 }
 
 export function getProductSeries(product: Product): string {
@@ -102,7 +180,7 @@ export function getAvailableSeries(
   const relevant =
     category === "all"
       ? products
-      : products.filter((product) => product.catalogCategory === category);
+      : products.filter((product) => matchesStoreCategory(product, category));
 
   return [
     ...new Set(relevant.map((product) => getProductSeries(product)).filter(Boolean)),
@@ -145,8 +223,12 @@ export function searchStoreProducts(products: Product[], query: string): Product
 export function applyStoreFilters(products: Product[], filters: StoreFilters): Product[] {
   let result = products;
 
+  if (filters.availableOnly) {
+    result = result.filter((product) => !product.soldOut);
+  }
+
   if (filters.category !== "all") {
-    result = result.filter((product) => product.catalogCategory === filters.category);
+    result = result.filter((product) => matchesStoreCategory(product, filters.category));
   }
 
   result = searchStoreProducts(result, filters.search);
@@ -156,6 +238,18 @@ export function applyStoreFilters(products: Product[], filters: StoreFilters): P
   }
 
   return applyAdvancedProductFilters(result, filters);
+}
+
+export function getCategoryLabel(categoryId: CatalogCategoryId): string {
+  return catalogCategories.find((category) => category.id === categoryId)?.label ?? categoryId;
+}
+
+export function getStoreCategoryLabel(categoryId: StoreCategoryFilter): string {
+  if (categoryId === "panzerfolien") return "Panzerfolien";
+  if (categoryId === "gadgets") return "Gadgets";
+  if (categoryId === "all") return "Alle";
+  if (categoryId === "smartphones") return "Smartphones";
+  return getCategoryLabel(categoryId);
 }
 
 export function groupStoreProductsByCategory(
@@ -170,6 +264,33 @@ export function groupStoreProductsByCategory(
     .filter((group) => group.products.length > 0);
 }
 
+/** Gruppierung für Store-Startansicht: Panzerfolien & Gadgets oben, dann Smartphones. */
+export function groupStoreProductsForDisplay(
+  products: Product[],
+): { categoryId: StoreDisplayGroupId; label: string; products: Product[] }[] {
+  const panzerfolien = products.filter(isPanzerfolieProduct);
+  const gadgets = products.filter(isGadgetProduct);
+  const smartphones = products.filter(
+    (product) => product.catalogCategory === "smartphones",
+  );
+
+  return [
+    panzerfolien.length > 0
+      ? { categoryId: "panzerfolien" as const, label: "Panzerfolien", products: panzerfolien }
+      : null,
+    gadgets.length > 0
+      ? { categoryId: "gadgets" as const, label: "Gadgets", products: gadgets }
+      : null,
+    smartphones.length > 0
+      ? {
+          categoryId: "smartphones" as const,
+          label: "Smartphones",
+          products: smartphones,
+        }
+      : null,
+  ].filter((group): group is NonNullable<typeof group> => group !== null);
+}
+
 export function hasActiveStoreFilters(filters: StoreFilters): boolean {
   return (
     filters.category !== "all" ||
@@ -182,6 +303,7 @@ export function hasActiveStoreFilters(filters: StoreFilters): boolean {
     filters.color !== "all" ||
     filters.minPrice !== null ||
     filters.maxPrice !== null ||
+    filters.availableOnly !== DEFAULT_STORE_FILTERS.availableOnly ||
     filters.sort !== DEFAULT_STORE_FILTERS.sort
   );
 }
@@ -210,6 +332,7 @@ export function parseStoreFilters(searchParams: URLSearchParams): StoreFilters {
     color: searchParams.get("color") ?? "all",
     minPrice: searchParams.get("minPrice") ? Number(searchParams.get("minPrice")) : null,
     maxPrice: searchParams.get("maxPrice") ? Number(searchParams.get("maxPrice")) : null,
+    availableOnly: searchParams.get("available") !== "0",
   };
 }
 
@@ -226,6 +349,7 @@ export function buildStoreSearchParams(filters: StoreFilters): URLSearchParams {
   if (filters.color !== "all") params.set("color", filters.color);
   if (filters.minPrice !== null) params.set("minPrice", String(filters.minPrice));
   if (filters.maxPrice !== null) params.set("maxPrice", String(filters.maxPrice));
+  if (!filters.availableOnly) params.set("available", "0");
   if (filters.sort !== DEFAULT_STORE_FILTERS.sort) params.set("sort", filters.sort);
 
   return params;

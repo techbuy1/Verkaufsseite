@@ -28,8 +28,10 @@ export function ProductImageSwitch({
 }: ProductImageSwitchProps) {
   const [displaySrc, setDisplaySrc] = useState(src);
   const [visible, setVisible] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
+    setLoadFailed(false);
     if (src === displaySrc) return;
 
     setVisible(false);
@@ -41,7 +43,10 @@ export function ProductImageSwitch({
     return () => window.clearTimeout(timer);
   }, [src, displaySrc]);
 
-  if (displaySrc === VARIANT_IMAGE_PLACEHOLDER && fallbackType) {
+  if (
+    (loadFailed || displaySrc === VARIANT_IMAGE_PLACEHOLDER) &&
+    fallbackType
+  ) {
     return (
       <div
         className={`absolute inset-0 transition-all duration-[220ms] ease-out ${
@@ -62,6 +67,7 @@ export function ProductImageSwitch({
       priority={priority}
       sizes={sizes}
       placeholder="empty"
+      onError={() => setLoadFailed(true)}
       className={`shop-image-seamless ${className} transition-all duration-[220ms] ease-out ${
         visible ? "scale-100 opacity-100" : "scale-[0.98] opacity-0"
       } ${containerClassName}`}

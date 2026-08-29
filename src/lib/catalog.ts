@@ -8,11 +8,11 @@ import {
 import { premiumToLegacyProduct } from "@/lib/productAdapters";
 import {
   isProductInStock,
-  isProductVisibleInShop,
 } from "@/lib/productAvailability";
 import { getProductById as getStoredProductById, loadProducts } from "@/lib/productStore";
 import type { PremiumProduct } from "@/types/product";
 import { accessoryProducts } from "@/data/accessoryCatalog";
+import { applyGadgetPriceOverride } from "@/lib/gadgetPricing";
 
 export function getAllPremiumProducts(): PremiumProduct[] {
   if (typeof window !== "undefined") {
@@ -38,7 +38,7 @@ export function getAllDeviceProducts(): Product[] {
 }
 
 export function getShopPremiumProducts(): PremiumProduct[] {
-  return getAllPremiumProducts().filter(isProductVisibleInShop);
+  return getAllPremiumProducts().filter(isProductInStock);
 }
 
 /** Homepage: nur Geräte mit Bestand (bzw. Vorverkauf). */
@@ -54,34 +54,47 @@ export function getHomepageDeviceProducts(): Product[] {
   return getHomepagePremiumProducts().map(premiumToLegacyProduct);
 }
 
+/**
+ * Alle Zubehör-Produkte mit angewendetem manuellem Preis-Override (Admin >
+ * Gadget-Preise) — die einzige Stelle, an der der reale Verkaufspreis für
+ * Zubehör entsteht. Jeder Konsument (PDP, Karten, Checkout) muss hierüber
+ * gehen statt den rohen Katalog direkt zu importieren.
+ */
+export function getAccessoryProducts(): Product[] {
+  return accessoryProducts.map((product) => applyGadgetPriceOverride(product));
+}
+
+/**
+ * Zubehör für Listings (Store-Grid, Homepage-Rails) — ohne Legacy-Alias-
+ * Einträge, die nur für ältere Empfehlungslisten per ID auflösbar bleiben
+ * müssen (siehe `hiddenFromListing` in accessoryCatalog.ts).
+ */
+function getListableAccessoryProducts(): Product[] {
+  return getAccessoryProducts().filter((product) => !product.hiddenFromListing);
+}
+
 export function getAllCatalogProducts(): Product[] {
-  return [...getAllDeviceProducts(), ...accessoryProducts];
+  return [...getAllDeviceProducts(), ...getListableAccessoryProducts()];
 }
 
 export function getShopCatalogProducts(): Product[] {
-  return [...getShopDeviceProducts(), ...accessoryProducts];
+  return [...getShopDeviceProducts(), ...getListableAccessoryProducts()];
 }
 
 /** Homepage-Kategorien: nur lagernde Geräte (+ Zubehör ohne Bestandsführung). */
 export function getHomepageCatalogProducts(): Product[] {
-  return [...getHomepageDeviceProducts(), ...accessoryProducts];
+  return [...getHomepageDeviceProducts(), ...getListableAccessoryProducts()];
 }
 
 export function getCatalogProductsByCategory(categoryId: CatalogCategoryId): Product[] {
-  const devices = getAllPremiumProducts()
-    .filter((product) => product.catalogCategory === categoryId)
-    .map(premiumToLegacyProduct);
-  const accessories = accessoryProducts.filter(
-    (product) => product.catalogCategory === categoryId,
-  );
-  return [...devices, ...accessories];
+  return getShopCatalogProductsByCategory(categoryId);
 }
 
 export function getShopCatalogProductsByCategory(categoryId: CatalogCategoryId): Product[] {
   const devices = getShopPremiumProducts()
     .filter((product) => product.catalogCategory === categoryId)
     .map(premiumToLegacyProduct);
-  const accessories = accessoryProducts.filter(
+  const accessories = getListableAccessoryProducts().filter(
     (product) => product.catalogCategory === categoryId,
   );
   return [...devices, ...accessories];
@@ -93,7 +106,7 @@ export function getHomepageCatalogProductsByCategory(
   const devices = getHomepagePremiumProducts()
     .filter((product) => product.catalogCategory === categoryId)
     .map(premiumToLegacyProduct);
-  const accessories = accessoryProducts.filter(
+  const accessories = getListableAccessoryProducts().filter(
     (product) => product.catalogCategory === categoryId,
   );
   return [...devices, ...accessories];
@@ -117,13 +130,13 @@ export function getProductsByBrandAndCategory(
 export function getCatalogProductById(id: string): Product | undefined {
   const premium = resolvePremiumProduct(id);
   if (premium) return premiumToLegacyProduct(premium);
-  return accessoryProducts.find((product) => product.id === id);
+  return getAccessoryProducts().find((product) => product.id === id);
 }
 
 export function getCatalogProductBySlug(slug: string): Product | undefined {
   const premium = resolvePremiumProductBySlug(slug);
   if (premium) return premiumToLegacyProduct(premium);
-  return accessoryProducts.find((product) => product.slug === slug);
+  return getAccessoryProducts().find((product) => product.slug === slug);
 }
 
 export function getPremiumGenerations(categoryId?: CatalogCategoryId): string[] {

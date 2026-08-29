@@ -1,7 +1,6 @@
 import { premiumProducts as SEED_PRODUCTS } from "@/data/premiumCatalog";
-import { reduceVariantStock, type CheckoutLineItem } from "@/lib/productAvailability";
-import { isConditionId } from "@/lib/conditions";
 import { syncProductVariants } from "@/lib/productVariants";
+import { syncStockArchiveState } from "@/lib/productAvailability";
 import type {
   AdminProductSpecs,
   PremiumProduct,
@@ -66,25 +65,27 @@ export function normalizeProduct(raw: PremiumProduct): PremiumProduct {
     ? raw.adminSpecs
     : deriveAdminSpecs({ ...raw, adminSpecs: raw.adminSpecs ?? deriveAdminSpecs(raw) });
 
-  return syncProductVariants({
-    ...raw,
-    tagline: raw.tagline || shortDescription,
-    shortDescription,
-    longDescription,
-    description: raw.description || shortDescription,
-    mainImage: raw.mainImage || raw.images[0]?.image,
-    galleryImages: raw.galleryImages ?? raw.images.map((image) => image.image),
-    highlights,
-    deliveryContent,
-    adminSpecs,
-    boxContents: deliveryContent,
-    recommendedAccessories: raw.recommendedAccessories ?? [],
-    similarProducts: raw.similarProducts ?? raw.compareWith ?? [],
-    bundleOffers: raw.bundleOffers ?? [],
-    model: raw.model ?? raw.name,
-    generation: raw.generation ?? "2025",
-    keywords: raw.keywords ?? [],
-  });
+  return syncStockArchiveState(
+    syncProductVariants({
+      ...raw,
+      tagline: raw.tagline || shortDescription,
+      shortDescription,
+      longDescription,
+      description: raw.description || shortDescription,
+      mainImage: raw.mainImage || raw.images[0]?.image,
+      galleryImages: raw.galleryImages ?? raw.images.map((image) => image.image),
+      highlights,
+      deliveryContent,
+      adminSpecs,
+      boxContents: deliveryContent,
+      recommendedAccessories: raw.recommendedAccessories ?? [],
+      similarProducts: raw.similarProducts ?? raw.compareWith ?? [],
+      bundleOffers: raw.bundleOffers ?? [],
+      model: raw.model ?? raw.name,
+      generation: raw.generation ?? "2025",
+      keywords: raw.keywords ?? [],
+    }),
+  );
 }
 
 export function getSeedProducts(): PremiumProduct[] {
@@ -169,34 +170,6 @@ export function updateProducts(updatedList: PremiumProduct[]): PremiumProduct[] 
       products.push(product);
     }
   }
-  saveProducts(products);
-  return products;
-}
-
-export function deductStockForOrder(items: CheckoutLineItem[]): PremiumProduct[] {
-  let products = loadProducts();
-
-  for (const item of items) {
-    products = products.map((product) => {
-      if (product.id !== item.productId) return product;
-      const colorRef = item.colorId ?? item.color ?? item.colorName;
-      const colorId =
-        (colorRef
-          ? product.images.find(
-              (image) => image.id === colorRef || image.colorName === colorRef,
-            )?.id
-          : undefined) ?? product.images[0]?.id;
-
-      return reduceVariantStock(
-        product,
-        colorId,
-        item.storage,
-        item.quantity,
-        isConditionId(item.condition) ? item.condition : undefined,
-      );
-    });
-  }
-
   saveProducts(products);
   return products;
 }

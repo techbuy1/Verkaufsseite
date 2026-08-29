@@ -1,9 +1,11 @@
 export const ADMIN_NAV = [
   { label: "Dashboard", href: "/admin", icon: "overview" },
   { label: "Produkte", href: "/admin/products", icon: "products" },
+  { label: "Gadget-Preise", href: "/admin/gadget-prices", icon: "inventory" },
   { label: "Verkäufe", href: "/admin/sales", icon: "orders" },
   { label: "Massenbearbeitung", href: "/admin/bulk", icon: "inventory" },
   { label: "Kategorien", href: "/admin/categories", icon: "categories" },
+  { label: "Angebote", href: "/admin/promotions", icon: "topdeal" },
   { label: "Top Deal der Woche", href: "/admin/top-deal", icon: "topdeal" },
   { label: "Bestellungen", href: "/admin/orders", icon: "orders" },
   { label: "Kunden", href: "/admin/customers", icon: "customers" },

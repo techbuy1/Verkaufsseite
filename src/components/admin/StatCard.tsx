@@ -6,7 +6,7 @@ interface StatCardProps {
 }
 
 const accentStyles = {
-  default: "text-[#1d1d1f]",
+  default: "text-text-primary",
   success: "text-emerald-600",
   warning: "text-amber-600",
   danger: "text-red-600",
@@ -14,14 +14,10 @@ const accentStyles = {
 
 export function StatCard({ label, value, hint, accent = "default" }: StatCardProps) {
   return (
-    <div className="rounded-[18px] border border-[#d2d2d7]/40 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-      <p className="text-[12px] font-medium uppercase tracking-wider text-[#6e6e73]">
-        {label}
-      </p>
-      <p className={`mt-2 text-[28px] font-bold tracking-tight ${accentStyles[accent]}`}>
-        {value}
-      </p>
-      {hint && <p className="mt-1 text-[12px] text-[#6e6e73]">{hint}</p>}
+    <div className="admin-stat-card">
+      <p className="admin-stat-label">{label}</p>
+      <p className={`admin-stat-value ${accentStyles[accent]}`}>{value}</p>
+      {hint && <p className="mt-1 text-[12px] text-text-secondary">{hint}</p>}
     </div>
   );
 }

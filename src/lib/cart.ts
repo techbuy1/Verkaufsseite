@@ -20,6 +20,7 @@ import {
   getVariantStock,
   validateVariantPurchase,
 } from "@/lib/productAvailability";
+import { productNeedsDeviceSelection, resolveDeviceLabel } from "@/lib/deviceCompatibility";
 import type { AddToCartPayload, ConditionId, PremiumProduct } from "@/types/product";
 
 function resolveProduct(productId: string): PremiumProduct | undefined {
@@ -43,6 +44,10 @@ export interface CartItem {
   condition?: ConditionId;
   conditionLabel?: string;
   stock?: number;
+  /** Stabile Produkt-ID des kompatiblen Smartphones (gerätespezifisches Zubehör). */
+  deviceId?: string;
+  /** Anzeigename, z. B. "Apple iPhone 17 Pro" — abgeleitet aus deviceId. */
+  deviceLabel?: string;
 }
 
 export const CART_STORAGE_KEY = "techbuy-cart";
@@ -52,8 +57,10 @@ export function createCartLineId(
   colorId: string,
   storage: string,
   condition: ConditionId = "new",
+  deviceId?: string,
 ): string {
-  return `${productId}__${colorId}__${storage.replace(/\s+/g, "-")}__${condition}`;
+  const base = `${productId}__${colorId}__${storage.replace(/\s+/g, "-")}__${condition}`;
+  return deviceId ? `${base}__${deviceId}` : base;
 }
 
 export function getMaxQuantityForCartItem(item: CartItem): number {
@@ -130,6 +137,13 @@ export function buildCartItem(payload: AddToCartPayload): CartItem | null {
   const legacy = getProductById(payload.productId);
   if (!legacy) return null;
 
+  // Gerätespezifisches Zubehör (Panzerfolien, Hüllen) darf nicht ohne
+  // ausgewähltes Smartphone-Modell in den Warenkorb gelangen.
+  if (productNeedsDeviceSelection(legacy) && !payload.deviceId) return null;
+
+  const deviceLabel = resolveDeviceLabel(payload.deviceId);
+  if (payload.deviceId && !deviceLabel) return null;
+
   const storage = payload.storage ?? legacy.storage ?? "Standard";
   const colorOption =
     legacy.colors?.find((entry) => entry.id === payload.colorId) ??
@@ -141,7 +155,7 @@ export function buildCartItem(payload: AddToCartPayload): CartItem | null {
     : "new";
 
   return {
-    lineId: createCartLineId(legacy.id, colorId, storage, condition),
+    lineId: createCartLineId(legacy.id, colorId, storage, condition, payload.deviceId),
     productId: legacy.id,
     name: legacy.name,
     image: colorOption?.imageSrc ?? legacy.imageSrc,
@@ -154,11 +168,18 @@ export function buildCartItem(payload: AddToCartPayload): CartItem | null {
     storage,
     condition,
     conditionLabel: getConditionLabel(condition),
+    deviceId: payload.deviceId,
+    deviceLabel,
   };
 }
 
 export function getCartItemVariantLabel(item: CartItem): string | null {
-  const parts = [item.colorName, item.storage, item.conditionLabel].filter(Boolean);
+  const parts = [
+    item.deviceLabel ? `Für ${item.deviceLabel}` : undefined,
+    item.colorName,
+    item.storage,
+    item.conditionLabel,
+  ].filter(Boolean);
   return parts.length > 0 ? parts.join(" · ") : null;
 }
 
@@ -217,6 +238,7 @@ export function parseStoredCart(raw: string | null): CartItem[] {
             item.color ?? "default",
             item.storage ?? "default",
             condition,
+            item.deviceId,
           );
 
         const baseItem: CartItem = {
@@ -232,6 +254,8 @@ export function parseStoredCart(raw: string | null): CartItem[] {
           condition,
           conditionLabel: item.conditionLabel ?? getConditionLabel(condition),
           stock: item.stock,
+          deviceId: item.deviceId,
+          deviceLabel: item.deviceLabel ?? resolveDeviceLabel(item.deviceId),
         };
 
         const maxQuantity = getMaxQuantityForCartItem(baseItem);
@@ -279,7 +303,8 @@ export function resolveCartItemPrice(item: CartItem): CartItem {
     condition,
     conditionLabel: getConditionLabel(condition),
     stock: maxQuantity,
-    quantity: Math.min(item.quantity, maxQuantity > 0 ? maxQuantity : item.quantity),
+    // 0 when the variant is out of stock — callers drop items at quantity 0.
+    quantity: Math.min(item.quantity, maxQuantity),
   };
 }
 

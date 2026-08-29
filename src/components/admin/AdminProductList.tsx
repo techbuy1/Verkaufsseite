@@ -180,6 +180,7 @@ export function AdminProductList() {
                       updateProduct({
                         ...product,
                         manualArchive: !product.manualArchive,
+                        stockArchived: false,
                       })
                     }
                     className="rounded-xl border border-border bg-white px-3 py-2 text-[12px] font-medium text-text-secondary hover:text-text-primary"

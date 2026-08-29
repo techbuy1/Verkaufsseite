@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { formatPrice } from "@/data/products";
 import type { ConditionId, ProductImageVariant, StorageOption } from "@/types/product";
 import { ColorSelector } from "./ColorSelector";
@@ -22,6 +23,8 @@ interface PurchaseBoxProps {
   lowStockHint?: string;
   isPresale?: boolean;
   presaleShipLabel?: string;
+  /** True when every variant/condition of this product is at stock 0. */
+  fullyOutOfStock?: boolean;
   onColorChange: (colorId: string) => void;
   onStorageChange: (storage: string) => void;
   onConditionChange?: (condition: ConditionId) => void;
@@ -45,7 +48,7 @@ function ConfigCard({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function PurchaseBox({
+export const PurchaseBox = memo(function PurchaseBox({
   price,
   stock,
   colors,
@@ -61,6 +64,7 @@ export function PurchaseBox({
   lowStockHint,
   isPresale = false,
   presaleShipLabel,
+  fullyOutOfStock = false,
   onColorChange,
   onStorageChange,
   onConditionChange,
@@ -71,15 +75,47 @@ export function PurchaseBox({
 }: PurchaseBoxProps) {
   const outOfStock = stock !== undefined && stock <= 0;
   const isUnavailable = !canPurchase || (outOfStock && !isPresale);
-  const buttonLabel = isUnavailable
-    ? "Ausverkauft"
-    : isPresale && outOfStock
-      ? "Jetzt vorbestellen"
-      : "In den Warenkorb";
-  const activeConditions = conditionOptions.filter((option) => option.active);
+  const buttonLabel =
+    fullyOutOfStock && !isPresale
+      ? "Derzeit nicht verfügbar"
+      : isUnavailable
+        ? "Derzeit nicht verfügbar"
+        : isPresale && outOfStock
+          ? "Jetzt vorbestellen"
+          : "In den Warenkorb";
+  const purchasableConditions = conditionOptions.filter(
+    (option) => option.active && option.available,
+  );
+  const visibleConditions = conditionOptions.filter((option) => option.active);
+  // Zeigt jede Farbe/jeden Speicher, auch ausverkaufte — die Selektoren
+  // stellen ausverkaufte Optionen selbst ausgegraut/disabled dar.
+  const hasConfigurableOptions =
+    colors.length > 0 || storageOptions.length > 0 || purchasableConditions.length > 0;
 
   return (
     <div className="space-y-3 md:space-y-3.5">
+      {fullyOutOfStock && !isPresale && (
+        <ConfigCard>
+          <p className="text-[20px] font-semibold tracking-tight text-text-primary">
+            Derzeit nicht verfügbar
+          </p>
+          <p className="mt-1 text-[13px] leading-relaxed text-text-secondary">
+            Für dieses Produkt ist derzeit keine kaufbare Konfiguration verfügbar.
+          </p>
+        </ConfigCard>
+      )}
+
+      {!fullyOutOfStock && !hasConfigurableOptions && !isPresale && (
+        <ConfigCard>
+          <p className="text-[20px] font-semibold tracking-tight text-text-primary">
+            Derzeit nicht verfügbar
+          </p>
+          <p className="mt-1 text-[13px] leading-relaxed text-text-secondary">
+            Für dieses Produkt ist derzeit keine kaufbare Konfiguration verfügbar.
+          </p>
+        </ConfigCard>
+      )}
+
       {!hidePrice && (
         <ConfigCard>
           <p className="text-[13px] font-medium text-text-secondary">Preis</p>
@@ -109,7 +145,7 @@ export function PurchaseBox({
         </ConfigCard>
       )}
 
-      {colors.length > 1 && (
+      {colors.length > 0 && (
         <ConfigCard>
           <ColorSelector
             colors={colors}
@@ -120,7 +156,7 @@ export function PurchaseBox({
         </ConfigCard>
       )}
 
-      {storageOptions.length > 1 && (
+      {storageOptions.length > 0 && (
         <ConfigCard>
           <StorageSelector
             options={storageOptions}
@@ -131,7 +167,7 @@ export function PurchaseBox({
         </ConfigCard>
       )}
 
-      {activeConditions.length > 0 && selectedCondition && onConditionChange && (
+      {visibleConditions.length > 0 && selectedCondition && onConditionChange && (
         <ConfigCard>
           <ConditionSelector
             options={conditionOptions}
@@ -177,4 +213,4 @@ export function PurchaseBox({
       </ConfigCard>
     </div>
   );
-}
+});

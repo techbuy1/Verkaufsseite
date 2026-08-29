@@ -42,6 +42,10 @@ export interface ShopOrderItem {
   /** Optional product default hint only — devices[].taxMode is authoritative. */
   taxMode?: TaxMode | null;
   devices: ShopOrderDevice[];
+  /** Kompatibles Smartphone bei gerätespezifischem Zubehör (Panzerfolie, Hülle). */
+  compatibleDeviceId?: string;
+  /** Anzeigename, z. B. "Apple iPhone 17 Pro" — serverseitig aufgelöst. */
+  compatibleDeviceLabel?: string;
 }
 
 export interface ShopOrder {
@@ -166,6 +170,8 @@ export function mapPricedLinesToOrderItems(
       lineTotal: line.lineTotal,
       taxMode: productTaxHint ?? null,
       devices,
+      compatibleDeviceId: line.deviceId,
+      compatibleDeviceLabel: line.deviceLabel,
     };
   });
 }

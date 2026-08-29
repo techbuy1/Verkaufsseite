@@ -27,6 +27,7 @@ function toPayload(items: CartItem[]) {
     colorName: item.colorName,
     storage: item.storage,
     condition: item.condition,
+    deviceId: item.deviceId,
   }));
 }
 

@@ -41,12 +41,12 @@ export function InventoryPageContent() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-[28px] font-bold tracking-tight text-[#1d1d1f]">Lagerbestand</h1>
-          <p className="mt-1 text-[14px] text-[#6e6e73]">Demo-Daten — Änderungen nur in dieser Sitzung</p>
+          <h1 className="admin-page-title">Lagerbestand</h1>
+          <p className="admin-page-subtitle">Demo-Daten — Änderungen nur in dieser Sitzung</p>
         </div>
         <button
           onClick={() => setReceiptOpen(true)}
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-accent px-5 py-2.5 text-[14px] font-medium text-white hover:bg-accent-hover transition-colors"
+          className="btn-techbuy-primary inline-flex items-center justify-center gap-2 px-5 py-2.5 text-[13px]"
         >
           <AdminIcon name="plus" className="h-4 w-4" />
           Wareneingang
@@ -60,24 +60,20 @@ export function InventoryPageContent() {
         <StatCard label="Lagerwert" value={formatCurrency(stats.inventoryValue)} />
       </div>
 
-      <div className="rounded-[18px] border border-[#d2d2d7]/40 bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)] md:p-5">
+      <div className="admin-panel md:p-5">
         <input
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Produkt oder SKU suchen..."
-          className="mb-4 w-full rounded-xl border border-[#d2d2d7]/60 px-4 py-2.5 text-[14px] outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
+          className="shop-admin-control mb-4"
         />
         <div className="flex flex-wrap gap-2">
           {filters.map((f) => (
             <button
               key={f.value}
               onClick={() => setFilter(f.value)}
-              className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
-                filter === f.value
-                  ? "bg-accent text-white"
-                  : "bg-[#f5f5f7] text-[#6e6e73] hover:bg-[#e8e8ed]"
-              }`}
+              className={`admin-filter-chip ${filter === f.value ? "is-active" : ""}`}
             >
               {f.label}
             </button>
@@ -85,37 +81,37 @@ export function InventoryPageContent() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-[18px] border border-[#d2d2d7]/40 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-left text-[14px]">
+      <div className="admin-table-wrap">
+        <div className="admin-table-scroll">
+          <table className="admin-table min-w-[900px]">
             <thead>
-              <tr className="border-b border-[#d2d2d7]/40 bg-[#f5f5f7]/50 text-[12px] uppercase tracking-wider text-[#6e6e73]">
-                <th className="px-4 py-3 font-medium">Bild</th>
-                <th className="px-4 py-3 font-medium">Produkt</th>
-                <th className="px-4 py-3 font-medium">SKU</th>
-                <th className="px-4 py-3 font-medium">Kategorie</th>
-                <th className="px-4 py-3 font-medium">EK</th>
-                <th className="px-4 py-3 font-medium">VK</th>
-                <th className="px-4 py-3 font-medium">Bestand</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Aktionen</th>
+              <tr>
+                <th>Bild</th>
+                <th>Produkt</th>
+                <th>SKU</th>
+                <th>Kategorie</th>
+                <th>EK</th>
+                <th>VK</th>
+                <th>Bestand</th>
+                <th>Status</th>
+                <th>Aktionen</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((item) => {
                 const status = getStockStatus(item.stock, item.minStock);
                 return (
-                  <tr key={item.id} className="border-b border-[#d2d2d7]/30 last:border-0 hover:bg-[#f5f5f7]/40">
-                    <td className="px-4 py-3">
-                      <div className="relative h-10 w-10 overflow-hidden rounded-lg bg-[#f5f5f7]">
+                  <tr key={item.id}>
+                    <td>
+                      <div className="relative h-10 w-10 overflow-hidden rounded-lg bg-background-secondary">
                         <Image src={item.image} alt="" fill className="object-contain p-1" />
                       </div>
                     </td>
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-[#1d1d1f]">{item.productName}</p>
-                      <p className="text-[12px] text-[#6e6e73]">{item.variantLabel}</p>
+                    <td>
+                      <p className="font-medium text-text-primary">{item.productName}</p>
+                      <p className="text-[12px] text-text-secondary">{item.variantLabel}</p>
                     </td>
-                    <td className="px-4 py-3 font-mono text-[13px]">{item.sku}</td>
+                    <td className="font-mono text-[13px]">{item.sku}</td>
                     <td className="px-4 py-3">{getCategoryName(item.categoryId)}</td>
                     <td className="px-4 py-3">{formatCurrency(item.purchasePrice)}</td>
                     <td className="px-4 py-3">{formatCurrency(item.salePrice)}</td>

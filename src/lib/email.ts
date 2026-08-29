@@ -108,7 +108,12 @@ function escapeHtml(value: string): string {
 function itemsHtml(order: ShopOrder): string {
   const productRows = order.items
     .map((item) => {
-      const variants = [item.storage, item.color, item.conditionLabel]
+      const variants = [
+        item.compatibleDeviceLabel ? `Für ${item.compatibleDeviceLabel}` : undefined,
+        item.storage,
+        item.color,
+        item.conditionLabel,
+      ]
         .filter(Boolean)
         .join(" · ");
       return `
@@ -298,4 +303,37 @@ export function buildInvoiceDownloadUrl(
 ): string {
   const base = (requestOrigin || getSiteUrlFromEnv()).replace(/\/$/, "");
   return `${base}/api/invoices/${encodeURIComponent(token)}`;
+}
+
+/** Widerrufsanfrage an den Shop — nutzt dieselbe SMTP-Infrastruktur wie Bestell-E-Mails. */
+export async function sendWithdrawalRequestEmail(input: {
+  name: string;
+  orderNumber: string;
+  email: string;
+  reason?: string;
+  submittedAt: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const reasonBlock = input.reason
+    ? `<p><strong>Grund (optional):</strong><br/>${escapeHtml(input.reason).replace(/\n/g, "<br/>")}</p>`
+    : "<p><em>Kein Grund angegeben.</em></p>";
+
+  const html = wrapEmail(
+    "Widerruf erklären",
+    `
+    <p>Neue Widerrufsanfrage über den TechBuy-Shop.</p>
+    <p><strong>Typ:</strong> withdrawal / Widerruf</p>
+    <p><strong>Eingegangen:</strong> ${escapeHtml(new Date(input.submittedAt).toLocaleString("de-DE"))}</p>
+    <p><strong>Name:</strong> ${escapeHtml(input.name)}</p>
+    <p><strong>Bestellnummer:</strong> ${escapeHtml(input.orderNumber)}</p>
+    <p><strong>E-Mail:</strong> ${escapeHtml(input.email)}</p>
+    ${reasonBlock}
+    <p style="color:#6e6e73;">Antwort bitte direkt an den Kunden unter ${escapeHtml(input.email)}.</p>
+  `,
+  );
+
+  return sendShopEmail({
+    to: companySettings.email,
+    subject: `Widerruf – Bestellung ${input.orderNumber}`,
+    html,
+  });
 }

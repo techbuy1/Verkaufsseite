@@ -9,9 +9,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { ConditionId, PremiumProduct } from "@/types/product";
+import type { PremiumProduct } from "@/types/product";
 import {
-  deductStockForOrder as persistStockDeduction,
   getSeedProducts,
   loadProducts,
   normalizeProduct,
@@ -21,6 +20,8 @@ import {
   updateProducts as persistProducts,
 } from "@/lib/productStore";
 import { invalidateSearchIndex } from "@/lib/searchProducts";
+import { setActivePromotions, type Promotion } from "@/lib/promotions";
+import { setActiveGadgetPriceOverrides, type GadgetPriceOverrides } from "@/lib/gadgetPricing";
 
 interface ProductStoreContextValue {
   products: PremiumProduct[];
@@ -30,17 +31,12 @@ interface ProductStoreContextValue {
   updateProduct: (product: PremiumProduct) => void;
   updateProducts: (products: PremiumProduct[]) => void;
   setProductsState: (products: PremiumProduct[]) => void;
-  deductStockForOrder: (
-    items: Array<{
-      productId: string;
-      quantity: number;
-      colorId?: string;
-      color?: string;
-      colorName?: string;
-      storage?: string;
-      condition?: ConditionId | string;
-    }>,
-  ) => void;
+  /**
+   * Re-fetches the server catalog (the real source of truth after a
+   * purchase server-side deducted stock) and updates local state + cache
+   * without pushing back to the admin-only save endpoint.
+   */
+  refreshFromServer: () => Promise<void>;
   resetToSeed: () => void;
 }
 
@@ -77,10 +73,16 @@ export function ProductStoreProvider({ children }: { children: ReactNode }) {
           const data = (await response.json()) as {
             products?: PremiumProduct[];
             persisted?: boolean;
+            promotions?: Promotion[];
+            gadgetPriceOverrides?: GadgetPriceOverrides;
           };
           const remote = Array.isArray(data.products)
             ? data.products.map(normalizeProduct)
             : [];
+          if (!cancelled) {
+            setActivePromotions(Array.isArray(data.promotions) ? data.promotions : []);
+            setActiveGadgetPriceOverrides(data.gadgetPriceOverrides ?? {});
+          }
 
           if (!cancelled && data.persisted && remote.length > 0) {
             saveProducts(remote);
@@ -136,24 +138,31 @@ export function ProductStoreProvider({ children }: { children: ReactNode }) {
     void pushCatalogToServer(next);
   }, []);
 
-  const deductStockForOrder = useCallback(
-    (
-      items: Array<{
-        productId: string;
-        quantity: number;
-        colorId?: string;
-        color?: string;
-        colorName?: string;
-        storage?: string;
-        condition?: ConditionId | string;
-      }>,
-    ) => {
-      const next = persistStockDeduction(items);
-      setProducts(next);
-      void pushCatalogToServer(next);
-    },
-    [],
-  );
+  const refreshFromServer = useCallback(async () => {
+    try {
+      const response = await fetch("/api/catalog/products", {
+        credentials: "same-origin",
+      });
+      if (!response.ok) return;
+      const data = (await response.json()) as {
+        products?: PremiumProduct[];
+        persisted?: boolean;
+        promotions?: Promotion[];
+        gadgetPriceOverrides?: GadgetPriceOverrides;
+      };
+      setActivePromotions(Array.isArray(data.promotions) ? data.promotions : []);
+      setActiveGadgetPriceOverrides(data.gadgetPriceOverrides ?? {});
+      if (!data.persisted || !Array.isArray(data.products) || data.products.length === 0) {
+        return;
+      }
+      const remote = data.products.map(normalizeProduct);
+      saveProducts(remote);
+      setProducts(remote);
+      invalidateSearchIndex();
+    } catch {
+      // Keep current state; next hydration/refresh retries.
+    }
+  }, []);
 
   const resetToSeed = useCallback(() => {
     const next = resetProductsToSeed();
@@ -171,7 +180,7 @@ export function ProductStoreProvider({ children }: { children: ReactNode }) {
       updateProduct,
       updateProducts,
       setProductsState,
-      deductStockForOrder,
+      refreshFromServer,
       resetToSeed,
     }),
     [
@@ -180,7 +189,7 @@ export function ProductStoreProvider({ children }: { children: ReactNode }) {
       updateProduct,
       updateProducts,
       setProductsState,
-      deductStockForOrder,
+      refreshFromServer,
       resetToSeed,
     ],
   );

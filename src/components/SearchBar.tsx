@@ -29,7 +29,7 @@ export function SearchBar({
 
   const inputStyles =
     variant === "header"
-      ? "border-transparent bg-surface-hover py-2 pl-10 pr-4 focus:border-border focus:bg-surface-card focus:ring-0"
+      ? "border-transparent bg-surface-hover py-2.5 pl-10 pr-4 focus:border-border focus:bg-surface-card focus:ring-0"
       : "border-border/80 bg-surface-soft py-2.5 pl-10 pr-4 focus:border-accent focus:bg-surface-card focus:ring-2 focus:ring-accent/15";
 
   useEffect(() => {

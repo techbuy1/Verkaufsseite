@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { memo } from "react";
 import { formatPrice, type ProductImageType } from "@/data/products";
 import { VARIANT_IMAGE_PLACEHOLDER } from "@/data/productImageRegistry";
 import { ProductImage } from "../ProductImage";
@@ -16,7 +17,7 @@ interface StickyCartBarProps {
   onAddToCart: () => void;
 }
 
-export function StickyCartBar({
+export const StickyCartBar = memo(function StickyCartBar({
   visible,
   productName,
   productImage,
@@ -65,4 +66,4 @@ export function StickyCartBar({
       </div>
     </div>
   );
-}
+});

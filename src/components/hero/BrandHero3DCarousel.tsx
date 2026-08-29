@@ -2,7 +2,6 @@
 
 import { useEffect, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { useMotionValue, useReducedMotion } from "motion/react";
-import { useGLTF } from "@react-three/drei";
 import { Button } from "@/components/Button";
 import { ChevronRightIcon } from "@/components/Icons";
 import { HeroDeviceModel } from "@/components/hero/HeroDeviceModel";
@@ -61,10 +60,20 @@ export function BrandHero3DCarousel({
   // Warm the GLTF cache for every candidate right away, in the background —
   // the first slide still pays a real network cost, but by the time
   // rotation reaches slide 2/3/4 they're typically already cached.
+  // Dynamically imported so `@react-three/drei` (and three.js) never lands
+  // in this page's initial JS just for a background preload — the actual
+  // viewer (HeroDeviceModel → DeviceViewer3D) already code-splits the same way.
   useEffect(() => {
-    for (const candidate of candidates) {
-      useGLTF.preload(candidate.colorModelPath ?? candidate.modelPath);
-    }
+    let cancelled = false;
+    import("@react-three/drei").then(({ useGLTF }) => {
+      if (cancelled) return;
+      for (const candidate of candidates) {
+        useGLTF.preload(candidate.colorModelPath ?? candidate.modelPath);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [candidates]);
 
   useEffect(() => {

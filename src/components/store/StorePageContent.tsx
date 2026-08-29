@@ -1,87 +1,56 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { getCatalogProducts } from "@/data/catalogProducts";
-import { catalogCategories } from "@/data/catalogCategories";
 import type { Product } from "@/data/products";
-import { ProductCard } from "@/components/ProductCard";
 import { ManufacturerFilterBar } from "@/components/shop/ManufacturerFilterBar";
-import { useProductStore } from "@/context/ProductStoreContext";
-import { accessoryProducts } from "@/data/accessoryCatalog";
-import { sortProducts } from "@/lib/filterProducts";
-import { premiumToLegacyProduct } from "@/lib/productAdapters";
 import {
   applyStoreFilters,
   buildStoreSearchParams,
   DEFAULT_STORE_FILTERS,
-  groupStoreProductsByCategory,
   hasActiveStoreFilters,
   parseStoreFilters,
   STORE_CATEGORY_TABS,
   type StoreFilters,
 } from "@/lib/storeCatalog";
-import {
-  getCategoryLabel,
-  StoreFilterSidebar,
-  StoreSortSelect,
-} from "./StoreFilterSidebar";
+import { StoreFilterSidebar, StoreSortSelect } from "./StoreFilterSidebar";
 import { StoreMobileFilterSheet } from "./StoreMobileFilterSheet";
+import { StoreProductGridView } from "./StoreProductGridView";
 
-function StoreProductGrid({ products }: { products: Product[] }) {
-  return (
-    <div className="grid grid-cols-1 justify-items-center gap-4 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-5">
-      {products.map((product) => (
-        <ProductCard key={product.id} product={product} size="compact" />
-      ))}
-    </div>
-  );
+interface StorePageContentProps {
+  initialProducts: Product[];
 }
 
-export function StorePageContent() {
+export function StorePageContent({ initialProducts }: StorePageContentProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { products: storeProducts, ready } = useProductStore();
+  const [isPending, startFilterTransition] = useTransition();
 
-  const filtersFromUrl = useMemo(
+  const filters = useMemo(
     () => parseStoreFilters(searchParams),
     [searchParams],
   );
 
-  const [draftFilters, setDraftFilters] = useState<StoreFilters>(filtersFromUrl);
-  const [searchInput, setSearchInput] = useState(filtersFromUrl.search);
+  const [draftFilters, setDraftFilters] = useState<StoreFilters>(filters);
+  const [searchInput, setSearchInput] = useState(filters.search);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   useEffect(() => {
-    setDraftFilters(filtersFromUrl);
-    setSearchInput(filtersFromUrl.search);
-  }, [filtersFromUrl]);
+    setDraftFilters(filters);
+    setSearchInput(filters.search);
+  }, [filters]);
 
-  const allProducts = useMemo(() => {
-    void ready;
-    if (storeProducts.length > 0) {
-      return [...storeProducts.map(premiumToLegacyProduct), ...accessoryProducts];
-    }
-    return getCatalogProducts();
-  }, [ready, storeProducts]);
-
-  const filteredProducts = useMemo(
-    () => applyStoreFilters(allProducts, filtersFromUrl),
-    [allProducts, filtersFromUrl],
+  const filteredCount = useMemo(
+    () => applyStoreFilters(initialProducts, filters).length,
+    [initialProducts, filters],
   );
-
-  const groupedProducts = useMemo(
-    () =>
-      groupStoreProductsByCategory(filteredProducts).map((group) => ({
-        ...group,
-        products: sortProducts(group.products, filtersFromUrl.sort),
-      })),
-    [filteredProducts, filtersFromUrl.sort],
-  );
-
-  const showGroupedSections =
-    filtersFromUrl.category === "all" && !hasActiveStoreFilters(filtersFromUrl);
 
   const updateUrl = useCallback(
     (nextFilters: StoreFilters) => {
@@ -94,12 +63,25 @@ export function StorePageContent() {
 
   const applyFilters = useCallback(
     (partial: Partial<StoreFilters>) => {
-      const next = { ...draftFilters, ...partial };
+      const next = { ...filters, ...partial };
       setDraftFilters(next);
-      updateUrl(next);
+      if ("search" in partial) {
+        setSearchInput(next.search);
+      }
+      startFilterTransition(() => {
+        updateUrl(next);
+      });
     },
-    [draftFilters, updateUrl],
+    [filters, updateUrl],
   );
+
+  const resetFilters = useCallback(() => {
+    setDraftFilters(DEFAULT_STORE_FILTERS);
+    setSearchInput("");
+    startFilterTransition(() => {
+      updateUrl(DEFAULT_STORE_FILTERS);
+    });
+  }, [updateUrl]);
 
   const handleSearchSubmit = useCallback(
     (event: React.FormEvent) => {
@@ -108,12 +90,6 @@ export function StorePageContent() {
     },
     [applyFilters, searchInput],
   );
-
-  const resetFilters = useCallback(() => {
-    setSearchInput("");
-    setDraftFilters(DEFAULT_STORE_FILTERS);
-    router.replace(pathname, { scroll: false });
-  }, [pathname, router]);
 
   return (
     <div className="min-h-screen bg-background-secondary pb-16 pt-[72px] text-text-primary">
@@ -160,7 +136,7 @@ export function StorePageContent() {
               aria-label="Kategorien"
             >
               {STORE_CATEGORY_TABS.map((tab) => {
-                const isActive = filtersFromUrl.category === tab.id;
+                const isActive = filters.category === tab.id;
                 return (
                   <button
                     key={tab.id}
@@ -191,7 +167,7 @@ export function StorePageContent() {
       <section className="border-b border-border bg-background-secondary py-4">
         <div className="mx-auto max-w-[1280px] px-5 md:px-8 lg:px-10">
           <ManufacturerFilterBar
-            selectedBrand={filtersFromUrl.brand}
+            selectedBrand={filters.brand}
             onBrandChange={(brand) => applyFilters({ brand })}
           />
         </div>
@@ -199,8 +175,8 @@ export function StorePageContent() {
 
       <div className="mx-auto max-w-[1280px] px-5 py-8 md:px-8 lg:grid lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-8 lg:px-10 lg:py-10">
         <StoreFilterSidebar
-          filters={filtersFromUrl}
-          products={allProducts}
+          filters={filters}
+          products={initialProducts}
           onChange={applyFilters}
           className="hidden lg:block"
         />
@@ -208,7 +184,8 @@ export function StorePageContent() {
         <div className="min-w-0">
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-[14px] text-text-secondary">
-              {filteredProducts.length} von {allProducts.length} Produkten
+              {filteredCount} von {initialProducts.length} Produkten
+              {hasActiveStoreFilters(filters) ? " (gefiltert)" : ""}
             </p>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -220,74 +197,42 @@ export function StorePageContent() {
                 Filter
               </button>
               <StoreSortSelect
-                value={filtersFromUrl.sort}
+                value={filters.sort}
                 onChange={(sort) => applyFilters({ sort })}
               />
             </div>
           </div>
 
-          {filteredProducts.length > 0 ? (
-            showGroupedSections ? (
-              <div className="space-y-12">
-                {groupedProducts.map((group) => (
-                  <section key={group.categoryId}>
-                    <div className="mb-5 flex items-end justify-between gap-4">
-                      <div>
-                        <h2 className="text-[24px] font-bold tracking-[-0.02em] text-text-primary md:text-[28px]">
-                          {group.label}
-                        </h2>
-                        <p className="mt-1 text-[13px] text-text-secondary">
-                          {group.products.length} Produkte
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          applyFilters({ category: group.categoryId, series: "all" })
-                        }
-                        className="text-[13px] font-medium text-accent hover:underline"
-                      >
-                        Nur {getCategoryLabel(group.categoryId)}
-                      </button>
-                    </div>
-                    <StoreProductGrid products={group.products} />
-                  </section>
-                ))}
-              </div>
-            ) : (
-              <StoreProductGrid products={filteredProducts} />
-            )
-          ) : (
-            <div className="rounded-[24px] border border-border bg-white px-6 py-12 text-center shadow-[0_2px_16px_rgba(0,0,0,0.04)]">
-              <p className="text-[18px] font-semibold text-text-primary">
-                Keine passenden Produkte gefunden.
-              </p>
-              <p className="mt-2 text-[14px] text-text-secondary">
-                Passe deine Suche oder Filter an, um mehr Ergebnisse zu sehen.
-              </p>
-              <button
-                type="button"
-                onClick={resetFilters}
-                className="btn-techbuy-primary mt-6 min-h-[44px] px-6 text-[14px]"
-              >
-                Filter zurücksetzen
-              </button>
-            </div>
-          )}
+          <div
+            className={`transition-opacity duration-200 motion-reduce:transition-none ${
+              isPending ? "opacity-70" : "opacity-100"
+            }`}
+          >
+            <StoreProductGridView
+              filters={filters}
+              allProducts={initialProducts}
+              onResetFilters={resetFilters}
+              onCategorySelect={(category) =>
+                applyFilters({ category, series: "all" })
+              }
+            />
+          </div>
         </div>
       </div>
 
       <StoreMobileFilterSheet
         open={mobileFiltersOpen}
         filters={draftFilters}
-        products={allProducts}
+        products={initialProducts}
         onChange={(partial) => setDraftFilters((current) => ({ ...current, ...partial }))}
         onClose={() => {
-          setDraftFilters(filtersFromUrl);
+          setDraftFilters(filters);
           setMobileFiltersOpen(false);
         }}
         onApply={() => {
-          updateUrl(draftFilters);
+          startFilterTransition(() => {
+            updateUrl(draftFilters);
+          });
           setMobileFiltersOpen(false);
         }}
       />

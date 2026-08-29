@@ -31,6 +31,12 @@ export interface ConditionOption {
   note?: string;
   /** Eindeutige SKU, z. B. APL-IP15-BLU-128-VG */
   sku?: string;
+  /**
+   * Manueller Verkaufspreis — überschreibt die globale Prozentregel.
+   * null = explizit Regel verwenden (Override entfernt).
+   * undefined = Regel, sofern gespeicherter Preis der Regel entspricht.
+   */
+  priceOverride?: number | null;
 }
 
 export interface StorageOption {
@@ -136,6 +142,8 @@ export interface PremiumProduct {
   stock?: number;
   /** Manuell aus dem Shop ausblenden — unabhängig vom Bestand */
   manualArchive?: boolean;
+  /** Automatisch archiviert, weil kein Bestand mehr vorhanden war. */
+  stockArchived?: boolean;
   /**
    * Verkaufsmodus:
    * - standard: nur mit Bestand sichtbar/kaufbar
@@ -161,4 +169,6 @@ export interface AddToCartPayload {
   storage?: string;
   condition?: ConditionId;
   quantity?: number;
+  /** Stabile Produkt-ID des kompatiblen Smartphones — für gerätespezifisches Zubehör. */
+  deviceId?: string;
 }

@@ -48,6 +48,11 @@ function CartPageLineItem({
           <p className="text-[17px] font-semibold text-[#1d1d1f]">{title}</p>
         </Link>
 
+        {item.deviceLabel && (
+          <p className="mt-1 text-[14px] font-medium text-[#1d1d1f]">
+            Für: {item.deviceLabel}
+          </p>
+        )}
         {item.colorName && (
           <p className="mt-1 text-[14px] text-[#6e6e73]">{item.colorName}</p>
         )}
@@ -103,7 +108,14 @@ function CartPageLineItem({
 }
 
 export function CartPageContent() {
-  const { cartItems, cartSubtotal, updateQuantity, removeFromCart } = useShop();
+  const {
+    cartItems,
+    cartSubtotal,
+    updateQuantity,
+    removeFromCart,
+    removedCartNotice,
+    dismissRemovedCartNotice,
+  } = useShop();
   const accessoryPricing = calculateAccessoryDiscounts(
     cartItems.map((item) => ({
       productId: item.productId,
@@ -117,6 +129,19 @@ export function CartPageContent() {
   return (
     <section className="min-h-screen bg-[#f5f5f7] pb-28 pt-28 md:pb-16 md:pt-32">
       <div className="mx-auto max-w-[1280px] px-5 md:px-8 lg:px-10">
+        {removedCartNotice && (
+          <div className="mb-6 flex items-start justify-between gap-4 rounded-[16px] border border-amber-300/60 bg-amber-50 px-4 py-3 text-[14px] text-amber-900">
+            <span>{removedCartNotice}</span>
+            <button
+              type="button"
+              onClick={dismissRemovedCartNotice}
+              className="shrink-0 text-[13px] font-medium text-amber-900 underline underline-offset-2"
+            >
+              Verstanden
+            </button>
+          </div>
+        )}
+
         <div className="mb-8 md:mb-10">
           <h1 className="text-[32px] font-bold tracking-[-0.03em] text-[#1d1d1f] md:text-[44px]">
             Warenkorb

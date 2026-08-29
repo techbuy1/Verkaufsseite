@@ -1,22 +1,22 @@
-function PlaceholderPage({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="mx-auto max-w-[700px]">
-      <h1 className="text-[28px] font-bold tracking-tight text-[#1d1d1f]">{title}</h1>
-      <p className="mt-2 text-[15px] text-[#6e6e73]">{description}</p>
-      <div className="mt-8 rounded-[18px] border border-[#d2d2d7]/40 bg-white p-8 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-        <p className="text-[14px] text-[#6e6e73]">
-          Authentifizierung und Shop-Einstellungen werden serverseitig ergänzt — keine unsichere Fake-Auth im Frontend.
-        </p>
-      </div>
-    </div>
-  );
-}
+import { ConditionPricingRulesEditor } from "@/components/admin/ConditionPricingRulesEditor";
 
 export default function AdminSettingsPage() {
   return (
-    <PlaceholderPage
-      title="Einstellungen"
-      description="Shop-Konfiguration, Zahlungen und Versand — folgt mit Backend."
-    />
+    <div className="mx-auto max-w-[720px] space-y-8">
+      <div>
+        <h1 className="admin-page-title">Einstellungen</h1>
+        <p className="admin-page-subtitle">
+          Zentrale Shop-Konfiguration und Preisregeln für Gerätezustände.
+        </p>
+      </div>
+
+      <ConditionPricingRulesEditor />
+
+      <div className="rounded-[18px] border border-[#d2d2d7]/40 bg-white p-8 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+        <p className="text-[14px] text-[#6e6e73]">
+          Weitere Shop-Einstellungen (Zahlungen, Versand) folgen mit dem Backend.
+        </p>
+      </div>
+    </div>
   );
 }

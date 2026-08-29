@@ -143,7 +143,12 @@ export async function POST(request: Request) {
 
     const stripeLineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
       ...cart.lines.map((item) => {
-        const description = [item.colorName, item.storage, item.conditionLabel]
+        const description = [
+          item.deviceLabel ? `Für ${item.deviceLabel}` : undefined,
+          item.colorName,
+          item.storage,
+          item.conditionLabel,
+        ]
           .filter(Boolean)
           .join(" · ");
         return {

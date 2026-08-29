@@ -1,11 +1,14 @@
 import type { Product } from "./products";
 import { VARIANT_IMAGE_PLACEHOLDER } from "./productImageRegistry";
+import { getAccessoryImageSrc } from "./accessoryImageAssets";
+
+function accessoryImage(productId: string): string {
+  return getAccessoryImageSrc(productId) ?? VARIANT_IMAGE_PLACEHOLDER;
+}
 
 /**
  * Zubehör & Audio — ergänzt den Gerätekatalog.
- * Für diese Produkte liegt keine echte Produktfotografie vor; imageSrc zeigt
- * bewusst auf den Platzhalter, damit ProductImageSwitch die passende
- * illustrierte Darstellung (per imageType) rendert statt eines toten Links.
+ * Panzerfolien & Hüllen mit echten Fotos aus /public/images/products/Zubehör.
  */
 export const accessoryProducts: Product[] = [
   {
@@ -128,7 +131,7 @@ export const accessoryProducts: Product[] = [
     brand: "TechBuy",
     price: 9.99,
     imageType: "generic",
-    imageSrc: VARIANT_IMAGE_PLACEHOLDER,
+    imageSrc: accessoryImage("acc-screen-protector-clear"),
     slug: "panzerfolie-klar",
     category: "Zubehör",
     catalogCategory: "zubehoer",
@@ -140,7 +143,7 @@ export const accessoryProducts: Product[] = [
     brand: "TechBuy",
     price: 9.99,
     imageType: "generic",
-    imageSrc: VARIANT_IMAGE_PLACEHOLDER,
+    imageSrc: accessoryImage("acc-screen-protector-matte"),
     slug: "panzerfolie-matt",
     category: "Zubehör",
     catalogCategory: "zubehoer",
@@ -152,7 +155,7 @@ export const accessoryProducts: Product[] = [
     brand: "TechBuy",
     price: 9.99,
     imageType: "generic",
-    imageSrc: VARIANT_IMAGE_PLACEHOLDER,
+    imageSrc: accessoryImage("acc-screen-protector-privacy"),
     slug: "panzerfolie-privacy",
     category: "Zubehör",
     catalogCategory: "zubehoer",
@@ -164,7 +167,7 @@ export const accessoryProducts: Product[] = [
     brand: "TechBuy",
     price: 9.99,
     imageType: "generic",
-    imageSrc: VARIANT_IMAGE_PLACEHOLDER,
+    imageSrc: accessoryImage("acc-case-clear"),
     slug: "huelle-transparent",
     category: "Zubehör",
     catalogCategory: "zubehoer",
@@ -177,7 +180,7 @@ export const accessoryProducts: Product[] = [
     brand: "TechBuy",
     price: 14.99,
     imageType: "generic",
-    imageSrc: VARIANT_IMAGE_PLACEHOLDER,
+    imageSrc: accessoryImage("acc-cable-usbc"),
     slug: "usb-c-ladekabel",
     category: "Zubehör",
     catalogCategory: "zubehoer",
@@ -189,7 +192,7 @@ export const accessoryProducts: Product[] = [
     brand: "Apple",
     price: 19.99,
     imageType: "generic",
-    imageSrc: VARIANT_IMAGE_PLACEHOLDER,
+    imageSrc: accessoryImage("acc-case-silicone-apple"),
     slug: "silikonhuelle-apple",
     category: "Zubehör",
     catalogCategory: "zubehoer",
@@ -201,18 +204,22 @@ export const accessoryProducts: Product[] = [
       { id: "white", label: "Weiß", hex: "#f5f5f7" },
     ],
   },
-  // Legacy-IDs → gleiche Preise / Aliase für ältere Empfehlungslisten
+  // Legacy-IDs → gleiche Preise / Aliase für ältere Empfehlungslisten.
+  // hiddenFromListing: bleiben per ID/Slug auflösbar (Cross-Sell auf
+  // Geräteseiten), erscheinen aber nicht zusätzlich als Duplikat-Karte in
+  // Store-/Homepage-Listings — das moderne Produkt oben deckt dieselbe Karte ab.
   {
     id: "catalog-cases",
     name: "Transparente Hülle",
     brand: "TechBuy",
     price: 9.99,
     imageType: "generic",
-    imageSrc: VARIANT_IMAGE_PLACEHOLDER,
+    imageSrc: accessoryImage("catalog-cases"),
     slug: "smartphone-huellen",
     category: "Zubehör",
     catalogCategory: "zubehoer",
     color: "Transparent",
+    hiddenFromListing: true,
   },
   {
     id: "catalog-screen-protector",
@@ -220,11 +227,12 @@ export const accessoryProducts: Product[] = [
     brand: "TechBuy",
     price: 9.99,
     imageType: "generic",
-    imageSrc: VARIANT_IMAGE_PLACEHOLDER,
+    imageSrc: accessoryImage("catalog-screen-protector"),
     slug: "displayschutz",
     category: "Zubehör",
     catalogCategory: "zubehoer",
     color: "Klar",
+    hiddenFromListing: true,
   },
   {
     id: "catalog-cables",
@@ -232,11 +240,12 @@ export const accessoryProducts: Product[] = [
     brand: "TechBuy",
     price: 14.99,
     imageType: "generic",
-    imageSrc: VARIANT_IMAGE_PLACEHOLDER,
+    imageSrc: accessoryImage("catalog-cables"),
     slug: "kabel",
     category: "Zubehör",
     catalogCategory: "zubehoer",
     color: "Weiß",
+    hiddenFromListing: true,
   },
   {
     id: "catalog-chargers",

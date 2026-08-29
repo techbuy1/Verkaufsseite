@@ -47,13 +47,7 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
       </div>
 
       <div className="flex items-center gap-2 md:gap-3">
-        <span
-          className="hidden rounded-full px-3 py-1 text-[11px] font-medium sm:inline-flex"
-          style={{
-            background: "var(--color-accent-soft, #eafaf1)",
-            color: "var(--color-accent-hover, #0fa858)",
-          }}
-        >
+        <span className="hidden rounded-full bg-accent-soft px-3 py-1 text-[11px] font-medium text-accent sm:inline-flex">
           Admin
         </span>
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#111111] text-[13px] font-semibold text-white">

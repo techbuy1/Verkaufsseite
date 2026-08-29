@@ -8,12 +8,14 @@ import type {
 import {
   buildVariantSku,
   ensureStorageConditions,
+  getEffectivePriceForConditionEntry,
   getConditionOption,
   getDefaultAvailableCondition,
   getPurchasableConditions,
   getStorageMinAvailablePrice,
 } from "@/lib/conditions";
 import { normalizeVariantStock } from "@/lib/productAvailability";
+import { applyPromotionToPrice, findApplicablePromotion, getActivePromotions } from "@/lib/promotions";
 
 const STORAGE_ORDER = ["128 GB", "256 GB", "512 GB", "1 TB", "2 TB"];
 
@@ -132,7 +134,9 @@ export function getProductVariants(product: PremiumProduct): ProductVariant[] {
   return legacyToVariants(product);
 }
 
-export function syncProductVariants(product: PremiumProduct): PremiumProduct {
+const syncedProductCache = new WeakMap<PremiumProduct, PremiumProduct>();
+
+function computeSyncedProduct(product: PremiumProduct): PremiumProduct {
   const variants = product.variants?.length
     ? product.variants.map((variant) => {
         const id = variant.id || slugifyColorId(variant.colorName);
@@ -171,6 +175,14 @@ export function syncProductVariants(product: PremiumProduct): PremiumProduct {
       storage: [...new Set(storageOptions.map((option) => option.storage))].join(" · "),
     },
   };
+}
+
+export function syncProductVariants(product: PremiumProduct): PremiumProduct {
+  const cached = syncedProductCache.get(product);
+  if (cached) return cached;
+  const synced = computeSyncedProduct(product);
+  syncedProductCache.set(product, synced);
+  return synced;
 }
 
 export function getDefaultColor(product: PremiumProduct): ProductImageVariant {
@@ -225,7 +237,8 @@ export function getStorageOption(
   );
 }
 
-export function getProductPrice(
+/** Preis ohne aktive Angebote — die bestehende Zustands-/Override-Preislogik, unverändert. */
+export function getProductRegularPrice(
   product: PremiumProduct,
   storage: string,
   colorId?: string,
@@ -236,18 +249,47 @@ export function getProductPrice(
 
   if (condition) {
     const entry = ensured.conditions?.find((c) => c.condition === condition);
-    if (entry && entry.price > 0) return roundStoredPrice(entry.price);
-    return 0;
+    if (!entry) return 0;
+    return roundStoredPrice(getEffectivePriceForConditionEntry(ensured, entry));
   }
 
   const available = getPurchasableConditions(ensured);
   if (available.length > 0) {
-    return roundStoredPrice(Math.min(...available.map((c) => c.price)));
+    return roundStoredPrice(
+      Math.min(
+        ...available.map((c) => getEffectivePriceForConditionEntry(ensured, c)),
+      ),
+    );
   }
 
   const neu = ensured.conditions?.find((entry) => entry.condition === "new");
-  if (neu && neu.price > 0) return roundStoredPrice(neu.price);
+  if (neu) {
+    return roundStoredPrice(getEffectivePriceForConditionEntry(ensured, neu));
+  }
   return roundStoredPrice(ensured.price);
+}
+
+/**
+ * Öffentlicher Preis — Regulärpreis mit einer eventuell aktiven Promotion
+ * angewendet (zentrale Pricing-Engine, siehe `@/lib/promotions`). Alle
+ * Aufrufer (Cart, Checkout, PDP, Karten) bekommen den Angebotspreis
+ * automatisch, ohne eigene Promotion-Logik zu duplizieren.
+ */
+export function getProductPrice(
+  product: PremiumProduct,
+  storage: string,
+  colorId?: string,
+  condition?: ConditionId,
+): number {
+  const regularPrice = getProductRegularPrice(product, storage, colorId, condition);
+  const promotion = findApplicablePromotion(getActivePromotions(), product.id, {
+    colorId,
+    storage,
+    condition,
+  });
+  if (!promotion) return regularPrice;
+  const salePrice = applyPromotionToPrice(regularPrice, promotion, product.id);
+  return salePrice ?? regularPrice;
 }
 
 function roundStoredPrice(value: number): number {
@@ -310,7 +352,8 @@ export function validateVariantPrices(product: PremiumProduct): string[] {
       }
 
       for (const condition of active) {
-        if (!Number.isFinite(condition.price) || condition.price <= 0) {
+        const effectivePrice = getEffectivePriceForConditionEntry(ensured, condition);
+        if (!Number.isFinite(effectivePrice) || effectivePrice <= 0) {
           errors.push(
             `Preis für ${variant.colorName} · ${option.storage.trim() || "Speicher"} · ${condition.label} muss größer als 0 sein.`,
           );

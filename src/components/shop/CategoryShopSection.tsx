@@ -8,7 +8,7 @@ import {
   getProductById,
 } from "@/data/products";
 import { useProductStore } from "@/context/ProductStoreContext";
-import { accessoryProducts } from "@/data/accessoryCatalog";
+import { getAccessoryProducts } from "@/lib/catalog";
 import {
   applyProductFilters,
   BRAND_FILTER_OPTIONS,
@@ -47,7 +47,7 @@ export function CategoryShopSection({
       const devices = storeProducts
         .filter((product) => product.catalogCategory === categoryId)
         .map(premiumToLegacyProduct);
-      const accessories = accessoryProducts.filter(
+      const accessories = getAccessoryProducts().filter(
         (product) => product.catalogCategory === categoryId,
       );
       return [...devices, ...accessories];

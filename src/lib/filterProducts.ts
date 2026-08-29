@@ -11,7 +11,13 @@ export type BrandFilterValue =
   | "xiaomi"
   | "oneplus";
 
-export type SortOption = "recommended" | "newest" | "price-asc" | "price-desc" | "name-asc";
+export type SortOption =
+  | "recommended"
+  | "newest"
+  | "price-asc"
+  | "price-desc"
+  | "name-asc"
+  | "deals";
 
 export interface CatalogFilters {
   brand: BrandFilterValue;
@@ -49,8 +55,13 @@ export const SORT_OPTIONS: { id: SortOption; label: string }[] = [
   { id: "newest", label: "Neueste" },
   { id: "price-asc", label: "Preis aufsteigend" },
   { id: "price-desc", label: "Preis absteigend" },
+  { id: "deals", label: "Angebote" },
   { id: "name-asc", label: "Name A-Z" },
 ];
+
+function hasLegitimateDeal(product: Product): boolean {
+  return Boolean(product.discount) || product.badge === "Sale";
+}
 
 const BRAND_LABELS: Record<Exclude<BrandFilterValue, "all">, string> = {
   apple: "Apple",
@@ -107,6 +118,12 @@ export function sortProducts(products: Product[], sort: SortOption): Product[] {
         const bNew = b.badge === "Neu" ? 1 : 0;
         if (aNew !== bNew) return bNew - aNew;
         return a.name.localeCompare(b.name, "de");
+      }
+      case "deals": {
+        const aDeal = hasLegitimateDeal(a) ? 1 : 0;
+        const bDeal = hasLegitimateDeal(b) ? 1 : 0;
+        if (aDeal !== bDeal) return bDeal - aDeal;
+        return a.price - b.price;
       }
       case "recommended":
       default: {

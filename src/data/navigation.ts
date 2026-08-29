@@ -213,11 +213,16 @@ export const megaMenus: Record<MegaMenuKey, MegaMenuConfig> = {
   zubehoer: {
     key: "zubehoer",
     label: "Zubehör",
-    href: "/zubehoer",
+    // "/zubehoer" existiert als Route nicht (404) — es gibt keine eigene
+    // Zubehör-Seite, nur den Store-Filter. Andere Links in dieser Spalte
+    // (z. B. "/zubehoer?category=huellen") zeigen auf dieselbe fehlende
+    // Route und führen ebenfalls ins Leere — das ist ein vorbestehendes,
+    // umfassenderes Problem außerhalb dieses Header-Umbaus.
+    href: "/store?category=zubehoer",
     columns: [
       {
         eyebrow: "Zubehör entdecken",
-        featured: [{ label: "Alle Zubehörprodukte", href: "/zubehoer" }],
+        featured: [{ label: "Alle Zubehörprodukte", href: "/store?category=zubehoer" }],
         links: [
           { label: "Smartphone Hüllen", href: "/zubehoer?category=huellen" },
           { label: "Displayschutz", href: "/zubehoer?category=displayschutz" },
@@ -234,17 +239,22 @@ export const megaMenus: Record<MegaMenuKey, MegaMenuConfig> = {
   },
 };
 
+// Tablets, Laptops und Audio bewusst nicht mehr in der Hauptnavigation —
+// die Seiten/Mega-Menüs bleiben bestehen und sind weiterhin über /store
+// bzw. ihre Routen erreichbar, nur nicht mehr oben verlinkt.
 export const mainNavItems: MainNavItem[] = [
   { label: "Store", href: "/store" },
   { label: "Smartphones", href: "/smartphones", megaMenu: "smartphones" },
-  { label: "Tablets", href: "/tablets", megaMenu: "tablets" },
   { label: "MacBooks", href: "/macbooks", megaMenu: "macbooks" },
-  { label: "Laptops", href: "/laptops", megaMenu: "laptops" },
-  { label: "Audio", href: "/audio", megaMenu: "audio" },
-  { label: "Zubehör", href: "/zubehoer", megaMenu: "zubehoer" },
-  { label: "Angebote", href: "/#angebote" },
-  { label: "Support", href: "#support" },
+  { label: "Zubehör", href: "/store?category=zubehoer", megaMenu: "zubehoer" },
+  // War zuvor "/#angebote" — dieser Anker existiert auf der Startseite nicht
+  // und führte ins Leere. /store?sort=deals ist der echte, bereits
+  // implementierte Angebots-Filter (siehe lib/storeCatalog.ts VALID_SORT).
+  { label: "Angebote", href: "/store?sort=deals" },
 ];
+
+/** Bestehende externe Ankauf-Plattform — siehe Footer.tsx / techbuyServices.ts. */
+export const ANKAUF_URL = "https://www.techbuy-ankauf.de/";
 
 export function getMegaMenu(key: MegaMenuKey): MegaMenuConfig {
   return megaMenus[key];

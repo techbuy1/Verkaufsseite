@@ -17,9 +17,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   return (
     <AdminInventoryProvider>
-      <div className="admin-shell flex min-h-screen">
+      <div className="admin-shell">
         <AdminSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="admin-main">
           <AdminHeader onMenuClick={() => setSidebarOpen(true)} />
           <main className="flex-1 overflow-x-hidden p-4 md:p-6 lg:p-8">{children}</main>
         </div>

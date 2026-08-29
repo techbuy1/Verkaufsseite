@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatPrice } from "@/data/products";
 import { getColorDefinitionsForSlug } from "@/data/productImageMap";
 import { resolvePremiumProductBySlug } from "@/lib/catalog";
@@ -13,7 +13,6 @@ import {
 import { GALAXY_A57_MODEL_PATH } from "@/components/product3d/constants";
 import { Reveal } from "@/components/motion/Reveal";
 import { HIGHLIGHT_STAT_ICONS } from "@/components/highlights/HighlightIcons";
-import { useGLTF } from "@react-three/drei";
 
 const DeviceViewer3D = dynamic(
   () =>
@@ -31,13 +30,25 @@ const DeviceViewer3D = dynamic(
   },
 );
 
-// Warm the GLB cache as soon as this module loads on the smartphones page.
-if (typeof window !== "undefined") {
-  try {
-    useGLTF.preload(GALAXY_A57_MODEL_PATH);
-  } catch {
-    // Preload is best-effort; DeviceViewer3D handles missing assets.
-  }
+/**
+ * Warms the GLB cache after mount — dynamically imported so `@react-three/drei`
+ * (and three.js) never lands in this page's initial JS just for a background
+ * preload; the actual viewer above already code-splits the same way.
+ */
+function useGlbPreload(modelPath: string) {
+  useEffect(() => {
+    let cancelled = false;
+    import("@react-three/drei")
+      .then(({ useGLTF }) => {
+        if (!cancelled) useGLTF.preload(modelPath);
+      })
+      .catch(() => {
+        // Preload is best-effort; DeviceViewer3D handles missing assets.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [modelPath]);
 }
 
 const A57_SLUG = "galaxy-a57";
@@ -53,6 +64,7 @@ const FALLBACK_STATS = [
  * Reuses DeviceViewer3D (auto-frame, slow orbit, no hotspots).
  */
 export function GalaxyA57Hero() {
+  useGlbPreload(GALAXY_A57_MODEL_PATH);
   const product = resolvePremiumProductBySlug(A57_SLUG);
   const colors = useMemo(
     () => getColorDefinitionsForSlug(A57_SLUG) ?? [],

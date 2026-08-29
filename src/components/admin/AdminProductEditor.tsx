@@ -20,6 +20,8 @@ import {
   CONDITION_IDS,
   ensureStorageConditions,
 } from "@/lib/conditions";
+import { loadClientConditionPricingRules } from "@/lib/conditionPricingRules";
+import { getConditionPriceBreakdown } from "@/lib/pricing";
 import {
   getAdminStatusLabel,
   getTotalStock,
@@ -63,6 +65,11 @@ export function AdminProductEditor({ productId }: AdminProductEditorProps) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveWarning, setSaveWarning] = useState<string | null>(null);
   const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
+  const [pricingRules, setPricingRules] = useState(loadClientConditionPricingRules);
+
+  useEffect(() => {
+    setPricingRules(loadClientConditionPricingRules());
+  }, []);
 
   useEffect(() => {
     const next = getProductById(productId);
@@ -156,7 +163,9 @@ export function AdminProductEditor({ productId }: AdminProductEditorProps) {
     variantIndex: number,
     storageIndex: number,
     condition: ConditionId,
-    patch: Partial<Pick<ConditionOption, "price" | "stock" | "active" | "note" | "sku">>,
+    patch: Partial<
+      Pick<ConditionOption, "price" | "priceOverride" | "stock" | "active" | "note" | "sku">
+    >,
   ) {
     setDraft((current) => {
       if (!current?.variants?.length) return current;
@@ -485,7 +494,9 @@ export function AdminProductEditor({ productId }: AdminProductEditorProps) {
                     <input
                       type="checkbox"
                       checked={Boolean(draft.manualArchive)}
-                      onChange={(e) => patch({ manualArchive: e.target.checked })}
+                      onChange={(e) =>
+                        patch({ manualArchive: e.target.checked, stockArchived: false })
+                      }
                       className="h-4 w-4 rounded border-[#d2d2d7] accent-accent"
                     />
                     Produkt manuell archivieren
@@ -698,68 +709,153 @@ export function AdminProductEditor({ productId }: AdminProductEditorProps) {
                                   stock: 0,
                                   active: false,
                                 } as ConditionOption);
+                              const breakdown = getConditionPriceBreakdown(
+                                option,
+                                entry,
+                                pricingRules,
+                              );
+
                               return (
                                 <div
                                   key={conditionId}
-                                  className="grid gap-2 rounded-[10px] border border-[#d2d2d7]/40 bg-[#f5f5f7]/50 p-2.5 sm:grid-cols-[auto_1fr_auto_auto]"
+                                  className="space-y-2 rounded-[10px] border border-[#d2d2d7]/40 bg-[#f5f5f7]/50 p-2.5"
                                 >
-                                  <label className="flex items-center gap-2 text-[13px] font-medium text-[#1d1d1f] sm:min-w-[120px]">
-                                    <input
-                                      type="checkbox"
-                                      checked={entry.active}
-                                      onChange={(e) =>
-                                        updateVariantCondition(
-                                          variantIndex,
-                                          storageIndex,
-                                          conditionId,
-                                          { active: e.target.checked },
-                                        )
-                                      }
-                                      className="h-4 w-4 rounded border-[#d2d2d7] accent-accent"
-                                    />
-                                    {entry.label}
-                                  </label>
-                                  <div className="relative">
+                                  <div className="grid gap-2 sm:grid-cols-[auto_1fr_auto] sm:items-center">
+                                    <label className="flex items-center gap-2 text-[13px] font-medium text-[#1d1d1f] sm:min-w-[120px]">
+                                      <input
+                                        type="checkbox"
+                                        checked={entry.active}
+                                        onChange={(e) =>
+                                          updateVariantCondition(
+                                            variantIndex,
+                                            storageIndex,
+                                            conditionId,
+                                            { active: e.target.checked },
+                                          )
+                                        }
+                                        className="h-4 w-4 rounded border-[#d2d2d7] accent-accent"
+                                      />
+                                      {entry.label}
+                                    </label>
+
+                                    {conditionId === "new" ? (
+                                      <div className="relative">
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          step="0.01"
+                                          inputMode="decimal"
+                                          className={`${compactInputClass} w-full pr-7`}
+                                          value={entry.price || ""}
+                                          placeholder="Basispreis Neu"
+                                          onChange={(e) =>
+                                            updateVariantCondition(
+                                              variantIndex,
+                                              storageIndex,
+                                              conditionId,
+                                              { price: normalizeStoragePrice(e.target.value) },
+                                            )
+                                          }
+                                        />
+                                        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px] text-[#86868b]">
+                                          €
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <div className="relative">
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          step="0.01"
+                                          inputMode="decimal"
+                                          className={`${compactInputClass} w-full pr-7`}
+                                          value={
+                                            entry.priceOverride != null && entry.priceOverride > 0
+                                              ? entry.priceOverride
+                                              : ""
+                                          }
+                                          placeholder={`Regel: ${formatPrice(breakdown.calculatedPrice)}`}
+                                          onChange={(e) => {
+                                            const raw = e.target.value.trim();
+                                            updateVariantCondition(
+                                              variantIndex,
+                                              storageIndex,
+                                              conditionId,
+                                              {
+                                                priceOverride:
+                                                  raw === ""
+                                                    ? null
+                                                    : normalizeStoragePrice(raw),
+                                              },
+                                            );
+                                          }}
+                                        />
+                                        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px] text-[#86868b]">
+                                          €
+                                        </span>
+                                      </div>
+                                    )}
+
                                     <input
                                       type="number"
                                       min="0"
-                                      step="0.01"
-                                      inputMode="decimal"
-                                      className={`${compactInputClass} w-full pr-7`}
-                                      value={entry.price || ""}
-                                      placeholder="Preis"
+                                      step="1"
+                                      inputMode="numeric"
+                                      className={`${compactInputClass} w-[84px]`}
+                                      value={entry.stock}
+                                      placeholder="Bestand"
                                       onChange={(e) =>
                                         updateVariantCondition(
                                           variantIndex,
                                           storageIndex,
                                           conditionId,
-                                          { price: normalizeStoragePrice(e.target.value) },
+                                          { stock: Math.max(0, Number(e.target.value) || 0) },
                                         )
                                       }
                                     />
-                                    <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px] text-[#86868b]">
-                                      €
-                                    </span>
                                   </div>
+
+                                  {conditionId !== "new" && (
+                                    <div className="grid gap-1 text-[11px] text-[#6e6e73] sm:grid-cols-2">
+                                      <p>Basispreis: {formatPrice(breakdown.basePrice)}</p>
+                                      <p>
+                                        Zustandsregel: {entry.label} → {breakdown.rulePercentage}
+                                        &nbsp;%
+                                      </p>
+                                      <p>
+                                        Berechneter Preis: {formatPrice(breakdown.calculatedPrice)}
+                                      </p>
+                                      <p>
+                                        Manueller Override:{" "}
+                                        {breakdown.manualOverride != null
+                                          ? formatPrice(breakdown.manualOverride)
+                                          : "–"}
+                                      </p>
+                                      <p className="font-medium text-[#1d1d1f] sm:col-span-2">
+                                        Aktiver Verkaufspreis:{" "}
+                                        {formatPrice(breakdown.effectivePrice)}
+                                      </p>
+                                      {breakdown.usesManualOverride && (
+                                        <button
+                                          type="button"
+                                          className="text-left text-[11px] font-medium text-accent hover:underline sm:col-span-2"
+                                          onClick={() =>
+                                            updateVariantCondition(
+                                              variantIndex,
+                                              storageIndex,
+                                              conditionId,
+                                              { priceOverride: null },
+                                            )
+                                          }
+                                        >
+                                          Preisregel verwenden
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+
                                   <input
-                                    type="number"
-                                    min="0"
-                                    step="1"
-                                    inputMode="numeric"
-                                    className={`${compactInputClass} w-[84px]`}
-                                    value={entry.stock}
-                                    placeholder="Bestand"
-                                    onChange={(e) =>
-                                      updateVariantCondition(
-                                        variantIndex,
-                                        storageIndex,
-                                        conditionId,
-                                        { stock: Math.max(0, Number(e.target.value) || 0) },
-                                      )
-                                    }
-                                  />
-                                  <input
-                                    className={`${compactInputClass} w-full sm:col-span-4`}
+                                    className={`${compactInputClass} w-full`}
                                     value={entry.note ?? ""}
                                     placeholder="Optionaler Hinweis (z. B. kleiner Kratzer)"
                                     onChange={(e) =>
@@ -772,9 +868,7 @@ export function AdminProductEditor({ productId }: AdminProductEditorProps) {
                                     }
                                   />
                                   {entry.sku && (
-                                    <p className="text-[10px] text-[#86868b] sm:col-span-4">
-                                      SKU: {entry.sku}
-                                    </p>
+                                    <p className="text-[10px] text-[#86868b]">SKU: {entry.sku}</p>
                                   )}
                                 </div>
                               );

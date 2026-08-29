@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { memo, useState } from "react";
 import type { ProductImageVariant } from "@/types/product";
 import type { ProductImageType } from "@/data/products";
 import { ProductGallery } from "./ProductGallery";
@@ -36,7 +36,7 @@ interface ProductMediaPanelProps {
   accentColor?: string;
 }
 
-export function ProductMediaPanel({
+export const ProductMediaPanel = memo(function ProductMediaPanel({
   images,
   alt,
   activeIndex,
@@ -118,4 +118,4 @@ export function ProductMediaPanel({
       </div>
     </div>
   );
-}
+});

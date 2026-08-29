@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useShop } from "@/context/ShopContext";
 import {
+  ANKAUF_URL,
   getMegaMenu,
   mainNavItems,
   type MegaMenuKey,
@@ -125,30 +126,43 @@ function RootPanel({
   onNavigate: () => void;
 }) {
   return (
-    <ul>
-      {mainNavItems.map((item) => (
-        <li key={item.label}>
-          {item.megaMenu ? (
-            <button
-              type="button"
-              onClick={() => onMega(item.megaMenu!)}
-              className="flex w-full items-center justify-between px-5 py-3.5 text-left text-[17px] text-[#1d1d1f] transition-colors hover:bg-[#f5f5f7]"
-            >
-              {item.label}
-              <ChevronRightIcon className="h-4 w-4 text-[#6e6e73]" />
-            </button>
-          ) : (
-            <Link
-              href={item.href}
-              onClick={onNavigate}
-              className="flex items-center px-5 py-3.5 text-[17px] text-[#1d1d1f] transition-colors hover:bg-[#f5f5f7]"
-            >
-              {item.label}
-            </Link>
-          )}
-        </li>
-      ))}
-    </ul>
+    <>
+      <div className="px-5 pb-2 pt-4">
+        <a
+          href={ANKAUF_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="tap-feedback flex min-h-[48px] w-full items-center justify-center rounded-[12px] bg-accent px-5 text-[16px] font-semibold text-white transition-colors duration-150 hover:bg-accent-hover"
+        >
+          Ankauf
+        </a>
+      </div>
+
+      <ul>
+        {mainNavItems.map((item) => (
+          <li key={item.label}>
+            {item.megaMenu ? (
+              <button
+                type="button"
+                onClick={() => onMega(item.megaMenu!)}
+                className="flex w-full items-center justify-between px-5 py-3.5 text-left text-[17px] text-[#1d1d1f] transition-colors hover:bg-[#f5f5f7]"
+              >
+                {item.label}
+                <ChevronRightIcon className="h-4 w-4 text-[#6e6e73]" />
+              </button>
+            ) : (
+              <Link
+                href={item.href}
+                onClick={onNavigate}
+                className="flex items-center px-5 py-3.5 text-[17px] text-[#1d1d1f] transition-colors hover:bg-[#f5f5f7]"
+              >
+                {item.label}
+              </Link>
+            )}
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
 

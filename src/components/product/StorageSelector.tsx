@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import type { StorageOption } from "@/types/product";
 
 interface StorageSelectorProps {
@@ -9,12 +10,14 @@ interface StorageSelectorProps {
   onChange: (storage: string) => void;
 }
 
-export function StorageSelector({
+export const StorageSelector = memo(function StorageSelector({
   options,
   selectedStorage,
   storageAvailability,
   onChange,
 }: StorageSelectorProps) {
+  if (options.length === 0) return null;
+
   return (
     <div>
       <p className="mb-1 text-[15px] font-semibold tracking-tight text-text-primary">
@@ -28,34 +31,34 @@ export function StorageSelector({
         }}
       >
         {options.map((option) => {
-          const isSelected = option.storage === selectedStorage;
-          const stock = storageAvailability?.[option.storage];
-          const isAvailable = stock === undefined ? true : stock > 0;
+          const isAvailable = (storageAvailability?.[option.storage] ?? 0) > 0;
+          const isSelected = isAvailable && option.storage === selectedStorage;
 
           return (
             <button
               key={option.storage}
               type="button"
+              disabled={!isAvailable}
               aria-pressed={isSelected}
               aria-disabled={!isAvailable}
-              aria-label={
-                isAvailable
-                  ? `Speicher ${option.storage}`
-                  : `Speicher ${option.storage} — Nicht verfügbar`
-              }
-              disabled={!isAvailable}
-              onClick={() => isAvailable && onChange(option.storage)}
-            className={`rounded-[16px] border px-2 py-4 text-[14px] font-medium transition-all duration-200 ${
-                !isAvailable
-                  ? "cursor-not-allowed border-border bg-surface-hover text-text-muted opacity-70"
-                  : isSelected
-                    ? "border-accent bg-surface-card text-text-primary shadow-[0_8px_24px_rgba(232,98,42,0.16)] ring-1 ring-accent/30"
-                    : "border-border bg-surface-card text-text-primary shadow-[var(--shadow-card)] hover:border-text-muted/50"
+              aria-label={`Speicher ${option.storage}${isAvailable ? "" : " – Ausverkauft"}`}
+              onClick={() => {
+                if (!isAvailable) return;
+                onChange(option.storage);
+              }}
+              className={`flex flex-col rounded-[16px] border px-2 py-4 text-[14px] font-medium transition-[border-color,box-shadow,opacity] duration-150 ${
+                isSelected
+                  ? "border-accent bg-surface-card text-text-primary shadow-[0_8px_24px_rgba(232,98,42,0.16)] ring-1 ring-accent/30"
+                  : isAvailable
+                    ? "border-border bg-surface-card text-text-primary shadow-[var(--shadow-card)] hover:border-text-muted/50"
+                    : "cursor-not-allowed border-border/70 bg-background-secondary/80 text-text-secondary/70"
               }`}
             >
               <span>{option.storage}</span>
               {!isAvailable && (
-                <span className="mt-0.5 block text-[11px] font-normal">Nicht verfügbar</span>
+                <span className="mt-0.5 text-[11px] font-normal text-text-secondary/70">
+                  Ausverkauft
+                </span>
               )}
             </button>
           );
@@ -63,4 +66,4 @@ export function StorageSelector({
       </div>
     </div>
   );
-}
+});

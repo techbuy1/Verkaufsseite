@@ -37,7 +37,7 @@ function getSeedConfig(): TopDealConfig {
   return {
     productId: "samsung-galaxy-a57",
     colorId: "icy-blue",
-    storage: "128 GB",
+    storage: "256 GB",
     discountPercent: 15,
     badgeLabel: "Top Deal der Woche",
     headline: "Diese Woche stark reduziert.",

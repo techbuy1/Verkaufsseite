@@ -21,6 +21,7 @@ interface OrderSummaryItem {
   conditionLabel?: string;
   quantity: number;
   lineTotal: number;
+  compatibleDeviceLabel?: string;
 }
 
 export function CheckoutSuccessContent() {
@@ -29,7 +30,7 @@ export function CheckoutSuccessContent() {
   const provider = searchParams.get("provider");
   const paypalOrderId = searchParams.get("order_id");
   const { clearCart } = useShop();
-  const { deductStockForOrder } = useProductStore();
+  const { refreshFromServer } = useProductStore();
   const { addSaleTransaction } = useSalesLedger();
   const fulfilledRef = useRef(false);
 
@@ -48,22 +49,21 @@ export function CheckoutSuccessContent() {
       fulfilledRef.current = true;
       const pending = loadPendingCheckout();
       if (pending.length > 0) {
-        deductStockForOrder(
-          pending.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            colorId: item.color,
-            colorName: item.colorName,
-            storage: item.storage,
-            condition: item.condition,
-          })),
-        );
+        // Stock was already deducted server-side (source of truth) as part
+        // of payment confirmation above — just pull the fresh numbers so
+        // the shop UI reflects them without a hard reload.
+        void refreshFromServer();
 
         for (const item of pending) {
           addSaleTransaction({
             productId: item.productId,
             productName: item.brand ? `${item.brand} ${item.name}` : item.name,
-            variantLabel: [item.colorName, item.storage, item.conditionLabel]
+            variantLabel: [
+              item.deviceLabel ? `Für ${item.deviceLabel}` : undefined,
+              item.colorName,
+              item.storage,
+              item.conditionLabel,
+            ]
               .filter(Boolean)
               .join(" · "),
             purchasePrice: 0,
@@ -202,7 +202,7 @@ export function CheckoutSuccessContent() {
     provider,
     paypalOrderId,
     clearCart,
-    deductStockForOrder,
+    refreshFromServer,
     addSaleTransaction,
   ]);
 
@@ -253,11 +253,23 @@ export function CheckoutSuccessContent() {
                       <span className="font-medium text-[#1d1d1f]">
                         {item.productName}
                       </span>
-                      {[item.storage, item.color, item.conditionLabel]
-                        .filter(Boolean)
-                        .length > 0 && (
+                      {[
+                        item.compatibleDeviceLabel
+                          ? `Für ${item.compatibleDeviceLabel}`
+                          : undefined,
+                        item.storage,
+                        item.color,
+                        item.conditionLabel,
+                      ].filter(Boolean).length > 0 && (
                         <span className="block text-[#6e6e73]">
-                          {[item.storage, item.color, item.conditionLabel]
+                          {[
+                            item.compatibleDeviceLabel
+                              ? `Für ${item.compatibleDeviceLabel}`
+                              : undefined,
+                            item.storage,
+                            item.color,
+                            item.conditionLabel,
+                          ]
                             .filter(Boolean)
                             .join(" · ")}
                         </span>

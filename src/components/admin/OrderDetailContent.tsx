@@ -30,6 +30,7 @@ interface OrderItem {
   unitPrice: number;
   lineTotal: number;
   devices: OrderDevice[];
+  compatibleDeviceLabel?: string;
 }
 
 interface OrderDetail {
@@ -393,6 +394,11 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="font-medium text-[14px]">{item.productName}</p>
+                  {item.compatibleDeviceLabel && (
+                    <p className="text-[12px] font-medium text-[#1d1d1f]">
+                      Für: {item.compatibleDeviceLabel}
+                    </p>
+                  )}
                   <p className="text-[12px] text-[#6e6e73]">
                     {[item.storage, item.color, item.conditionLabel]
                       .filter(Boolean)

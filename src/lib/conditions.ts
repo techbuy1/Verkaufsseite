@@ -1,4 +1,8 @@
 import type { ConditionId, ConditionOption, StorageOption } from "@/types/product";
+import {
+  DEFAULT_CONDITION_PERCENTAGES,
+  type ConditionPricingRules,
+} from "@/lib/conditionPricingRules";
 
 export const CONDITION_IDS = [
   "new",
@@ -11,17 +15,18 @@ export const CONDITION_IDS = [
 ] as const satisfies readonly ConditionId[];
 
 /**
- * Default-Abschläge nur für neu angelegte Zustände (Migration / fehlende Einträge).
- * Manuell gesetzte Preise pro Zustand bleiben unverändert.
+ * Default-Prozentsätze des Basispreises (100 = voller Preis).
+ * Nur für neu angelegte / regelbasierte Zustände — manuelle Overrides bleiben unberührt.
+ * @deprecated Verwende DEFAULT_CONDITION_PERCENTAGES aus conditionPricingRules.ts
  */
 export const CONDITION_DISCOUNTS: Record<ConditionId, number> = {
   new: 0,
-  like_new: 0.05,
-  excellent: 0.1,
-  very_good: 0.15,
-  good: 0.22,
-  heavily_used: 0.32,
-  poor: 0.45,
+  like_new: 0.08,
+  excellent: 0.15,
+  very_good: 0.22,
+  good: 0.32,
+  heavily_used: 0.45,
+  poor: 0.6,
 };
 
 export const CONDITION_DEFINITIONS: Record<
@@ -88,37 +93,55 @@ function roundPrice(price: number): number {
   return Math.round(price * 100) / 100;
 }
 
-/** Verkaufspreis aus Neu-Basispreis und zentralem Abschlag. */
+function computeRulePrice(
+  basePrice: number,
+  condition: ConditionId,
+  rules: ConditionPricingRules = DEFAULT_CONDITION_PERCENTAGES,
+): number {
+  const base = roundPrice(basePrice);
+  if (base <= 0) return 0;
+  const pct = rules[condition] ?? DEFAULT_CONDITION_PERCENTAGES[condition] ?? 100;
+  return roundPrice((base * pct) / 100);
+}
+
+/** Verkaufspreis aus Neu-Basispreis und zentraler Prozentregel. */
 export function computeConditionPrice(
   newBasePrice: number,
   condition: ConditionId,
+  rules?: ConditionPricingRules,
 ): number {
-  const base = roundPrice(newBasePrice);
-  if (base <= 0) return 0;
-  const discount = CONDITION_DISCOUNTS[condition] ?? 0;
-  return roundPrice(base * (1 - discount));
+  return computeRulePrice(newBasePrice, condition, rules);
 }
 
 /** Absolute Ersparnis gegenüber Neu (0 bei Neu). */
 export function getConditionSavings(
   newBasePrice: number,
   condition: ConditionId,
+  rules?: ConditionPricingRules,
 ): number {
   const base = roundPrice(newBasePrice);
-  const sale = computeConditionPrice(base, condition);
+  const sale = computeConditionPrice(base, condition, rules);
   return roundPrice(Math.max(0, base - sale));
 }
 
-export function getConditionDiscountRate(condition: ConditionId): number {
-  return CONDITION_DISCOUNTS[condition] ?? 0;
+export function getConditionPercentage(
+  condition: ConditionId,
+  rules: ConditionPricingRules = DEFAULT_CONDITION_PERCENTAGES,
+): number {
+  return rules[condition] ?? DEFAULT_CONDITION_PERCENTAGES[condition] ?? 100;
 }
 
-/** Basispreis „Neu“ einer Speicheroption. */
+/** @deprecated Abschlag-Rate — nur Legacy-Kompatibilität */
+export function getConditionDiscountRate(condition: ConditionId): number {
+  const pct = DEFAULT_CONDITION_PERCENTAGES[condition] ?? 100;
+  return roundPrice(Math.max(0, 1 - pct / 100));
+}
+
+/** Basispreis „Neu“ einer Speicheroption — ohne ensureStorageConditions (Reentrancy-sicher). */
 export function getNewBasePriceFromOption(option: StorageOption): number {
-  const ensured = ensureStorageConditions(option);
-  const neu = ensured.conditions?.find((entry) => entry.condition === "new");
+  const neu = option.conditions?.find((entry) => entry.condition === "new");
   if (neu && neu.price > 0) return roundPrice(neu.price);
-  if (ensured.price > 0) return roundPrice(ensured.price);
+  if (typeof option.price === "number" && option.price > 0) return roundPrice(option.price);
   return 0;
 }
 
@@ -187,26 +210,85 @@ function normalizeConditionEntry(
   fallbackPrice: number,
   fallbackStock: number,
   activeDefault: boolean,
+  newBaseHint: number,
+  rules: ConditionPricingRules = DEFAULT_CONDITION_PERCENTAGES,
 ): ConditionOption {
   const def = CONDITION_DEFINITIONS[condition];
-  const price =
-    typeof partial?.price === "number" && Number.isFinite(partial.price)
-      ? roundPrice(partial.price)
-      : fallbackPrice;
   const stock =
     typeof partial?.stock === "number" && Number.isFinite(partial.stock)
       ? Math.max(0, Math.floor(partial.stock))
       : fallbackStock;
 
+  let priceOverride = partial?.priceOverride;
+  if (priceOverride === undefined && condition !== "new") {
+    const stored =
+      typeof partial?.price === "number" && Number.isFinite(partial.price)
+        ? roundPrice(partial.price)
+        : 0;
+    if (stored > 0 && newBaseHint > 0) {
+      const rulePrice = computeRulePrice(newBaseHint, condition, rules);
+      if (Math.abs(stored - rulePrice) > 0.005) {
+        priceOverride = stored;
+      }
+    }
+  }
+
+  const effectivePrice =
+    condition === "new"
+      ? roundPrice(
+          typeof partial?.price === "number" && partial.price > 0
+            ? partial.price
+            : fallbackPrice,
+        )
+      : priceOverride != null && priceOverride > 0
+        ? roundPrice(priceOverride)
+        : computeRulePrice(newBaseHint, condition, rules);
+
   return {
     condition,
     label: def.label,
-    price,
+    price: effectivePrice,
     stock,
     active: typeof partial?.active === "boolean" ? partial.active : activeDefault,
     note: partial?.note?.trim() ? partial.note.trim() : undefined,
     sku: partial?.sku?.trim() ? partial.sku.trim() : undefined,
+    priceOverride:
+      condition === "new"
+        ? undefined
+        : priceOverride === null
+          ? null
+          : priceOverride,
   };
+}
+
+export function getEffectivePriceForConditionEntry(
+  option: StorageOption,
+  entry: ConditionOption,
+  rules: ConditionPricingRules = DEFAULT_CONDITION_PERCENTAGES,
+  basePriceHint?: number,
+): number {
+  const basePrice = basePriceHint ?? getNewBasePriceFromOption(option);
+
+  if (entry.condition === "new") {
+    return roundPrice(basePrice);
+  }
+
+  if (entry.priceOverride != null && entry.priceOverride > 0) {
+    return roundPrice(entry.priceOverride);
+  }
+
+  if (entry.priceOverride === null) {
+    return computeRulePrice(basePrice, entry.condition, rules);
+  }
+
+  if (entry.price > 0 && basePrice > 0) {
+    const rulePrice = computeRulePrice(basePrice, entry.condition, rules);
+    if (Math.abs(entry.price - rulePrice) > 0.005) {
+      return roundPrice(entry.price);
+    }
+  }
+
+  return computeRulePrice(basePrice, entry.condition, rules);
 }
 
 /**
@@ -216,6 +298,7 @@ function normalizeConditionEntry(
 export function ensureStorageConditions(
   option: StorageOption,
   fallbackStock = 0,
+  rules: ConditionPricingRules = DEFAULT_CONDITION_PERCENTAGES,
 ): StorageOption {
   const legacyPrice =
     typeof option.price === "number" && Number.isFinite(option.price) ? roundPrice(option.price) : 0;
@@ -254,6 +337,8 @@ export function ensureStorageConditions(
           : legacyPrice,
         typeof current.stock === "number" ? current.stock : 0,
         true,
+        newBaseHint,
+        rules,
       );
     }
 
@@ -264,28 +349,37 @@ export function ensureStorageConditions(
         legacyPrice,
         legacyStock,
         true,
+        newBaseHint,
+        rules,
       );
     }
 
-    // Nur fehlende Zustände: Default-Abschlag vom Neu-/Legacy-Preis.
     const defaultPrice =
-      newBaseHint > 0 ? computeConditionPrice(newBaseHint, condition) : 0;
+      newBaseHint > 0 ? computeRulePrice(newBaseHint, condition, rules) : 0;
     return normalizeConditionEntry(
-      { price: defaultPrice, stock: 0, active: true },
+      { price: defaultPrice, stock: 0, active: true, priceOverride: undefined },
       condition,
       defaultPrice,
       0,
       true,
+      newBaseHint,
+      rules,
     );
   });
 
-  const activePriced = conditions.filter((c) => c.active && c.price > 0);
+  const ensuredOption = { ...option, storage: option.storage, conditions };
+  const activePriced = conditions.filter((c) => {
+    if (!c.active) return false;
+    return getEffectivePriceForConditionEntry(ensuredOption, c, rules, newBaseHint) > 0;
+  });
   const derivedPrice =
     activePriced.length > 0
-      ? Math.min(...activePriced.map((c) => c.price))
-      : legacyPrice ||
-        Math.min(...conditions.map((c) => c.price).filter((p) => p > 0), Infinity) ||
-        0;
+      ? Math.min(
+          ...activePriced.map((c) =>
+            getEffectivePriceForConditionEntry(ensuredOption, c, rules, newBaseHint),
+          ),
+        )
+      : legacyPrice || 0;
 
   const derivedStock = conditions
     .filter((c) => c.active)
@@ -324,12 +418,15 @@ export function getActiveConditions(option: StorageOption): ConditionOption[] {
   return ensured.conditions!.filter((c) => c.active);
 }
 
-export function getPurchasableConditions(option: StorageOption): ConditionOption[] {
-  const ensured = ensureStorageConditions(option);
+export function getPurchasableConditions(
+  option: StorageOption,
+  rules: ConditionPricingRules = DEFAULT_CONDITION_PERCENTAGES,
+): ConditionOption[] {
+  const ensured = ensureStorageConditions(option, 0, rules);
   return (ensured.conditions ?? []).filter(
     (c) =>
       c.active &&
-      c.price > 0 &&
+      getEffectivePriceForConditionEntry(ensured, c, rules) > 0 &&
       getEffectiveConditionStock(ensured, c.condition) > 0,
   );
 }
@@ -339,9 +436,10 @@ export function getConditionOption(
   condition: ConditionId,
 ): ConditionOption {
   const ensured = ensureStorageConditions(option);
+  const base = getNewBasePriceFromOption(ensured);
   return (
     ensured.conditions!.find((c) => c.condition === condition) ??
-    normalizeConditionEntry(undefined, condition, ensured.price, 0, false)
+    normalizeConditionEntry(undefined, condition, ensured.price, 0, false, base)
   );
 }
 
@@ -360,50 +458,76 @@ export function getStorageOptionTotalStock(option: StorageOption, onlyActive = t
     .reduce((sum, c) => sum + c.stock, 0);
 }
 
-export function getStorageMinAvailablePrice(option: StorageOption): number | null {
-  const purchasable = getPurchasableConditions(option);
+export function getStorageMinAvailablePrice(
+  option: StorageOption,
+  rules: ConditionPricingRules = DEFAULT_CONDITION_PERCENTAGES,
+): number | null {
+  const purchasable = getPurchasableConditions(option, rules);
   if (purchasable.length === 0) return null;
-  return Math.min(...purchasable.map((c) => c.price));
+  const ensured = ensureStorageConditions(option, 0, rules);
+  return Math.min(
+    ...purchasable.map((c) => getEffectivePriceForConditionEntry(ensured, c, rules)),
+  );
 }
 
-export function getStorageMinAvailableCondition(option: StorageOption): ConditionOption | null {
-  const purchasable = getPurchasableConditions(option);
+export function getStorageMinAvailableCondition(
+  option: StorageOption,
+  rules: ConditionPricingRules = DEFAULT_CONDITION_PERCENTAGES,
+): ConditionOption | null {
+  const purchasable = getPurchasableConditions(option, rules);
   if (purchasable.length === 0) return null;
-  return purchasable.reduce((min, c) => (c.price < min.price ? c : min));
+  const ensured = ensureStorageConditions(option, 0, rules);
+  return purchasable.reduce((min, c) => {
+    const price = getEffectivePriceForConditionEntry(ensured, c, rules);
+    const minPrice = getEffectivePriceForConditionEntry(ensured, min, rules);
+    return price < minPrice ? c : min;
+  });
 }
 
 export function applyConditionPatch(
   option: StorageOption,
   condition: ConditionId,
-  patch: Partial<Pick<ConditionOption, "price" | "stock" | "active" | "note" | "sku">>,
+  patch: Partial<
+    Pick<ConditionOption, "price" | "priceOverride" | "stock" | "active" | "note" | "sku">
+  >,
 ): StorageOption {
   const ensured = ensureStorageConditions(option);
-  const conditions = ensured.conditions!.map((entry) =>
-    entry.condition === condition
-      ? {
-          ...entry,
-          ...patch,
-          label: CONDITION_DEFINITIONS[condition].label,
-          price:
-            typeof patch.price === "number" ? roundPrice(patch.price) : entry.price,
-          stock:
-            typeof patch.stock === "number"
-              ? Math.max(0, Math.floor(patch.stock))
-              : entry.stock,
-          note:
-            patch.note !== undefined
-              ? patch.note.trim()
-                ? patch.note.trim()
-                : undefined
-              : entry.note,
-          sku:
-            patch.sku !== undefined
-              ? patch.sku.trim()
-                ? patch.sku.trim()
-                : undefined
-              : entry.sku,
-        }
-      : entry,
-  );
+  const conditions = ensured.conditions!.map((entry) => {
+    if (entry.condition !== condition) return entry;
+
+    let priceOverride = entry.priceOverride;
+    if (patch.priceOverride !== undefined) {
+      priceOverride = patch.priceOverride;
+    } else if (typeof patch.price === "number") {
+      priceOverride = roundPrice(patch.price);
+    }
+
+    return {
+      ...entry,
+      ...patch,
+      label: CONDITION_DEFINITIONS[condition].label,
+      priceOverride: condition === "new" ? undefined : priceOverride,
+      price:
+        condition === "new" && typeof patch.price === "number"
+          ? roundPrice(patch.price)
+          : entry.price,
+      stock:
+        typeof patch.stock === "number"
+          ? Math.max(0, Math.floor(patch.stock))
+          : entry.stock,
+      note:
+        patch.note !== undefined
+          ? patch.note.trim()
+            ? patch.note.trim()
+            : undefined
+          : entry.note,
+      sku:
+        patch.sku !== undefined
+          ? patch.sku.trim()
+            ? patch.sku.trim()
+            : undefined
+          : entry.sku,
+    };
+  });
   return ensureStorageConditions({ ...ensured, conditions });
 }

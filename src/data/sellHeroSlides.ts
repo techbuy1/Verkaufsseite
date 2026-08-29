@@ -37,9 +37,9 @@ export const HERO_PRODUCT_HREF = "/products/iphone-17-pro";
 /** Single static hero: iPhone 17 Pro Cosmic Orange — shop buy focus. */
 export const SELL_HERO: SellHeroContent = {
   eyebrow: "iPhone 17 Pro",
-  headline: "iPhone 17 Pro. In Cosmic Orange.",
-  headlinePrefix: "iPhone 17 Pro ist",
-  carouselWords: ["Kraftvoll.", "Brillant.", "Episch.", "Revolutionär.", "Cosmic Orange."],
+  headline: "Das neue iPhone 17 Pro entdecken.",
+  headlinePrefix: "Technik, die",
+  carouselWords: ["begeistert.", "innoviert.", "überzeugt.", "begeistert."],
   subheadline:
     "Pro-Kamera, A19 Pro und Titanium Design — jetzt bei TechBuy bestellen.",
   ctaLabel: "Jetzt kaufen",

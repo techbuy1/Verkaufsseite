@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import type { CatalogCategoryId } from "@/data/catalogCategories";
 import { getCatalogProductsByCategory } from "@/data/catalogProducts";
 import { useProductStore } from "@/context/ProductStoreContext";
-import { accessoryProducts } from "@/data/accessoryCatalog";
+import { getAccessoryProducts } from "@/lib/catalog";
 import {
   applyAdvancedProductFilters,
   BRAND_FILTER_OPTIONS,
@@ -112,7 +112,7 @@ export function CatalogBrowseSection({
       if (categoryId) {
         devices = devices.filter((product) => product.catalogCategory === categoryId);
       }
-      const accessories = accessoryProducts.filter((product) =>
+      const accessories = getAccessoryProducts().filter((product) =>
         categoryId ? product.catalogCategory === categoryId : true,
       );
       let merged = [...devices, ...accessories];

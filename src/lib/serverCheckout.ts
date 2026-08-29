@@ -1,5 +1,7 @@
-import { accessoryProducts } from "@/data/accessoryCatalog";
 import { calculateAccessoryDiscounts } from "@/lib/accessoryPricing";
+import { productNeedsDeviceSelection } from "@/lib/deviceCompatibility";
+import { getAccessoryProducts } from "@/lib/catalog";
+import { readServerGadgetPriceOverrides } from "@/lib/serverGadgetPricing";
 import {
   priceAllDeviceUpsells,
   upsellsToCheckoutLines,
@@ -16,6 +18,8 @@ import {
   validateCheckoutStock,
 } from "@/lib/productAvailability";
 import { readServerProducts } from "@/lib/serverProductCatalog";
+import { readServerConditionPricingRules } from "@/lib/serverConditionPricingRules";
+import { readServerPromotions } from "@/lib/serverPromotions";
 import {
   getDefaultColor,
   getDefaultStorage,
@@ -43,6 +47,8 @@ export interface CheckoutLineInput {
   color?: string;
   storage?: string;
   condition?: ConditionId | string;
+  /** Stabile Produkt-ID des kompatiblen Smartphones — für gerätespezifisches Zubehör. */
+  deviceId?: string;
 }
 
 export interface PricedCheckoutLine {
@@ -58,6 +64,9 @@ export interface PricedCheckoutLine {
   quantity: number;
   unitPrice: number;
   lineTotal: number;
+  deviceId?: string;
+  /** Serverseitig aus dem Gerätekatalog aufgelöst — nie ein Client-Freitext. */
+  deviceLabel?: string;
 }
 
 export interface ValidatedCartTotals {
@@ -111,7 +120,7 @@ export function calculateProductUnitPrice(
     return price > 0 ? roundMoney(price) : null;
   }
 
-  const accessory = accessoryProducts.find(
+  const accessory = getAccessoryProducts().find(
     (product) => product.id === input.productId,
   );
   if (!accessory || accessory.price <= 0) return null;
@@ -126,6 +135,9 @@ export async function validateAndPriceCart(
     return { ok: false, message: "Warenkorb ist leer.", status: 400 };
   }
 
+  await readServerConditionPricingRules();
+  await readServerPromotions();
+  await readServerGadgetPriceOverrides();
   const { products } = await readServerProducts();
   const stockErrors = validateCheckoutStock(items, products);
   if (stockErrors.length > 0) {
@@ -149,7 +161,7 @@ export async function validateAndPriceCart(
     }
 
     const premium = products.find((product) => product.id === item.productId);
-    const accessory = accessoryProducts.find(
+    const accessory = getAccessoryProducts().find(
       (product) => product.id === item.productId,
     );
 
@@ -192,6 +204,25 @@ export async function validateAndPriceCart(
       colorName = item.colorName ?? item.color;
     }
 
+    let deviceLabel: string | undefined;
+    if (accessory && productNeedsDeviceSelection(accessory)) {
+      const device = item.deviceId
+        ? products.find(
+            (entry) => entry.id === item.deviceId && entry.catalogCategory === "smartphones",
+          )
+        : undefined;
+
+      if (!device) {
+        return {
+          ok: false,
+          message: `Bitte wähle ein Smartphone-Modell für „${productName}“ aus.`,
+          status: 400,
+        };
+      }
+
+      deviceLabel = `${device.brand} ${device.model}`;
+    }
+
     const unitPrice = calculateProductUnitPrice(
       {
         productId: item.productId,
@@ -224,6 +255,8 @@ export async function validateAndPriceCart(
       quantity,
       unitPrice,
       lineTotal: roundMoney(unitPrice * quantity),
+      deviceId: deviceLabel ? item.deviceId : undefined,
+      deviceLabel,
     });
   }
 

@@ -1,39 +1,60 @@
+import { Suspense } from "react";
 import { LegalPageLayout, LegalSection } from "@/components/legal/LegalPageLayout";
+import { WithdrawalForm } from "@/components/legal/WithdrawalForm";
 import { companySettings } from "@/lib/companySettings";
 import { ORDER_NUMBER_HINT, SHOP_CONTACT_EMAIL } from "@/lib/shopContact";
 
-export const metadata = { title: "Widerruf – TechBuy" };
+export const metadata = { title: "Widerruf erklären – TechBuy" };
+
+function WithdrawalFormFallback() {
+  return (
+    <div
+      id="widerruf-formular"
+      className="rounded-[16px] border border-border bg-surface-card p-6 text-[14px] text-text-secondary"
+    >
+      Formular wird geladen …
+    </div>
+  );
+}
 
 export default function WiderrufPage() {
   return (
     <LegalPageLayout
       eyebrow="Rechtliches"
-      title="Widerrufsbelehrung"
-      intro="Diese Widerrufsbelehrung gilt für den Kauf von Waren durch Sie über den TechBuy-Onlineshop. Für den Verkauf eines gebrauchten Geräts an TechBuy (Ankauf) gelten gesonderte Bedingungen — siehe unten."
+      title="Widerruf erklären"
+      intro="Hier kannst du uns deinen Widerruf zu einer Bestellung übermitteln."
     >
-      <LegalSection title="Widerrufsrecht">
-        <p>
-          Sie haben das Recht, binnen vierzehn Tagen ohne Angabe von Gründen diesen Vertrag zu
-          widerrufen. Die Widerrufsfrist beträgt vierzehn Tage ab dem Tag, an dem Sie oder ein von
-          Ihnen benannter Dritter, der nicht der Beförderer ist, die Waren in Besitz genommen
-          haben bzw. hat.
-        </p>
-        <p>
-          Um Ihr Widerrufsrecht auszuüben, müssen Sie uns
-          <br />
-          {companySettings.companyName}, {companySettings.ownerName}, {companySettings.street},{" "}
-          {companySettings.postalCode} {companySettings.city}, E-Mail:{" "}
-          <a className="text-accent hover:underline" href={`mailto:${SHOP_CONTACT_EMAIL}`}>
-            {SHOP_CONTACT_EMAIL}
-          </a>
-          , Telefon: {companySettings.phone}
-          <br />
-          mittels einer eindeutigen Erklärung (z. B. ein mit der Post versandter Brief oder eine
-          E-Mail) über Ihren Entschluss, diesen Vertrag zu widerrufen, informieren.{" "}
-          {ORDER_NUMBER_HINT} Zur Wahrung der Widerrufsfrist reicht es aus, dass Sie die Mitteilung
-          über die Ausübung des Widerrufsrechts vor Ablauf der Widerrufsfrist absenden.
-        </p>
+      <LegalSection title="Widerruf übermitteln">
+        <Suspense fallback={<WithdrawalFormFallback />}>
+          <WithdrawalForm />
+        </Suspense>
       </LegalSection>
+
+      <div id="widerrufsrecht">
+        <LegalSection title="Widerrufsrecht">
+          <p>
+            Sie haben das Recht, binnen vierzehn Tagen ohne Angabe von Gründen diesen Vertrag zu
+            widerrufen. Die Widerrufsfrist beträgt vierzehn Tage ab dem Tag, an dem Sie oder ein von
+            Ihnen benannter Dritter, der nicht der Beförderer ist, die Waren in Besitz genommen
+            haben bzw. hat.
+          </p>
+          <p>
+            Um Ihr Widerrufsrecht auszuüben, müssen Sie uns
+            <br />
+            {companySettings.companyName}, {companySettings.ownerName}, {companySettings.street},{" "}
+            {companySettings.postalCode} {companySettings.city}, E-Mail:{" "}
+            <a className="text-accent hover:underline" href={`mailto:${SHOP_CONTACT_EMAIL}`}>
+              {SHOP_CONTACT_EMAIL}
+            </a>
+            , Telefon: {companySettings.phone}
+            <br />
+            mittels einer eindeutigen Erklärung (z. B. ein mit der Post versandter Brief oder eine
+            E-Mail) über Ihren Entschluss, diesen Vertrag zu widerrufen, informieren.{" "}
+            {ORDER_NUMBER_HINT} Zur Wahrung der Widerrufsfrist reicht es aus, dass Sie die Mitteilung
+            über die Ausübung des Widerrufsrechts vor Ablauf der Widerrufsfrist absenden.
+          </p>
+        </LegalSection>
+      </div>
 
       <LegalSection title="Folgen des Widerrufs">
         <p>

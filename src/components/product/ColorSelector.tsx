@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import type { ProductImageVariant } from "@/types/product";
 
 interface ColorSelectorProps {
@@ -19,12 +20,14 @@ function isLightSwatch(hex: string): boolean {
   return luminance > 0.82;
 }
 
-export function ColorSelector({
+export const ColorSelector = memo(function ColorSelector({
   colors,
   selectedColorId,
   colorAvailability,
   onChange,
 }: ColorSelectorProps) {
+  if (colors.length === 0) return null;
+
   return (
     <div>
       <p className="mb-1 text-[15px] font-semibold tracking-tight text-text-primary">
@@ -38,43 +41,47 @@ export function ColorSelector({
         }}
       >
         {colors.map((color) => {
-          const isSelected = color.id === selectedColorId;
-          const isAvailable = colorAvailability?.[color.id] ?? true;
+          const isAvailable = colorAvailability?.[color.id] ?? false;
+          const isSelected = isAvailable && color.id === selectedColorId;
           const lightSwatch = isLightSwatch(color.colorCode);
 
           return (
             <button
               key={color.id}
               type="button"
+              disabled={!isAvailable}
               aria-pressed={isSelected}
               aria-disabled={!isAvailable}
-              aria-label={
-                isAvailable
-                  ? `Farbe ${color.colorName}`
-                  : `Farbe ${color.colorName} — Derzeit nicht verfügbar`
-              }
-              title={!isAvailable ? "Derzeit nicht verfügbar" : undefined}
-              disabled={!isAvailable}
-              onClick={() => isAvailable && onChange(color.id)}
-              className={`flex min-h-[96px] flex-col items-center justify-center rounded-[16px] border px-2 py-3.5 text-center transition-all duration-200 ${
-                !isAvailable
-                  ? "cursor-not-allowed border-border bg-surface-hover opacity-55"
-                  : isSelected
-                    ? "border-accent bg-surface-card shadow-[0_8px_24px_rgba(232,98,42,0.16)] ring-1 ring-accent/30"
-                    : "border-border bg-surface-card shadow-[var(--shadow-card)] hover:border-text-muted/50 hover:shadow-[var(--shadow-card-hover)]"
+              aria-label={`Farbe ${color.colorName}${isAvailable ? "" : " – Ausverkauft"}`}
+              onClick={() => {
+                if (!isAvailable) return;
+                onChange(color.id);
+              }}
+              className={`flex min-h-[96px] flex-col items-center justify-center rounded-[16px] border px-2 py-3.5 text-center transition-[border-color,box-shadow,opacity] duration-150 ${
+                isSelected
+                  ? "border-accent bg-surface-card shadow-[0_8px_24px_rgba(232,98,42,0.16)] ring-1 ring-accent/30"
+                  : isAvailable
+                    ? "border-border bg-surface-card shadow-[var(--shadow-card)] hover:border-text-muted/50 hover:shadow-[var(--shadow-card-hover)]"
+                    : "cursor-not-allowed border-border/70 bg-background-secondary/80"
               }`}
             >
               <span
                 className={`h-7 w-7 shrink-0 rounded-full ${
-                  lightSwatch ? "ring-1 ring-border" : "ring-1 ring-black/10"
-                } ${!isAvailable ? "opacity-50 grayscale" : ""}`}
+                  isAvailable ? "" : "opacity-40 grayscale"
+                } ${lightSwatch ? "ring-1 ring-border" : "ring-1 ring-black/10"}`}
                 style={{ backgroundColor: color.colorCode }}
               />
-              <span className="mt-2.5 text-[12px] font-medium leading-snug text-text-primary sm:text-[13px]">
+              <span
+                className={`mt-2.5 text-[12px] font-medium leading-snug sm:text-[13px] ${
+                  isAvailable ? "text-text-primary" : "text-text-secondary/70"
+                }`}
+              >
                 {color.colorName}
               </span>
               {!isAvailable && (
-                <span className="mt-1 text-[11px] text-text-muted">Nicht verfügbar</span>
+                <span className="mt-0.5 text-[11px] font-medium text-text-secondary/70">
+                  Ausverkauft
+                </span>
               )}
             </button>
           );
@@ -82,4 +89,4 @@ export function ColorSelector({
       </div>
     </div>
   );
-}
+});

@@ -235,6 +235,7 @@ async function buildInvoicePdf(
     for (const line of lines) {
       ensureSpace(70);
       const variant = [
+        line.item.compatibleDeviceLabel ? `Für ${line.item.compatibleDeviceLabel}` : undefined,
         line.item.storage,
         line.item.color,
         line.item.conditionLabel,

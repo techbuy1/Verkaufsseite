@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useShop } from "@/context/ShopContext";
-import { mainNavItems, type MegaMenuKey } from "@/data/navigation";
+import { ANKAUF_URL, mainNavItems, type MegaMenuKey } from "@/data/navigation";
 import {
   AccountIcon,
   BagIcon,
@@ -191,6 +191,7 @@ export function Header() {
                     <Link
                       key={item.label}
                       href={item.href}
+                      prefetch={item.href === "/store" ? true : undefined}
                       aria-current={
                         item.href === "/store" && pathname.startsWith("/store")
                           ? "page"
@@ -203,7 +204,7 @@ export function Header() {
                       }`}
                       onMouseEnter={closeMegaMenu}
                     >
-                      {item.href === "/store" ? (
+                      {item.label === "Angebote" ? (
                         <span className="inline-flex items-center gap-1">
                           {item.label}
                           <span className="motion-safe:animate-[header-flame-flicker_1.6s_ease-in-out_infinite]" aria-hidden="true">
@@ -218,8 +219,16 @@ export function Header() {
                 )}
               </nav>
 
-              <div className="ml-auto hidden shrink-0 items-center gap-2 lg:flex">
-                <SearchBar className="w-[220px] xl:w-[300px]" variant="header" />
+              <div className="ml-auto hidden shrink-0 items-center gap-3 lg:flex">
+                <a
+                  href={ANKAUF_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="tap-feedback inline-flex h-10 shrink-0 items-center justify-center rounded-[12px] bg-accent px-5 text-[14px] font-semibold text-white transition-colors duration-150 hover:bg-accent-hover"
+                >
+                  Ankauf
+                </a>
+                <SearchBar className="w-[200px] xl:w-[280px]" variant="header" />
                 <IconButton label="Konto">
                   <AccountIcon className="h-[18px] w-[18px]" />
                 </IconButton>

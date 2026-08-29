@@ -60,6 +60,17 @@ export function splitGrossAtVatRate(
   return { net, vat, gross: safeGross };
 }
 
+/** Net price → VAT + gross for Regelbesteuerung — the inverse of {@link splitGrossAtVatRate}. */
+export function combineNetAtVatRate(
+  net: number,
+  rate: number = companySettings.standardVatRate,
+): { net: number; vat: number; gross: number } {
+  const safeNet = Math.round(net * 100) / 100;
+  const vat = Math.round(safeNet * rate * 100) / 100;
+  const gross = Math.round((safeNet + vat) * 100) / 100;
+  return { net: safeNet, vat, gross };
+}
+
 export type OrderStatus =
   | "pending_payment"
   | "paid"

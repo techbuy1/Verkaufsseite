@@ -6,6 +6,7 @@ import {
   getProductAvailabilityStatus,
   getProductMinAvailableConditionLabel,
   getProductMinAvailablePrice,
+  getProductMinAvailableRegularPrice,
 } from "@/lib/productAvailability";
 import {
   getDefaultColor,
@@ -31,6 +32,7 @@ export function premiumToLegacyProduct(product: PremiumProduct): Product {
   const defaultColorId = getDefaultAvailableColorId(product);
   const defaultColor = getDefaultColor(product);
   const minPrice = getProductMinAvailablePrice(product);
+  const minRegularPrice = getProductMinAvailableRegularPrice(product);
   const defaultStorage = getDefaultAvailableStorage(product, defaultColorId);
 
   // Swatches are a browsing aid, not a purchase gate — show every real
@@ -44,14 +46,18 @@ export function premiumToLegacyProduct(product: PremiumProduct): Product {
       imageSrc: image.image,
     }));
 
+  const promoDiscountPercent =
+    minRegularPrice > minPrice ? Math.round((1 - minPrice / minRegularPrice) * 100) : 0;
+
   return {
     id: product.id,
     name: product.name,
     brand: product.brand,
     price: minPrice,
+    regularPrice: promoDiscountPercent > 0 ? minRegularPrice : undefined,
     monthlyPrice: getMonthlyPrice(minPrice),
     badge: product.badge,
-    discount: product.discount,
+    discount: product.discount ?? (promoDiscountPercent > 0 ? `-${promoDiscountPercent}%` : undefined),
     imageType: imageTypeByCategory[product.category] ?? "generic",
     imageSrc: defaultColor.image,
     slug: product.slug,

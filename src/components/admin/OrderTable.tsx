@@ -75,44 +75,41 @@ export function OrderTable() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[28px] font-bold tracking-tight text-[#1d1d1f]">Bestellungen</h1>
-        <p className="mt-1 text-[14px] text-[#6e6e73]">
+        <h1 className="admin-page-title">Bestellungen</h1>
+        <p className="admin-page-subtitle">
           Bezahlte und ausstehende Bestellungen aus Stripe und PayPal
         </p>
       </div>
 
-      {loading && <p className="text-[14px] text-[#6e6e73]">Laden…</p>}
-      {error && <p className="text-[14px] text-red-600">{error}</p>}
+      {loading && <p className="text-[14px] text-text-secondary">Laden…</p>}
+      {error && <div className="admin-alert-error">{error}</div>}
 
       {!loading && !error && orders.length === 0 && (
-        <p className="rounded-[16px] border border-[#d2d2d7]/40 bg-white p-6 text-[14px] text-[#6e6e73]">
+        <div className="admin-panel p-6 text-[14px] text-text-secondary">
           Noch keine Bestellungen vorhanden.
-        </p>
+        </div>
       )}
 
       {!loading && orders.length > 0 && (
-        <div className="overflow-hidden rounded-[18px] border border-[#d2d2d7]/40 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1000px] text-left text-[14px]">
+        <div className="admin-table-wrap">
+          <div className="admin-table-scroll">
+            <table className="admin-table min-w-[1000px]">
               <thead>
-                <tr className="border-b border-[#d2d2d7]/40 bg-[#f5f5f7]/50 text-[12px] uppercase tracking-wider text-[#6e6e73]">
-                  <th className="px-4 py-3 font-medium">Bestellnummer</th>
-                  <th className="px-4 py-3 font-medium">Datum</th>
-                  <th className="px-4 py-3 font-medium">Kunde</th>
-                  <th className="px-4 py-3 font-medium">Betrag</th>
-                  <th className="px-4 py-3 font-medium">Zahlung</th>
-                  <th className="px-4 py-3 font-medium">Zahlungsstatus</th>
-                  <th className="px-4 py-3 font-medium">Bestellstatus</th>
-                  <th className="px-4 py-3 font-medium">Versand</th>
+                <tr>
+                  <th>Bestellnummer</th>
+                  <th>Datum</th>
+                  <th>Kunde</th>
+                  <th>Betrag</th>
+                  <th>Zahlung</th>
+                  <th>Zahlungsstatus</th>
+                  <th>Bestellstatus</th>
+                  <th>Versand</th>
                 </tr>
               </thead>
               <tbody>
                 {orders.map((order) => (
-                  <tr
-                    key={order.id}
-                    className="border-b border-[#d2d2d7]/30 last:border-0 hover:bg-[#f5f5f7]/40"
-                  >
-                    <td className="px-4 py-3">
+                  <tr key={order.id}>
+                    <td>
                       <Link
                         href={`/admin/orders/${order.id}`}
                         className="font-medium text-accent hover:underline"
@@ -120,24 +117,22 @@ export function OrderTable() {
                         {order.orderNumber}
                       </Link>
                     </td>
-                    <td className="px-4 py-3">{formatDate(order.createdAt)}</td>
-                    <td className="px-4 py-3">
+                    <td>{formatDate(order.createdAt)}</td>
+                    <td>
                       <p className="font-medium">
                         {order.customerFirstName} {order.customerLastName}
                       </p>
-                      <p className="text-[12px] text-[#6e6e73]">{order.customerEmail}</p>
+                      <p className="text-[12px] text-text-secondary">{order.customerEmail}</p>
                     </td>
-                    <td className="px-4 py-3 font-semibold">
-                      {formatCurrency(order.total)}
-                    </td>
-                    <td className="px-4 py-3 capitalize">{order.paymentProvider}</td>
-                    <td className="px-4 py-3">
+                    <td className="font-semibold">{formatCurrency(order.total)}</td>
+                    <td className="capitalize">{order.paymentProvider}</td>
+                    <td>
                       <PaymentStatusBadge status={order.paymentStatus} />
                     </td>
-                    <td className="px-4 py-3">
+                    <td>
                       <OrderStatusBadge status={order.orderStatus} />
                     </td>
-                    <td className="px-4 py-3 text-[13px]">
+                    <td className="text-[13px]">
                       {order.trackingNumber
                         ? order.trackingNumber
                         : order.orderStatus === "shipped"

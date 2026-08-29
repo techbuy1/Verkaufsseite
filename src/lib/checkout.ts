@@ -86,6 +86,7 @@ export async function initiateCheckout(
         storage: item.storage,
         condition: item.condition,
         conditionLabel: item.conditionLabel,
+        deviceId: item.deviceId,
       })),
     }),
   });

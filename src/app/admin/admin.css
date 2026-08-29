@@ -2,9 +2,18 @@
 
 .admin-shell {
   min-height: 100vh;
-  background: var(--color-background-secondary, #f5f5f7);
+  background: var(--color-background-secondary, #f5f5f3);
+  color: var(--color-text-primary, #171717);
 }
 
+.admin-main {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+/* ——— Sidebar ——— */
 .admin-sidebar {
   position: fixed;
   inset: 0 auto 0 0;
@@ -14,7 +23,7 @@
   flex-direction: column;
   background: #111111;
   color: #ffffff;
-  transition: transform 0.3s ease;
+  transition: transform 0.25s ease;
 }
 
 .admin-sidebar.is-closed {
@@ -36,19 +45,20 @@
   font-size: 14px;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.65);
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .admin-sidebar .admin-nav-link:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.06);
   color: #ffffff;
 }
 
 .admin-sidebar .admin-nav-link.is-active {
-  background: var(--color-accent, #16c66a);
+  background: var(--color-accent, #e8622a);
   color: #ffffff;
 }
 
+/* ——— Header ——— */
 .admin-header {
   position: sticky;
   top: 0;
@@ -57,8 +67,8 @@
   height: 4rem;
   align-items: center;
   gap: 1rem;
-  border-bottom: 1px solid var(--color-border, #e5e5e7);
-  background: color-mix(in oklab, #ffffff 92%, transparent);
+  border-bottom: 1px solid var(--color-border, #dadad7);
+  background: color-mix(in oklab, #ffffff 94%, transparent);
   padding-inline: 1rem;
   backdrop-filter: blur(12px);
 }
@@ -72,7 +82,7 @@
 .admin-header-search {
   width: 100%;
   border-radius: 12px;
-  border: 1px solid var(--color-border, #e5e5e7);
+  border: 1px solid var(--color-border, #dadad7);
   background: #ffffff;
   padding: 0.625rem 1rem 0.625rem 2.5rem;
   font-size: 14px;
@@ -81,14 +91,15 @@
 }
 
 .admin-header-search::placeholder {
-  color: var(--color-text-secondary, #6b6b70);
+  color: var(--color-text-secondary, #6b6b6b);
 }
 
 .admin-header-search:focus {
-  border-color: var(--color-accent, #16c66a);
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-accent, #16c66a) 18%, transparent);
+  border-color: var(--color-accent, #e8622a);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-accent, #e8622a) 18%, transparent);
 }
 
+/* ——— Typography ——— */
 .admin-page-title {
   font-size: 28px;
   font-weight: 700;
@@ -105,23 +116,33 @@
 .admin-page-subtitle {
   margin-top: 0.25rem;
   font-size: 14px;
-  color: var(--color-text-secondary, #6b6b70);
+  color: var(--color-text-secondary, #6b6b6b);
 }
 
-.admin-toolbar {
+/* ——— Panels & toolbars ——— */
+.admin-toolbar,
+.admin-panel {
   border-radius: 18px;
-  border: 1px solid var(--color-border, #e5e5e7);
+  border: 1px solid color-mix(in oklab, var(--color-border, #dadad7) 85%, transparent);
   background: #ffffff;
   padding: 1rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
+.admin-card {
+  border-radius: 18px;
+  border: 1px solid color-mix(in oklab, var(--color-border, #dadad7) 85%, transparent);
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+/* ——— Form controls ——— */
 .admin-control,
-.shop-admin-control {
+.admin-shell .shop-admin-control {
   width: 100%;
   appearance: none;
   border-radius: 12px;
-  border: 1px solid var(--color-border, #e5e5e7);
+  border: 1px solid color-mix(in oklab, var(--color-border, #dadad7) 85%, transparent);
   background-color: #ffffff;
   padding: 0.625rem 0.75rem;
   font-size: 14px;
@@ -129,12 +150,163 @@
   outline: none;
 }
 
-.admin-control:focus,
-.shop-admin-control:focus {
-  border-color: var(--color-accent, #16c66a);
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-accent, #16c66a) 18%, transparent);
+.admin-shell select.shop-admin-control,
+.admin-shell select.admin-control {
+  padding-right: 2rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236B6B6B' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
 }
 
+.admin-control:focus,
+.admin-shell .shop-admin-control:focus {
+  border-color: var(--color-accent, #e8622a);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-accent, #e8622a) 18%, transparent);
+}
+
+.admin-shell .shop-admin-control option,
+.admin-shell .admin-control option {
+  color: var(--color-text-primary, #171717);
+  background-color: #ffffff;
+}
+
+.admin-shell .field-input {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in oklab, var(--color-border, #dadad7) 85%, transparent);
+  background: #ffffff;
+  padding: 0.625rem 1rem;
+  font-size: 14px;
+  color: var(--color-text-primary, #171717);
+  outline: none;
+}
+
+.admin-shell .field-input:focus {
+  border-color: var(--color-accent, #e8622a);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-accent, #e8622a) 18%, transparent);
+}
+
+/* ——— Buttons (fallback if globals layer misses) ——— */
+.admin-shell .btn-techbuy-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border-radius: 980px;
+  border: none;
+  background: var(--color-accent, #e8622a);
+  padding: 0 1.5rem;
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.admin-shell .btn-techbuy-primary:hover:not(:disabled) {
+  background: var(--color-accent-hover, #cf531f);
+}
+
+.admin-shell .btn-techbuy-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.admin-shell .btn-techbuy-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border-radius: 980px;
+  border: 1px solid var(--color-border, #dadad7);
+  background: #ffffff;
+  padding: 0 1.5rem;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-primary, #171717);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.admin-shell .btn-techbuy-secondary:hover:not(:disabled) {
+  border-color: color-mix(in oklab, var(--color-border, #dadad7) 70%, #9a9a96);
+  background: var(--color-surface-hover, #f0f0ee);
+}
+
+/* ——— Tables ——— */
+.admin-table-wrap {
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid color-mix(in oklab, var(--color-border, #dadad7) 85%, transparent);
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.admin-table-wrap .admin-table-scroll {
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+  color: var(--color-text-primary, #171717);
+}
+
+.admin-table thead tr {
+  border-bottom: 1px solid color-mix(in oklab, var(--color-border, #dadad7) 85%, transparent);
+  background: color-mix(in oklab, var(--color-background-secondary, #f5f5f3) 70%, #ffffff);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary, #6b6b6b);
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 0.75rem 1rem;
+  vertical-align: middle;
+}
+
+.admin-table tbody tr {
+  border-bottom: 1px solid color-mix(in oklab, var(--color-border, #dadad7) 60%, transparent);
+}
+
+.admin-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.admin-table tbody tr:hover {
+  background: color-mix(in oklab, var(--color-background-secondary, #f5f5f3) 45%, #ffffff);
+}
+
+/* ——— Filter chips ——— */
+.admin-filter-chip {
+  border-radius: 999px;
+  padding: 0.375rem 0.875rem;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.admin-filter-chip.is-active {
+  background: var(--color-accent, #e8622a);
+  color: #ffffff;
+}
+
+.admin-filter-chip:not(.is-active) {
+  background: var(--color-background-secondary, #f5f5f3);
+  color: var(--color-text-secondary, #6b6b6b);
+}
+
+.admin-filter-chip:not(.is-active):hover {
+  background: var(--color-surface-soft, #ececea);
+  color: var(--color-text-primary, #171717);
+}
+
+/* ——— Alerts ——— */
 .admin-alert-error {
   border-radius: 14px;
   border: 1px solid #fecaca;
@@ -162,9 +334,40 @@
   color: #065f46;
 }
 
+/* ——— Stat cards ——— */
+.admin-stat-card {
+  border-radius: 18px;
+  border: 1px solid color-mix(in oklab, var(--color-border, #dadad7) 85%, transparent);
+  background: #ffffff;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.admin-stat-label {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-secondary, #6b6b6b);
+}
+
+.admin-stat-value {
+  margin-top: 0.5rem;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary, #171717);
+}
+
+/* ——— Desktop sidebar in flow ——— */
 @media (min-width: 1024px) {
+  .admin-shell {
+    display: flex;
+  }
+
   .admin-sidebar {
     position: static;
+    flex-shrink: 0;
     transform: none !important;
   }
 
