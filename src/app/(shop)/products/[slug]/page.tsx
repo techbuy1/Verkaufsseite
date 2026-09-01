@@ -10,6 +10,7 @@ import { getProductPageRecommendations } from "@/lib/productRecommendations";
 import { buildProductJsonLd, buildProductMetadata } from "@/lib/productSeo";
 import { isAccessoryCatalogProduct } from "@/lib/accessoryDetail";
 import { buildAccessoryJsonLd, buildAccessoryMetadata } from "@/lib/accessorySeo";
+import { isEbayInventoryProduct } from "@/lib/ebayInventorySync";
 import { attachVerifiedDisplayImages } from "@/lib/productDisplayImages";
 import { readServerProducts } from "@/lib/serverProductCatalog";
 import { readServerPromotions } from "@/lib/serverPromotions";
@@ -38,7 +39,7 @@ async function resolveProductPage(slug: string): Promise<ResolvedProductPage | n
     serverProducts.find((product) => product.slug === slug) ??
     resolvePremiumProductBySlug(slug) ??
     getPremiumProductBySlug(slug);
-  if (premium && isProductPageReachable(premium)) {
+  if (premium && isEbayInventoryProduct(premium) && isProductPageReachable(premium)) {
     return { kind: "premium", product: attachVerifiedDisplayImages(premium), promotions };
   }
 

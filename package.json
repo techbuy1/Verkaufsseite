@@ -12,6 +12,7 @@
     "validate:images": "node --experimental-strip-types scripts/validate-product-images.ts",
     "scan:product-images": "node --experimental-strip-types scripts/scan-product-images.ts",
     "validate:hero-images": "node --experimental-strip-types scripts/validate-hero-images.ts",
+    "sync:ebay": "node --experimental-strip-types scripts/sync-ebay-inventory.ts",
     "start": "next start -p 3000",
     "start:prod": "next start -p 3002",
     "lint": "next lint",

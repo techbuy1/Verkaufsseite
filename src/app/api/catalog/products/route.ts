@@ -3,6 +3,7 @@ import { toCatalogSummary } from "@/lib/catalogSummary";
 import { readServerProducts } from "@/lib/serverProductCatalog";
 import { readServerPromotions } from "@/lib/serverPromotions";
 import { readServerGadgetPriceOverrides } from "@/lib/serverGadgetPricing";
+import { isProductVisibleInShop } from "@/lib/productAvailability";
 
 export const runtime = "nodejs";
 
@@ -14,10 +15,12 @@ export async function GET() {
     readServerGadgetPriceOverrides(),
   ]);
 
+  const visibleProducts = products.filter(isProductVisibleInShop);
+
   return NextResponse.json({
     ok: true,
     persisted,
-    products: products.map(toCatalogSummary),
+    products: visibleProducts.map(toCatalogSummary),
     promotions,
     gadgetPriceOverrides,
   });

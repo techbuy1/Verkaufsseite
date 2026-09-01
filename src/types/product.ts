@@ -31,6 +31,12 @@ export interface ConditionOption {
   note?: string;
   /** Eindeutige SKU, z. B. APL-IP15-BLU-128-VG */
   sku?: string;
+  /** eBay-Artikelnummer — Referenz für Synchronisierung */
+  ebayItemId?: string;
+  /** Originaler eBay-Verkaufspreis in EUR */
+  ebayPrice?: number;
+  /** Mathematischer Preis nach 2 % Rabatt (vor ,99-Rundung) */
+  calculatedPrice?: number;
   /**
    * Manueller Verkaufspreis — überschreibt die globale Prozentregel.
    * null = explizit Regel verwenden (Override entfernt).
@@ -161,6 +167,21 @@ export interface PremiumProduct {
   similarProducts?: string[];
   /** Bundle-Angebote */
   bundleOffers?: BundleOffer[];
+  /** eBay-Artikelnummer */
+  ebayItemId?: string;
+  /** Originaler eBay-Titel (intern) */
+  ebayTitle?: string;
+  /** Originaler eBay-Verkaufspreis in EUR */
+  ebayPrice?: number;
+  /** Mathematischer Preis nach 2 % Rabatt */
+  calculatedPrice?: number;
+  /** Im Shop sichtbarer Verkaufspreis (auf ,99 € gerundet) */
+  techbuyPrice?: number;
+  /** Anzeige-Zustand aus eBay-Titel */
+  listingCondition?: string;
+  conditionNote?: string;
+  batteryHealth?: number | null;
+  isDefective?: boolean;
 }
 
 export interface AddToCartPayload {

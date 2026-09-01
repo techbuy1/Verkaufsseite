@@ -2,7 +2,10 @@ import { mkdir, readFile, unlink, writeFile } from "fs/promises";
 import path from "path";
 import bundledServerCatalog from "@/data/server-catalog.json";
 import type { PremiumProduct } from "@/types/product";
-import { getSeedProducts, normalizeProduct } from "@/lib/productStore";
+import { getSeedProducts, normalizeProduct, zeroProductStock } from "@/lib/productStore";
+import {
+  isEbayInventoryProduct,
+} from "@/lib/ebayInventorySync";
 import {
   getDefaultAvailableColorId,
   getDefaultAvailableConditionId,
@@ -53,8 +56,19 @@ export type ServerCatalogResult = {
   persisted: boolean;
 };
 
+function archiveSeedProduct(product: PremiumProduct): PremiumProduct {
+  return syncStockArchiveState({
+    ...zeroProductStock(product),
+    manualArchive: true,
+    stockArchived: true,
+  });
+}
+
 function mergeWithSeed(stored: PremiumProduct[]): PremiumProduct[] {
-  const seed = getSeedProducts();
+  const hasEbayInventory = stored.some(isEbayInventoryProduct);
+  const seed = hasEbayInventory
+    ? getSeedProducts().map(archiveSeedProduct)
+    : getSeedProducts();
   const byId = new Map(stored.map((product) => [product.id, product]));
   const bySlug = new Map(stored.map((product) => [product.slug, product]));
 

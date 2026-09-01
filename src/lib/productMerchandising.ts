@@ -1,11 +1,11 @@
 import type { Product } from "@/data/products";
 import {
   getHomepageDeviceProducts,
+  getListableAccessoryProducts,
   getShopCatalogProducts,
   resolvePremiumProductBySlug,
 } from "@/lib/catalog";
 import {
-  filterStoreCatalogProducts,
   isHuellenProduct,
   isPanzerfolieProduct,
 } from "@/lib/storeCatalog";
@@ -48,7 +48,7 @@ export function getBuyableCatalogProducts(): Product[] {
 }
 
 function getAccessoryRailProducts(): Product[] {
-  return getShopCatalogProducts().filter(
+  return getListableAccessoryProducts().filter(
     (product) => isPanzerfolieProduct(product) || isHuellenProduct(product),
   );
 }
@@ -265,9 +265,9 @@ export function buildHomeProductSections(deviceProducts?: Product[]): HomeProduc
   return sections;
 }
 
-/** Store: Smartphones, Panzerfolien und Gadgets (dedupliziert). */
+/** Store: alle verfügbaren eBay-/Katalog-Produkte. */
 export function getStoreInitialProducts(): Product[] {
-  return filterStoreCatalogProducts(getShopCatalogProducts());
+  return getShopCatalogProducts();
 }
 
 export function premiumFromSlug(slug: string): PremiumProduct | undefined {

@@ -6,36 +6,52 @@ import {
   premiumProducts,
 } from "@/data/premiumCatalog";
 import { premiumToLegacyProduct } from "@/lib/productAdapters";
-import {
-  isProductInStock,
-} from "@/lib/productAvailability";
+import { isProductInStock, isProductVisibleInShop } from "@/lib/productAvailability";
 import type { PremiumProduct } from "@/types/product";
 import { accessoryProducts } from "@/data/accessoryCatalog";
 import { applyGadgetPriceOverride } from "@/lib/gadgetPricing";
+import {
+  buildEbayPremiumProducts,
+  getEbayLegacyProducts,
+  getEbayProductById,
+  getEbayProductBySlug,
+  isEbayInventoryActive,
+} from "@/lib/ebayInventorySync";
 
-export function getAllPremiumProducts(): PremiumProduct[] {
-  return premiumProducts;
+export function getEbayPremiumCatalog(): PremiumProduct[] {
+  return buildEbayPremiumProducts();
 }
 
 export function resolvePremiumProduct(id: string): PremiumProduct | undefined {
-  return getPremiumProductById(id);
+  return getEbayProductById(id) ?? getPremiumProductById(id);
 }
 
 export function resolvePremiumProductBySlug(slug: string): PremiumProduct | undefined {
-  return getPremiumProductBySlug(slug);
+  return getEbayProductBySlug(slug) ?? getPremiumProductBySlug(slug);
+}
+
+/** Admin / intern — Seed-Katalog bleibt verfügbar, Shop nutzt nur eBay + Zubehör. */
+export function getAllPremiumProducts(): PremiumProduct[] {
+  if (isEbayInventoryActive()) {
+    return getEbayPremiumCatalog();
+  }
+  return premiumProducts;
 }
 
 export function getAllDeviceProducts(): Product[] {
   return getAllPremiumProducts().map(premiumToLegacyProduct);
 }
 
+/** Nur eBay-Bestand mit Lager — keine Demo-/Seed-Geräte. */
 export function getShopPremiumProducts(): PremiumProduct[] {
-  return getAllPremiumProducts().filter(isProductInStock);
+  if (isEbayInventoryActive()) {
+    return getEbayPremiumCatalog().filter(isProductInStock);
+  }
+  return premiumProducts.filter(isProductInStock);
 }
 
-/** Homepage: nur Geräte mit Bestand (bzw. Vorverkauf). */
 export function getHomepagePremiumProducts(): PremiumProduct[] {
-  return getAllPremiumProducts().filter(isProductInStock);
+  return getShopPremiumProducts();
 }
 
 export function getShopDeviceProducts(): Product[] {
@@ -43,39 +59,35 @@ export function getShopDeviceProducts(): Product[] {
 }
 
 export function getHomepageDeviceProducts(): Product[] {
+  if (isEbayInventoryActive()) {
+    return getEbayLegacyProducts();
+  }
   return getHomepagePremiumProducts().map(premiumToLegacyProduct);
 }
 
-/**
- * Alle Zubehör-Produkte mit angewendetem manuellem Preis-Override (Admin >
- * Gadget-Preise) — die einzige Stelle, an der der reale Verkaufspreis für
- * Zubehör entsteht. Jeder Konsument (PDP, Karten, Checkout) muss hierüber
- * gehen statt den rohen Katalog direkt zu importieren.
- */
 export function getAccessoryProducts(): Product[] {
   return accessoryProducts.map((product) => applyGadgetPriceOverride(product));
 }
 
-/**
- * Zubehör für Listings (Store-Grid, Homepage-Rails) — ohne Legacy-Alias-
- * Einträge, die nur für ältere Empfehlungslisten per ID auflösbar bleiben
- * müssen (siehe `hiddenFromListing` in accessoryCatalog.ts).
- */
-function getListableAccessoryProducts(): Product[] {
+export function getListableAccessoryProducts(): Product[] {
   return getAccessoryProducts().filter((product) => !product.hiddenFromListing);
 }
 
-export function getAllCatalogProducts(): Product[] {
-  return [...getAllDeviceProducts(), ...getListableAccessoryProducts()];
-}
-
+/** Shop-Listings: eBay-Bestand + Zubehör — kein Demo-Katalog. */
 export function getShopCatalogProducts(): Product[] {
+  if (isEbayInventoryActive()) {
+    return [...getEbayLegacyProducts(), ...getListableAccessoryProducts()];
+  }
   return [...getShopDeviceProducts(), ...getListableAccessoryProducts()];
 }
 
-/** Homepage-Kategorien: nur lagernde Geräte (+ Zubehör ohne Bestandsführung). */
 export function getHomepageCatalogProducts(): Product[] {
-  return [...getHomepageDeviceProducts(), ...getListableAccessoryProducts()];
+  return getShopCatalogProducts();
+}
+
+/** Alias — Shop-Katalog (eBay + Zubehör). */
+export function getAllCatalogProducts(): Product[] {
+  return getShopCatalogProducts();
 }
 
 export function getCatalogProductsByCategory(categoryId: CatalogCategoryId): Product[] {
@@ -83,6 +95,16 @@ export function getCatalogProductsByCategory(categoryId: CatalogCategoryId): Pro
 }
 
 export function getShopCatalogProductsByCategory(categoryId: CatalogCategoryId): Product[] {
+  if (isEbayInventoryActive()) {
+    const devices = getEbayLegacyProducts().filter(
+      (product) => product.catalogCategory === categoryId,
+    );
+    const accessories = getListableAccessoryProducts().filter(
+      (product) => product.catalogCategory === categoryId,
+    );
+    return [...devices, ...accessories];
+  }
+
   const devices = getShopPremiumProducts()
     .filter((product) => product.catalogCategory === categoryId)
     .map(premiumToLegacyProduct);
@@ -95,13 +117,7 @@ export function getShopCatalogProductsByCategory(categoryId: CatalogCategoryId):
 export function getHomepageCatalogProductsByCategory(
   categoryId: CatalogCategoryId,
 ): Product[] {
-  const devices = getHomepagePremiumProducts()
-    .filter((product) => product.catalogCategory === categoryId)
-    .map(premiumToLegacyProduct);
-  const accessories = getListableAccessoryProducts().filter(
-    (product) => product.catalogCategory === categoryId,
-  );
-  return [...devices, ...accessories];
+  return getShopCatalogProductsByCategory(categoryId);
 }
 
 export function getProductsByBrandAndCategory(
@@ -120,27 +136,45 @@ export function getProductsByBrandAndCategory(
 }
 
 export function getCatalogProductById(id: string): Product | undefined {
-  const premium = resolvePremiumProduct(id);
-  if (premium) return premiumToLegacyProduct(premium);
-  return getAccessoryProducts().find((product) => product.id === id);
+  const ebayLegacy = getEbayLegacyProducts().find((product) => product.id === id);
+  if (ebayLegacy) return ebayLegacy;
+
+  const accessory = getAccessoryProducts().find((product) => product.id === id);
+  if (accessory) return accessory;
+
+  const premium = getPremiumProductById(id);
+  if (premium && isProductVisibleInShop(premium)) {
+    return premiumToLegacyProduct(premium);
+  }
+
+  return undefined;
 }
 
 export function getCatalogProductBySlug(slug: string): Product | undefined {
-  const premium = resolvePremiumProductBySlug(slug);
-  if (premium) return premiumToLegacyProduct(premium);
-  return getAccessoryProducts().find((product) => product.slug === slug);
+  const ebayLegacy = getEbayLegacyProducts().find((product) => product.slug === slug);
+  if (ebayLegacy) return ebayLegacy;
+
+  const accessory = getAccessoryProducts().find((product) => product.slug === slug);
+  if (accessory) return accessory;
+
+  const premium = getPremiumProductBySlug(slug);
+  if (premium && isProductVisibleInShop(premium)) {
+    return premiumToLegacyProduct(premium);
+  }
+
+  return undefined;
 }
 
 export function getPremiumGenerations(categoryId?: CatalogCategoryId): string[] {
   const products = categoryId
-    ? getAllPremiumProducts().filter((p) => p.catalogCategory === categoryId)
-    : getAllPremiumProducts();
+    ? getShopPremiumProducts().filter((p) => p.catalogCategory === categoryId)
+    : getShopPremiumProducts();
   return [...new Set(products.map((p) => p.generation))].sort().reverse();
 }
 
 export function getPremiumBrands(categoryId?: CatalogCategoryId): string[] {
   const products = categoryId
-    ? getAllPremiumProducts().filter((p) => p.catalogCategory === categoryId)
-    : getAllPremiumProducts();
+    ? getShopPremiumProducts().filter((p) => p.catalogCategory === categoryId)
+    : getShopPremiumProducts();
   return [...new Set(products.map((p) => p.brand))].sort();
 }

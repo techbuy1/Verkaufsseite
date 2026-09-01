@@ -63,6 +63,18 @@ export interface Product {
   priceFromConditionLabel?: string;
   /** Derzeit ohne Bestand — bleibt im Katalog sichtbar, aber als „Ausverkauft“ markiert. */
   soldOut?: boolean;
+  /** eBay-Artikelnummer (intern) */
+  ebayItemId?: string;
+  /** Originaler eBay-Preis */
+  ebayPrice?: number;
+  /** TechBuy-Verkaufspreis */
+  techbuyPrice?: number;
+  /** Zustand aus Listing */
+  listingCondition?: string;
+  conditionNote?: string;
+  batteryHealth?: number;
+  stockStatusLabel?: string;
+  isDefective?: boolean;
   /**
    * Legacy-ID/Alias für ältere Empfehlungslisten (z. B. Cross-Sell auf
    * Geräteseiten) — bleibt per ID/Slug auflösbar, erscheint aber nicht
