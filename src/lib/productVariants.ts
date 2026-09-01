@@ -352,12 +352,8 @@ export function validateVariantPrices(product: PremiumProduct): string[] {
       }
 
       for (const condition of active) {
-        const effectivePrice = getEffectivePriceForConditionEntry(ensured, condition);
-        if (!Number.isFinite(effectivePrice) || effectivePrice <= 0) {
-          errors.push(
-            `Preis für ${variant.colorName} · ${option.storage.trim() || "Speicher"} · ${condition.label} muss größer als 0 sein.`,
-          );
-        }
+        // Ein Preis von 0 blockiert das Speichern nicht mehr – Produkte dürfen
+        // ohne hinterlegten Preis gepflegt werden (Preis wird später ergänzt).
         if (condition.sku) {
           const key = condition.sku.toUpperCase();
           if (seenSkus.has(key)) {

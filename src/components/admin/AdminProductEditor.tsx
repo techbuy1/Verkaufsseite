@@ -361,8 +361,8 @@ export function AdminProductEditor({ productId }: AdminProductEditorProps) {
     // Duplicate SKUs and placeholder images are data-quality issues, not
     // reasons to throw away a price edit — both already surface their own
     // persistent warning elsewhere (the SKU under each condition row, the
-    // "Produktbild fehlt" banner above). Only genuinely broken pricing
-    // (missing storage, no active condition, price <= 0) blocks the save.
+    // "Produktbild fehlt" banner above). Only structurally broken variants
+    // (missing storage size) block the save; a price of 0 is allowed.
     const blockingErrors = priceErrors.filter((error) => !error.startsWith("Doppelte SKU:"));
     const warnings = [
       ...priceErrors.filter((error) => error.startsWith("Doppelte SKU:")),
