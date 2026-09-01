@@ -8,7 +8,7 @@ export default function LieferzeitenPage() {
       <LegalSection title="Innerhalb Deutschlands">
         <p>
           In der Regel erreicht Sie Ihre Bestellung innerhalb von 1–2 Werktagen nach Versand per
-          DHL Express.
+          DHL.
         </p>
       </LegalSection>
       <LegalSection title="Hinweis">

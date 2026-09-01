@@ -10,6 +10,7 @@ import {
 } from "@/lib/checkoutUpsell";
 import {
   FREE_SHIPPING_THRESHOLD,
+  getShippingCost,
   SHIPPING_COST,
 } from "@/lib/cart";
 import { getConditionLabel, isConditionId } from "@/lib/conditions";
@@ -345,7 +346,10 @@ export async function validateAndPriceCart(
   );
   const discount = accessoryPricing.totalDiscount;
   const subtotal = roundMoney(merchandiseSubtotal + upsellSubtotal);
-  const shipping = 0;
+  // Selbe Regel wie im Warenkorb (getShippingCost in @/lib/cart): kostenlos
+  // ab FREE_SHIPPING_THRESHOLD, sonst SHIPPING_COST — serverseitig neu
+  // berechnet, nie aus dem Client übernommen.
+  const shipping = getShippingCost(subtotal);
   const total = roundMoney(subtotal + shipping - discount);
 
   return {

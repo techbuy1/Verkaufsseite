@@ -231,11 +231,13 @@ export function getCartItemProductHref(item: CartItem): string {
   return "/zubehoer";
 }
 
-export const FREE_SHIPPING_THRESHOLD = 0;
-export const SHIPPING_COST = 0;
+/** Ab diesem Bestellwert (Warenkorb-Zwischensumme, vor Rabatt) ist der Versand kostenlos. */
+export const FREE_SHIPPING_THRESHOLD = 50;
+/** Versandkostenpauschale unterhalb der Freigrenze. */
+export const SHIPPING_COST = 6.9;
 
-export function getShippingCost(_subtotal: number): number {
-  return 0;
+export function getShippingCost(subtotal: number): number {
+  return subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
 }
 
 export function getCartTotal(subtotal: number, discount = 0): number {

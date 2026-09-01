@@ -1,4 +1,5 @@
 import { LegalPageLayout, LegalSection } from "@/components/legal/LegalPageLayout";
+import { CookieSettingsButton } from "@/components/cookies/CookieSettingsButton";
 import { companySettings } from "@/lib/companySettings";
 import { SHOP_CONTACT_EMAIL } from "@/lib/shopContact";
 
@@ -45,11 +46,49 @@ export default function DatenschutzPage() {
         </p>
       </LegalSection>
 
-      <LegalSection title="3. Keine Cookies, kein Tracking, keine Analyse-Tools">
+      <LegalSection title="3. Cookies, Einwilligung und Reichweitenmessung">
         <p>
-          Diese Website setzt derzeit keine Cookies zu Analyse-, Marketing- oder
-          Tracking-Zwecken ein. Es werden aktuell keine Dienste wie Google Analytics, Meta-/TikTok-
-          Pixel oder vergleichbare Trackingtools verwendet.
+          Technisch notwendige Cookies bzw. lokale Speicherung setzen wir ein, damit
+          grundlegende Funktionen wie Warenkorb, Wunschliste, Bestellprozess und die
+          Anmeldung im Verwaltungsbereich funktionieren. Rechtsgrundlage ist § 25 Abs. 2
+          Nr. 2 TTDSG sowie Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einer
+          funktionsfähigen Website). Hierfür ist keine Einwilligung erforderlich.
+        </p>
+        <p>
+          <strong>Google Ads (Remarketing und Conversion-Tracking).</strong> Nur mit Ihrer
+          ausdrücklichen Einwilligung binden wir das Tag der Google Ireland Limited,
+          Gordon House, Barrow Street, Dublin 4, Irland, ein. Damit messen wir den Erfolg
+          unserer Werbeanzeigen und können Ihnen auf anderen Websites passende Anzeigen zu
+          TechBuy ausspielen. Dabei werden Cookies gesetzt und Nutzungsdaten (u. a.
+          gekürzte IP-Adresse, Geräte-/Browserinformationen, aufgerufene Seiten) an Google
+          übermittelt; eine Übermittlung in die USA an Google LLC ist möglich, abgesichert
+          über die Standardvertragsklauseln der EU-Kommission bzw. das EU-US Data Privacy
+          Framework. Rechtsgrundlage ist Ihre Einwilligung nach § 25 Abs. 1 TTDSG und
+          Art. 6 Abs. 1 lit. a DSGVO. Vor einer Einwilligung wird kein Google-Script
+          geladen und kein Google-Cookie gesetzt.
+        </p>
+        <p>
+          Weitere Informationen finden Sie in der{" "}
+          <a
+            className="text-accent hover:underline"
+            href="https://policies.google.com/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Datenschutzerklärung von Google
+          </a>
+          .
+        </p>
+        <p>
+          Sie können Ihre Einwilligung jederzeit mit Wirkung für die Zukunft widerrufen
+          oder ändern (Art. 7 Abs. 3 DSGVO) – über den Link „Cookie-Einstellungen“ im
+          Seitenfuß oder direkt hier:{" "}
+          <CookieSettingsButton className="font-medium text-accent hover:underline" />
+          . Bei einem Widerruf werden die von Google gesetzten Cookies entfernt.
+        </p>
+        <p>
+          Andere Trackingdienste wie Google Analytics oder Meta-/TikTok-Pixel setzen wir
+          nicht ein.
         </p>
       </LegalSection>
 

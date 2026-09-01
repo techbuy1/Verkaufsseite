@@ -8,7 +8,12 @@ import { findOverlappingPromotion, validatePromotionInput, type Promotion } from
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const ok = verifyAdminSessionFromCookieHeader(request.headers.get("cookie"));
+  if (!ok) {
+    return NextResponse.json({ message: "Nicht autorisiert." }, { status: 401 });
+  }
+
   const promotions = await readServerPromotions();
   return NextResponse.json({ ok: true, promotions });
 }

@@ -89,7 +89,7 @@ export const techBuyServiceCards: TechBuyServiceCard[] = [
     span: 6,
     eyebrow: "Versand",
     title: "Schnell bei Ihnen.",
-    body: "Ihre Bestellung wird zuverlässig vorbereitet und sicher versendet — der Versand ist bei TechBuy immer kostenlos. Lieferzeiten und Sendungsverfolgung werden im Bestellprozess transparent angezeigt.",
+    body: "Ihre Bestellung wird zuverlässig vorbereitet und sicher versendet — ab 50 € Bestellwert ist der Versand bei TechBuy kostenlos. Lieferzeiten und Sendungsverfolgung werden im Bestellprozess transparent angezeigt.",
     link: { label: "Mehr zum Versand", href: "/versand" },
     visual: "shipping",
   },

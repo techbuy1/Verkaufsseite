@@ -7,13 +7,14 @@ export default function VersandPage() {
     <LegalPageLayout eyebrow="Service" title="Versandinformationen">
       <LegalSection title="Versandart">
         <p>
-          Bestellungen werden per DHL Express versendet. Der Versand erfolgt in der Regel
+          Bestellungen werden per DHL versendet. Der Versand erfolgt in der Regel
           innerhalb von 1–2 Werktagen nach Zahlungseingang bzw. Bestellbestätigung.
         </p>
       </LegalSection>
       <LegalSection title="Versandkosten">
         <p>
-          Der Versand ist bei TechBuy immer kostenlos — unabhängig vom Bestellwert.
+          Ab einem Bestellwert von 50 € ist der Versand bei TechBuy kostenlos. Bei einem
+          Bestellwert unter 50 € berechnen wir eine Versandkostenpauschale von 6,90 €.
         </p>
       </LegalSection>
       <LegalSection title="Verpackung">

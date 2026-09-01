@@ -177,7 +177,7 @@ export function ProductAccessoriesPicker({
       </div>
 
       <p className="mt-3 text-[11px] leading-relaxed text-text-muted">
-        Mengenrabatt Zubehör: ab 2 Stück −5%, ab 4 −10%, ab 10 −20%. Versand immer kostenlos.
+        Mengenrabatt Zubehör: ab 2 Stück −5%, ab 4 −10%, ab 10 −20%. Kostenloser Versand ab 50 €.
       </p>
     </div>
   );

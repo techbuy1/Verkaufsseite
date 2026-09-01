@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Reveal } from "./motion/Reveal";
+import { CookieSettingsButton } from "./cookies/CookieSettingsButton";
 
 const footerLinks = {
   rechtliches: [
@@ -21,7 +22,7 @@ const footerLinks = {
     { label: "Bestellstatus", href: "/bestellstatus" },
   ],
   versand: [
-    { label: "DHL Express", href: "/versand" },
+    { label: "Versand", href: "/versand" },
     { label: "Lieferzeiten", href: "/lieferzeiten" },
     { label: "Sendungsverfolgung", href: "/tracking" },
   ],
@@ -63,6 +64,9 @@ export function Footer() {
                     </Link>
                   </li>
                 ))}
+                <li>
+                  <CookieSettingsButton className="text-left text-[13px] text-[#9A9A96] transition-colors hover:text-accent" />
+                </li>
               </ul>
               <Link
                 href="/widerruf"

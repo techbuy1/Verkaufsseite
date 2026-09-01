@@ -35,7 +35,7 @@ interface PurchaseBoxProps {
 }
 
 const TRUST_ITEMS = [
-  "Kostenloser Versand",
+  "Kostenloser Versand ab 50 €",
   "30 Tage Rückgabe",
   "Sichere Zahlung",
 ];

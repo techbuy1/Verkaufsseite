@@ -11,7 +11,12 @@ import { companySettings } from "@/lib/companySettings";
 export const runtime = "nodejs";
 
 /** Admin-Übersicht: alle Zubehör-Produkte mit effektivem Preis + Override-Status, in einem Request. */
-export async function GET() {
+export async function GET(request: Request) {
+  const ok = verifyAdminSessionFromCookieHeader(request.headers.get("cookie"));
+  if (!ok) {
+    return NextResponse.json({ message: "Nicht autorisiert." }, { status: 401 });
+  }
+
   const overrides = await readServerGadgetPriceOverrides();
   const products = getAccessoryProducts().map((product) => ({
     id: product.id,

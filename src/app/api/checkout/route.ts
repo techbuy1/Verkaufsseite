@@ -165,6 +165,21 @@ export async function POST(request: Request) {
           },
         };
       }),
+      // Versandkostenpauschale unterhalb der Freigrenze (siehe getShippingCost
+      // in @/lib/serverCheckout) — muss als eigene Position berechnet werden,
+      // sonst würde Stripe nur die Warenwert-Summe abbuchen.
+      ...(cart.shipping > 0
+        ? [
+            {
+              quantity: 1,
+              price_data: {
+                currency: "eur",
+                unit_amount: Math.round(cart.shipping * 100),
+                product_data: { name: "Versand" },
+              },
+            },
+          ]
+        : []),
     ];
 
     let discounts: Stripe.Checkout.SessionCreateParams.Discount[] | undefined;
