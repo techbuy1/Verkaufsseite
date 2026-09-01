@@ -25,6 +25,7 @@ import {
   getDefaultStorage,
   getProductPrice,
   getColorVariant,
+  getStorageOptionsForColor,
 } from "@/lib/productVariants";
 import type { ConditionId, PremiumProduct } from "@/types/product";
 
@@ -173,7 +174,6 @@ export async function validateAndPriceCart(
       };
     }
 
-    const colorRef = item.colorId ?? item.color ?? item.colorName;
     let colorId: string | undefined;
     let colorName: string | undefined;
     let storage: string | undefined;
@@ -182,16 +182,48 @@ export async function validateAndPriceCart(
     let productName: string;
 
     if (premium) {
-      colorId =
-        (colorRef
-          ? premium.images.find(
-              (imageEntry) =>
-                imageEntry.id === colorRef || imageEntry.colorName === colorRef,
-            )?.id
-          : undefined) ?? getDefaultColor(premium).id;
+      // Alle vom Client übergebenen Farb-Referenzen (ID, Name) prüfen. Tolerant
+      // gegenüber umbenannten IDs (Treffer über den Namen genügt), aber eine
+      // ausdrücklich gewählte Farbe, die es nicht gibt, wird abgelehnt statt
+      // still auf die Standardfarbe zurückzufallen (manipulierter/veralteter
+      // Warenkorb).
+      const colorRefs = [item.colorId, item.color, item.colorName].filter(
+        (value): value is string => Boolean(value),
+      );
+      const matchedImage =
+        colorRefs.length > 0
+          ? premium.images.find((imageEntry) =>
+              colorRefs.some(
+                (ref) =>
+                  imageEntry.id === ref || imageEntry.colorName === ref,
+              ),
+            )
+          : undefined;
+      if (colorRefs.length > 0 && !matchedImage) {
+        return {
+          ok: false,
+          message:
+            "Diese Farbe ist für das gewählte Produkt nicht verfügbar. Bitte wähle eine andere Farbe.",
+          status: 409,
+        };
+      }
+      colorId = matchedImage?.id ?? getDefaultColor(premium).id;
       const color = getColorVariant(premium, colorId);
       colorName = color.colorName;
       image = color.image;
+
+      const storageOptions = getStorageOptionsForColor(premium, colorId);
+      if (
+        item.storage &&
+        !storageOptions.some((option) => option.storage === item.storage)
+      ) {
+        return {
+          ok: false,
+          message:
+            "Diese Speichergröße ist für das gewählte Produkt nicht verfügbar. Bitte wähle eine andere Speichergröße.",
+          status: 409,
+        };
+      }
       storage = item.storage ?? getDefaultStorage(premium, colorId).storage;
       condition = isConditionId(item.condition)
         ? item.condition

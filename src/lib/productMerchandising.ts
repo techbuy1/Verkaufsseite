@@ -238,16 +238,6 @@ export function buildHomeProductSections(deviceProducts?: Product[]): HomeProduc
     });
   }
 
-  const mid = buyable.filter((product) => product.price >= 400 && product.price <= 900);
-  const value = pick(mid.length >= MIN_RAIL_SIZE ? mid : [...buyable].sort((a, b) => a.price - b.price));
-  if (value.length >= MIN_RAIL_SIZE) {
-    sections.push({
-      id: "value",
-      title: "Preis-Leistungs-Tipps",
-      products: value,
-    });
-  }
-
   const under500 = pick(buyable.filter((product) => product.price <= 500));
   if (under500.length >= MIN_RAIL_SIZE) {
     sections.push({
@@ -257,45 +247,18 @@ export function buildHomeProductSections(deviceProducts?: Product[]): HomeProduc
     });
   }
 
-  const newest = buyable.filter((product) => product.badge === "Neu");
-  const newArrivals = pick(newest.length >= MIN_RAIL_SIZE ? newest : buyable);
-  if (newArrivals.length >= MIN_RAIL_SIZE) {
+  // Panzerfolien und Hüllen laufen als eine gemeinsame Zubehör-Sektion.
+  const accessories = uniqueById(
+    [...getPanzerfolieHighlights(), ...getHuellenHighlights()],
+    DEFAULT_RAIL_LIMIT,
+  );
+  if (accessories.length >= MIN_ACCESSORY_RAIL_SIZE) {
     sections.push({
-      id: "new",
-      title: "Neu eingetroffen",
-      products: newArrivals,
-    });
-  }
-
-  const more = pick([...buyable].sort((a, b) => b.price - a.price));
-  if (more.length >= MIN_RAIL_SIZE) {
-    sections.push({
-      id: "more",
-      title: "Weitere Empfehlungen",
-      href: "/store",
-      products: more,
-    });
-  }
-
-  const panzerfolien = getPanzerfolieHighlights();
-  if (panzerfolien.length >= MIN_ACCESSORY_RAIL_SIZE) {
-    sections.push({
-      id: "panzerfolien",
-      title: "Panzerfolien",
-      subtitle: "Klar, Matt oder Privacy — passend zu deinem Gerät.",
+      id: "panzerfolien-huellen",
+      title: "Panzerfolien & Hüllen",
+      subtitle: "Schutz und Stil — passend zu deinem Gerät.",
       href: "/store?category=panzerfolien",
-      products: panzerfolien,
-    });
-  }
-
-  const huellen = getHuellenHighlights();
-  if (huellen.length >= MIN_ACCESSORY_RAIL_SIZE) {
-    sections.push({
-      id: "huellen",
-      title: "Hüllen",
-      subtitle: "Schutz und Stil für dein Smartphone.",
-      href: "/store",
-      products: huellen,
+      products: accessories,
     });
   }
 

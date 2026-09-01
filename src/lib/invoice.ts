@@ -13,6 +13,7 @@ import {
   expandOrderDevices,
   getInvoiceReadiness,
 } from "@/lib/invoiceValidation";
+import type { PremiumProduct } from "@/types/product";
 
 const DATA_DIR = path.join(process.cwd(), ".data");
 const INVOICES_DIR = path.join(DATA_DIR, "invoices");
@@ -53,14 +54,17 @@ function wrapText(text: string, maxChars: number): string[] {
  * Create or return existing invoice PDF.
  * Does NOT invent tax defaults — readiness must be ok.
  */
-export async function createInvoiceForOrder(order: ShopOrder): Promise<{
+export async function createInvoiceForOrder(
+  order: ShopOrder,
+  products?: PremiumProduct[],
+): Promise<{
   order: ShopOrder;
   invoiceNumber: string;
   pdfBytes: Uint8Array;
   filename: string;
   newlyCreated: boolean;
 }> {
-  const readiness = getInvoiceReadiness(order);
+  const readiness = getInvoiceReadiness(order, products);
   if (!readiness.ok) {
     throw new Error(
       `Rechnung kann nicht erstellt werden:\n- ${readiness.missing.join("\n- ")}`,

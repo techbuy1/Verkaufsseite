@@ -228,35 +228,142 @@ export async function sendOrderConfirmationEmail(input: {
   });
 }
 
-/** Versandbestätigung inkl. Sendungsverfolgung. */
-export async function sendShippingConfirmationEmail(input: {
-  order: ShopOrder;
-}): Promise<{ ok: boolean; error?: string }> {
-  const { order } = input;
-  const tracking =
-    order.trackingUrl && order.trackingNumber
-      ? `<p style="margin:16px 0;"><a href="${escapeHtml(order.trackingUrl)}" style="display:inline-block;background:#0071e3;color:#fff;text-decoration:none;padding:10px 16px;border-radius:980px;font-size:14px;">Sendung verfolgen</a></p>
-         <p>Sendungsnummer: <strong>${escapeHtml(order.trackingNumber)}</strong></p>`
-      : order.trackingNumber
-        ? `<p>Sendungsnummer: <strong>${escapeHtml(order.trackingNumber)}</strong></p>`
+function labelValueRow(label: string, value: string): string {
+  return `<tr>
+    <td style="padding:6px 0;color:#6e6e73;font-size:13px;width:44%;vertical-align:top;">${escapeHtml(label)}</td>
+    <td style="padding:6px 0;font-size:14px;font-weight:600;vertical-align:top;">${value}</td>
+  </tr>`;
+}
+
+function shippingDeviceBlock(
+  lines: ShippingConfirmationLines["devices"],
+): string {
+  if (!lines.length) return "";
+  const units = lines.flatMap((line) =>
+    line.units.map((unit, index) => ({ line, unit, index })),
+  );
+  const multi = units.length > 1;
+
+  const blocks = units
+    .map(({ line, unit, index }) => {
+      const rows = [
+        labelValueRow("Produkt", escapeHtml(line.productName)),
+        line.color ? labelValueRow("Farbe", escapeHtml(line.color)) : "",
+        line.storage ? labelValueRow("Speicher", escapeHtml(line.storage)) : "",
+        line.conditionLabel
+          ? labelValueRow("Zustand", escapeHtml(line.conditionLabel))
+          : "",
+        unit.imei
+          ? labelValueRow("IMEI", `<code>${escapeHtml(unit.imei)}</code>`)
+          : "",
+        unit.imei2
+          ? labelValueRow("IMEI 2", `<code>${escapeHtml(unit.imei2)}</code>`)
+          : "",
+        unit.serialNumber
+          ? labelValueRow(
+              "Seriennummer",
+              `<code>${escapeHtml(unit.serialNumber)}</code>`,
+            )
+          : "",
+      ]
+        .filter(Boolean)
+        .join("");
+      const heading = multi
+        ? `<p style="margin:16px 0 4px;font-weight:700;">Gerät ${index + 1}</p>`
         : "";
+      return `${heading}<table style="width:100%;border-collapse:collapse;">${rows}</table>`;
+    })
+    .join("");
+
+  return `<h3 style="margin:24px 0 8px;font-size:15px;">Geräteinformationen</h3>${blocks}`;
+}
+
+function shippingAccessoryBlock(
+  lines: ShippingConfirmationLines["accessories"],
+): string {
+  if (!lines.length) return "";
+  const rows = lines
+    .map((line) => {
+      const detail = [line.storage, line.color, line.compatibleDeviceLabel]
+        .filter(Boolean)
+        .join(" · ");
+      return `<li style="margin:2px 0;">${escapeHtml(line.productName)}${
+        line.quantity > 1 ? ` × ${line.quantity}` : ""
+      }${detail ? ` <span style="color:#6e6e73;">(${escapeHtml(detail)})</span>` : ""}</li>`;
+    })
+    .join("");
+  return `<h3 style="margin:24px 0 8px;font-size:15px;">Zubehör</h3><ul style="margin:0;padding-left:18px;font-size:14px;">${rows}</ul>`;
+}
+
+export interface ShippingConfirmationLines {
+  devices: Array<{
+    productName: string;
+    color?: string;
+    storage?: string;
+    conditionLabel?: string;
+    compatibleDeviceLabel?: string;
+    quantity: number;
+    units: Array<{ imei?: string; imei2?: string; serialNumber?: string }>;
+  }>;
+  accessories: ShippingConfirmationLines["devices"];
+}
+
+/**
+ * Versandbestätigung (Mail 2) – DHL-Sendungsnummer, Tracking-Link und die
+ * Geräteinformationen (IMEI / IMEI 2 / Seriennummer) des tatsächlich
+ * zugeordneten Geräts. Nutzt dieselbe SMTP-Infrastruktur wie die
+ * Bestellbestätigung.
+ */
+export function buildShippingConfirmationEmail(input: {
+  order: ShopOrder;
+  lines: ShippingConfirmationLines;
+}): { subject: string; html: string } {
+  const { order, lines } = input;
+  const name = formatCustomerName(order);
+
+  const trackingButton =
+    order.trackingUrl && order.trackingNumber
+      ? `<p style="margin:16px 0;"><a href="${escapeHtml(order.trackingUrl)}" style="display:inline-block;background:#f56300;color:#fff;text-decoration:none;padding:12px 20px;border-radius:980px;font-size:14px;font-weight:600;">Sendung verfolgen</a></p>`
+      : "";
 
   const html = wrapEmail(
-    "Deine Bestellung wurde versendet",
+    "Deine Bestellung ist unterwegs!",
     `
-    <p>Hallo ${escapeHtml(order.customerFirstName)},</p>
-    <p>gute Nachrichten – deine Bestellung <strong>${escapeHtml(order.orderNumber)}</strong> wurde versendet.</p>
-    <p>Versanddienstleister: <strong>${escapeHtml(order.trackingCarrier ?? "—")}</strong></p>
-    ${tracking}
-    <p>Vielen Dank für deine Bestellung bei TechBuy.</p>
+    <p>Hallo ${escapeHtml(name || order.customerFirstName)},</p>
+    <p>deine TechBuy-Bestellung wurde versendet. Nachfolgend findest du deine
+    Versand- und Geräteinformationen.</p>
+
+    <h3 style="margin:24px 0 8px;font-size:15px;">Bestellung</h3>
+    <table style="width:100%;border-collapse:collapse;">
+      ${labelValueRow("Bestellnummer", `<code>${escapeHtml(order.orderNumber)}</code>`)}
+    </table>
+
+    <h3 style="margin:24px 0 8px;font-size:15px;">Versand</h3>
+    <table style="width:100%;border-collapse:collapse;">
+      ${labelValueRow("Versanddienstleister", escapeHtml(order.trackingCarrier ?? "—"))}
+      ${order.trackingNumber ? labelValueRow("Sendungsnummer", `<code>${escapeHtml(order.trackingNumber)}</code>`) : ""}
+    </table>
+    ${trackingButton}
+
+    ${shippingDeviceBlock(lines.devices)}
+    ${shippingAccessoryBlock(lines.accessories)}
+
+    <p style="margin-top:24px;color:#6e6e73;">Vielen Dank für deine Bestellung bei TechBuy.</p>
   `,
   );
 
-  return sendShopEmail({
-    to: order.customerEmail,
-    subject: "Deine TechBuy-Bestellung wurde versendet",
+  return {
+    subject: `Deine TechBuy Bestellung wurde versendet – ${order.orderNumber}`,
     html,
-  });
+  };
+}
+
+export async function sendShippingConfirmationEmail(input: {
+  order: ShopOrder;
+  lines: ShippingConfirmationLines;
+}): Promise<{ ok: boolean; error?: string }> {
+  const { subject, html } = buildShippingConfirmationEmail(input);
+  return sendShopEmail({ to: input.order.customerEmail, subject, html });
 }
 
 /** Manuelle Rechnungs-E-Mail (nicht automatisch nach Zahlung). */

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatPrice, type Product } from "@/data/products";
-import { ProductImageSwitch } from "@/components/ProductImageSwitch";
+import { ProductCardHoverImage } from "@/components/ProductCardHoverImage";
 import { VARIANT_IMAGE_PLACEHOLDER } from "@/data/productImageRegistry";
 import type { MerchandisedProduct } from "@/lib/productMerchandising";
 import {
@@ -80,7 +80,7 @@ export function ProductCardStatic({
 
       <Link href={href} className="product-card-image-frame mb-1 block">
         <div className={`product-card-image-inner ${imageScaleClass}`}>
-          <ProductImageSwitch
+          <ProductCardHoverImage
             src={imageSrc}
             alt={product.name}
             sizes={
@@ -90,7 +90,10 @@ export function ProductCardStatic({
             }
             priority={priority}
             fallbackType={product.imageType}
-            className="object-contain object-center"
+            imageClassName="object-contain object-center"
+            slug={product.slug}
+            colorName={product.color}
+            productId={product.id}
           />
         </div>
       </Link>

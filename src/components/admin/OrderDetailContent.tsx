@@ -14,6 +14,7 @@ import {
 interface OrderDevice {
   id: string;
   imei?: string | null;
+  imei2?: string | null;
   serialNumber?: string | null;
   taxMode?: TaxMode | null;
   purchasePrice?: number | null;
@@ -31,6 +32,8 @@ interface OrderItem {
   lineTotal: number;
   devices: OrderDevice[];
   compatibleDeviceLabel?: string;
+  /** Vom Server: braucht diese Position eine IMEI/Seriennummer? */
+  requiresDeviceId?: boolean;
 }
 
 interface OrderDetail {
@@ -74,9 +77,6 @@ interface OrderDetail {
   stripePaymentIntentId?: string;
   paypalOrderId?: string;
   paypalCaptureId?: string;
-  invoiceNumber?: string;
-  invoiceAccessToken?: string;
-  invoiceEmailSentAt?: string;
   trackingNumber?: string;
   trackingCarrier?: ShippingCarrier;
   trackingUrl?: string | null;
@@ -91,21 +91,26 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
+function formatDateTime(iso?: string): string {
+  return iso ? new Date(iso).toLocaleString("de-DE") : "";
+}
+
+type ShipState = "idle" | "sending" | "sent" | "error";
+
 export function OrderDetailContent({ orderId }: { orderId: string }) {
   const [order, setOrder] = useState<OrderDetail | null>(null);
-  const [invoiceMissing, setInvoiceMissing] = useState<string[]>([]);
-  const [invoiceReady, setInvoiceReady] = useState(false);
+  const [shippingBlockers, setShippingBlockers] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   const [carrier, setCarrier] = useState<ShippingCarrier>("DHL");
   const [trackingNumber, setTrackingNumber] = useState("");
-  const [shippingBusy, setShippingBusy] = useState(false);
-  const [shippingMessage, setShippingMessage] = useState<string | null>(null);
+  const [shipState, setShipState] = useState<ShipState>("idle");
+  const [shipMessage, setShipMessage] = useState<string | null>(null);
+  const [shipErrors, setShipErrors] = useState<string[]>([]);
+
   const [deviceBusyKey, setDeviceBusyKey] = useState<string | null>(null);
   const [deviceMessage, setDeviceMessage] = useState<string | null>(null);
-  const [invoiceBusy, setInvoiceBusy] = useState(false);
-  const [invoiceMessage, setInvoiceMessage] = useState<string | null>(null);
-  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -114,21 +119,16 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
       const data = (await response.json()) as {
         ok?: boolean;
         order?: OrderDetail;
-        invoiceReady?: boolean;
-        invoiceMissing?: string[];
+        shippingBlockers?: string[];
         message?: string;
       };
       if (!response.ok || !data.order) {
         throw new Error(data.message ?? "Bestellung nicht gefunden.");
       }
       setOrder(data.order);
-      setInvoiceReady(Boolean(data.invoiceReady));
-      setInvoiceMissing(data.invoiceMissing ?? []);
+      setShippingBlockers(data.shippingBlockers ?? []);
       if (data.order.trackingCarrier) setCarrier(data.order.trackingCarrier);
       if (data.order.trackingNumber) setTrackingNumber(data.order.trackingNumber);
-      if (data.order.invoiceAccessToken) {
-        setDownloadUrl(`/api/invoices/${data.order.invoiceAccessToken}`);
-      }
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Fehler beim Laden.");
@@ -182,6 +182,7 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
                 {
                   id: device.id,
                   imei: device.imei ?? null,
+                  imei2: device.imei2 ?? null,
                   serialNumber: device.serialNumber ?? null,
                   taxMode: device.taxMode ?? null,
                   purchasePrice:
@@ -194,10 +195,7 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
           ],
         }),
       });
-      const data = (await response.json()) as {
-        ok?: boolean;
-        message?: string;
-      };
+      const data = (await response.json()) as { ok?: boolean; message?: string };
       if (!response.ok || !data.ok) {
         throw new Error(data.message ?? "Speichern fehlgeschlagen.");
       }
@@ -212,92 +210,48 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
     }
   }
 
-  async function createInvoice() {
-    setInvoiceBusy(true);
-    setInvoiceMessage(null);
-    try {
-      const response = await fetch(`/api/admin/orders/${orderId}/invoice`, {
-        method: "POST",
-      });
-      const data = (await response.json()) as {
-        ok?: boolean;
-        message?: string;
-        missing?: string[];
-        downloadUrl?: string;
-        invoiceNumber?: string;
-      };
-      if (!response.ok || !data.ok) {
-        if (data.missing?.length) {
-          setInvoiceMissing(data.missing);
-        }
-        throw new Error(data.message ?? "Rechnung konnte nicht erstellt werden.");
-      }
-      setInvoiceMessage(`Rechnung ${data.invoiceNumber} erstellt.`);
-      if (data.downloadUrl) setDownloadUrl(data.downloadUrl);
-      await load();
-    } catch (err) {
-      setInvoiceMessage(
-        err instanceof Error ? err.message : "Rechnung fehlgeschlagen.",
-      );
-    } finally {
-      setInvoiceBusy(false);
-    }
-  }
-
-  async function sendInvoice() {
-    setInvoiceBusy(true);
-    setInvoiceMessage(null);
-    try {
-      const response = await fetch(`/api/admin/orders/${orderId}/invoice`, {
-        method: "PUT",
-      });
-      const data = (await response.json()) as { ok?: boolean; message?: string };
-      if (!response.ok || !data.ok) {
-        throw new Error(data.message ?? "Rechnungsmail fehlgeschlagen.");
-      }
-      setInvoiceMessage("Rechnung per E-Mail gesendet.");
-      await load();
-    } catch (err) {
-      setInvoiceMessage(
-        err instanceof Error ? err.message : "Rechnungsmail fehlgeschlagen.",
-      );
-    } finally {
-      setInvoiceBusy(false);
-    }
-  }
-
-  async function markShipped() {
-    setShippingBusy(true);
-    setShippingMessage(null);
+  async function sendShippingData(resend = false) {
+    if (shipState === "sending") return;
+    setShipState("sending");
+    setShipMessage(null);
+    setShipErrors([]);
     try {
       const response = await fetch(`/api/admin/orders/${orderId}/ship`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ carrier, trackingNumber }),
+        body: JSON.stringify({ carrier, trackingNumber, resend }),
       });
       const data = (await response.json()) as {
         ok?: boolean;
         message?: string;
+        errors?: string[];
         emailSent?: boolean;
-        alreadyShipped?: boolean;
+        alreadyEmailed?: boolean;
+        resent?: boolean;
       };
       if (!response.ok || !data.ok) {
-        throw new Error(data.message ?? "Versand konnte nicht gespeichert werden.");
+        setShipErrors(data.errors ?? []);
+        throw new Error(
+          data.message ??
+            "Versanddaten konnten nicht gesendet werden. Bitte erneut versuchen.",
+        );
       }
-      setShippingMessage(
+      setShipState("sent");
+      setShipMessage(
         data.emailSent
-          ? "Als versendet markiert und Versandmail gesendet."
-          : data.alreadyShipped
-            ? "Versanddaten aktualisiert (Mail wurde zuvor bereits gesendet)."
-            : "Als versendet markiert.",
+          ? data.resent
+            ? "Versandbestätigung wurde erneut an den Kunden gesendet."
+            : "Versanddaten gesendet – der Kunde hat die Versandbestätigung erhalten."
+          : data.message ?? "Versanddaten gespeichert.",
       );
       await load();
     } catch (err) {
-      setShippingMessage(
-        err instanceof Error ? err.message : "Versand konnte nicht gespeichert werden.",
+      setShipState("error");
+      setShipMessage(
+        err instanceof Error
+          ? err.message
+          : "Versanddaten konnten nicht gesendet werden. Bitte erneut versuchen.",
       );
-    } finally {
-      setShippingBusy(false);
     }
   }
 
@@ -316,7 +270,19 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
     );
   }
 
-  const invoiceLocked = Boolean(order.invoiceNumber);
+  const shipped = Boolean(order.shippedAt) || order.orderStatus === "shipped";
+  const emailSent = Boolean(order.shippingEmailSentAt);
+  const devicesLocked = shipped;
+  const isPaid = order.paymentStatus === "paid";
+  const sendDisabled =
+    shipState === "sending" || !trackingNumber.trim() || !isPaid;
+
+  const sendLabel =
+    shipState === "sending"
+      ? "Wird gesendet …"
+      : shipState === "sent"
+        ? "Versanddaten gesendet ✓"
+        : "Versanddaten an Kunden senden";
 
   return (
     <div className="space-y-6">
@@ -368,149 +334,172 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
       <section className="rounded-[18px] border border-[#d2d2d7]/40 bg-white p-5">
         <h2 className="text-[16px] font-semibold">Produkte & Gerätezuordnung</h2>
         <p className="mt-1 text-[13px] text-[#6e6e73]">
-          Pro Gerät IMEI/Seriennummer und Steuerart setzen, bevor die Rechnung erstellt wird.
+          Bei Geräten IMEI / IMEI 2 / Seriennummer zuordnen. Zubehör braucht
+          keine Gerätekennung.
         </p>
         {deviceMessage && (
           <p className="mt-2 text-[13px] text-[#6e6e73]">{deviceMessage}</p>
         )}
 
         <div className="mt-4 space-y-6">
-          {order.items.map((item, itemIndex) => (
-            <div
-              key={`${item.productId}-${itemIndex}`}
-              className="rounded-[14px] border border-[#eee] p-4"
-            >
-              <div className="flex gap-3">
-                {item.productImage && (
-                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[10px] bg-[#f5f5f7]">
-                    <Image
-                      src={item.productImage}
-                      alt=""
-                      fill
-                      className="object-contain p-1"
-                      sizes="56px"
-                    />
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-[14px]">{item.productName}</p>
-                  {item.compatibleDeviceLabel && (
-                    <p className="text-[12px] font-medium text-[#1d1d1f]">
-                      Für: {item.compatibleDeviceLabel}
-                    </p>
+          {order.items.map((item, itemIndex) => {
+            const needsId = item.requiresDeviceId ?? true;
+            return (
+              <div
+                key={`${item.productId}-${itemIndex}`}
+                className="rounded-[14px] border border-[#eee] p-4"
+              >
+                <div className="flex gap-3">
+                  {item.productImage && (
+                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[10px] bg-[#f5f5f7]">
+                      <Image
+                        src={item.productImage}
+                        alt=""
+                        fill
+                        className="object-contain p-1"
+                        sizes="56px"
+                      />
+                    </div>
                   )}
-                  <p className="text-[12px] text-[#6e6e73]">
-                    {[item.storage, item.color, item.conditionLabel]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
-                  <p className="text-[12px] text-[#6e6e73]">
-                    Menge {item.quantity} · {formatCurrency(item.unitPrice)} / Stück
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-[14px]">{item.productName}</p>
+                    {item.compatibleDeviceLabel && (
+                      <p className="text-[12px] font-medium text-[#1d1d1f]">
+                        Für: {item.compatibleDeviceLabel}
+                      </p>
+                    )}
+                    <p className="text-[12px] text-[#6e6e73]">
+                      {[item.storage, item.color, item.conditionLabel]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                    <p className="text-[12px] text-[#6e6e73]">
+                      Menge {item.quantity} · {formatCurrency(item.unitPrice)} / Stück
+                    </p>
+                  </div>
+                  <p className="font-semibold text-[14px]">
+                    {formatCurrency(item.lineTotal)}
                   </p>
                 </div>
-                <p className="font-semibold text-[14px]">
-                  {formatCurrency(item.lineTotal)}
-                </p>
-              </div>
 
-              <div className="mt-4 space-y-4">
-                {item.devices.map((device, deviceIndex) => {
-                  const busyKey = `${itemIndex}-${device.id}`;
-                  return (
-                    <div
-                      key={device.id}
-                      className="rounded-[12px] bg-[#fafafa] p-3"
-                    >
-                      <p className="text-[12px] font-semibold uppercase tracking-wider text-[#6e6e73]">
-                        Gerät {deviceIndex + 1}
-                      </p>
-                      <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
-                        <label className="text-[13px] font-medium">
-                          IMEI
-                          <input
-                            className="mt-1.5 w-full rounded-[10px] border border-[#d2d2d7] bg-white px-3 py-2 text-[14px]"
-                            value={device.imei ?? ""}
-                            disabled={invoiceLocked || deviceBusyKey === busyKey}
-                            onChange={(e) =>
-                              updateLocalDevice(itemIndex, device.id, {
-                                imei: e.target.value,
-                              })
-                            }
-                          />
-                        </label>
-                        <label className="text-[13px] font-medium">
-                          Seriennummer
-                          <input
-                            className="mt-1.5 w-full rounded-[10px] border border-[#d2d2d7] bg-white px-3 py-2 text-[14px]"
-                            value={device.serialNumber ?? ""}
-                            disabled={invoiceLocked || deviceBusyKey === busyKey}
-                            onChange={(e) =>
-                              updateLocalDevice(itemIndex, device.id, {
-                                serialNumber: e.target.value,
-                              })
-                            }
-                          />
-                        </label>
-                        <label className="text-[13px] font-medium md:col-span-2">
-                          Besteuerung
-                          <select
-                            className="mt-1.5 w-full rounded-[10px] border border-[#d2d2d7] bg-white px-3 py-2 text-[14px]"
-                            value={device.taxMode ?? ""}
-                            disabled={invoiceLocked || deviceBusyKey === busyKey}
-                            onChange={(e) =>
-                              updateLocalDevice(itemIndex, device.id, {
-                                taxMode: (e.target.value || null) as TaxMode | null,
-                              })
-                            }
-                          >
-                            <option value="">Bitte wählen…</option>
-                            {TAX_MODE_OPTIONS.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <label className="text-[13px] font-medium md:col-span-2">
-                          Einkaufspreis intern (optional, nie auf Rechnung)
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            className="mt-1.5 w-full rounded-[10px] border border-[#d2d2d7] bg-white px-3 py-2 text-[14px]"
-                            value={
-                              typeof device.purchasePrice === "number"
-                                ? device.purchasePrice
-                                : ""
-                            }
-                            disabled={invoiceLocked || deviceBusyKey === busyKey}
-                            onChange={(e) =>
-                              updateLocalDevice(itemIndex, device.id, {
-                                purchasePrice:
-                                  e.target.value === ""
-                                    ? null
-                                    : Number(e.target.value),
-                              })
-                            }
-                          />
-                        </label>
-                      </div>
-                      {!invoiceLocked && (
-                        <button
-                          type="button"
-                          className="mt-3 rounded-full border border-[#d2d2d7] bg-white px-4 py-2 text-[13px] font-medium disabled:opacity-60"
-                          disabled={deviceBusyKey === busyKey}
-                          onClick={() => void saveDevice(itemIndex, device)}
+                {!needsId ? (
+                  <p className="mt-3 rounded-[10px] bg-[#fafafa] px-3 py-2 text-[12px] text-[#6e6e73]">
+                    Zubehör – keine IMEI/Seriennummer erforderlich.
+                  </p>
+                ) : (
+                  <div className="mt-4 space-y-4">
+                    {item.devices.map((device, deviceIndex) => {
+                      const busyKey = `${itemIndex}-${device.id}`;
+                      return (
+                        <div
+                          key={device.id}
+                          className="rounded-[12px] bg-[#fafafa] p-3"
                         >
-                          {deviceBusyKey === busyKey ? "Speichern…" : "Speichern"}
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
+                          <p className="text-[12px] font-semibold uppercase tracking-wider text-[#6e6e73]">
+                            Gerät {deviceIndex + 1}
+                          </p>
+                          <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
+                            <label className="text-[13px] font-medium">
+                              IMEI
+                              <input
+                                className="mt-1.5 w-full rounded-[10px] border border-[#d2d2d7] bg-white px-3 py-2 text-[14px]"
+                                value={device.imei ?? ""}
+                                disabled={devicesLocked || deviceBusyKey === busyKey}
+                                onChange={(e) =>
+                                  updateLocalDevice(itemIndex, device.id, {
+                                    imei: e.target.value,
+                                  })
+                                }
+                              />
+                            </label>
+                            <label className="text-[13px] font-medium">
+                              IMEI 2 (Dual-SIM, optional)
+                              <input
+                                className="mt-1.5 w-full rounded-[10px] border border-[#d2d2d7] bg-white px-3 py-2 text-[14px]"
+                                value={device.imei2 ?? ""}
+                                disabled={devicesLocked || deviceBusyKey === busyKey}
+                                onChange={(e) =>
+                                  updateLocalDevice(itemIndex, device.id, {
+                                    imei2: e.target.value,
+                                  })
+                                }
+                              />
+                            </label>
+                            <label className="text-[13px] font-medium md:col-span-2">
+                              Seriennummer
+                              <input
+                                className="mt-1.5 w-full rounded-[10px] border border-[#d2d2d7] bg-white px-3 py-2 text-[14px]"
+                                value={device.serialNumber ?? ""}
+                                disabled={devicesLocked || deviceBusyKey === busyKey}
+                                onChange={(e) =>
+                                  updateLocalDevice(itemIndex, device.id, {
+                                    serialNumber: e.target.value,
+                                  })
+                                }
+                              />
+                            </label>
+                            <label className="text-[13px] font-medium md:col-span-2">
+                              Besteuerung
+                              <select
+                                className="mt-1.5 w-full rounded-[10px] border border-[#d2d2d7] bg-white px-3 py-2 text-[14px]"
+                                value={device.taxMode ?? ""}
+                                disabled={devicesLocked || deviceBusyKey === busyKey}
+                                onChange={(e) =>
+                                  updateLocalDevice(itemIndex, device.id, {
+                                    taxMode: (e.target.value || null) as TaxMode | null,
+                                  })
+                                }
+                              >
+                                <option value="">Bitte wählen…</option>
+                                {TAX_MODE_OPTIONS.map((option) => (
+                                  <option key={option.value} value={option.value}>
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <label className="text-[13px] font-medium md:col-span-2">
+                              Einkaufspreis intern (optional, nie auf Rechnung)
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                className="mt-1.5 w-full rounded-[10px] border border-[#d2d2d7] bg-white px-3 py-2 text-[14px]"
+                                value={
+                                  typeof device.purchasePrice === "number"
+                                    ? device.purchasePrice
+                                    : ""
+                                }
+                                disabled={devicesLocked || deviceBusyKey === busyKey}
+                                onChange={(e) =>
+                                  updateLocalDevice(itemIndex, device.id, {
+                                    purchasePrice:
+                                      e.target.value === ""
+                                        ? null
+                                        : Number(e.target.value),
+                                  })
+                                }
+                              />
+                            </label>
+                          </div>
+                          {!devicesLocked && (
+                            <button
+                              type="button"
+                              className="mt-3 rounded-full border border-[#d2d2d7] bg-white px-4 py-2 text-[13px] font-medium disabled:opacity-60"
+                              disabled={deviceBusyKey === busyKey}
+                              onClick={() => void saveDevice(itemIndex, device)}
+                            >
+                              {deviceBusyKey === busyKey ? "Speichern…" : "Speichern"}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {order.accessoryUpsells && order.accessoryUpsells.length > 0 && (
@@ -573,73 +562,6 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
       </section>
 
       <section className="rounded-[18px] border border-[#d2d2d7]/40 bg-white p-5">
-        <h2 className="text-[16px] font-semibold">Rechnung</h2>
-        <p className="mt-1 text-[13px] text-[#6e6e73]">
-          Wird nicht automatisch nach Zahlung erstellt — erst nach Geräte- und Steuerzuordnung.
-        </p>
-
-        {!invoiceLocked && invoiceMissing.length > 0 && (
-          <div className="mt-3 rounded-[12px] border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-900">
-            <p className="font-medium">Noch unvollständig:</p>
-            <ul className="mt-1 list-disc pl-5">
-              {invoiceMissing.map((entry) => (
-                <li key={entry}>{entry}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {order.invoiceNumber && (
-          <p className="mt-3 text-[14px]">
-            Rechnungsnummer:{" "}
-            <span className="font-semibold">{order.invoiceNumber}</span>
-          </p>
-        )}
-        {order.invoiceEmailSentAt && (
-          <p className="mt-1 text-[12px] text-[#6e6e73]">
-            Per E-Mail gesendet:{" "}
-            {new Date(order.invoiceEmailSentAt).toLocaleString("de-DE")}
-          </p>
-        )}
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          {!invoiceLocked && (
-            <button
-              type="button"
-              onClick={() => void createInvoice()}
-              disabled={invoiceBusy || !invoiceReady}
-              className="btn-techbuy-primary min-h-[44px] px-5 text-[14px] disabled:opacity-60"
-            >
-              {invoiceBusy ? "Erstellen…" : "Rechnung erstellen"}
-            </button>
-          )}
-          {downloadUrl && (
-            <>
-              <a
-                href={downloadUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-[44px] items-center rounded-full border border-[#d2d2d7] bg-white px-5 text-[14px] font-medium"
-              >
-                Rechnung ansehen / herunterladen
-              </a>
-              <button
-                type="button"
-                onClick={() => void sendInvoice()}
-                disabled={invoiceBusy}
-                className="inline-flex min-h-[44px] items-center rounded-full border border-[#d2d2d7] bg-white px-5 text-[14px] font-medium disabled:opacity-60"
-              >
-                Rechnung per E-Mail senden
-              </button>
-            </>
-          )}
-        </div>
-        {invoiceMessage && (
-          <p className="mt-3 text-[13px] text-[#6e6e73]">{invoiceMessage}</p>
-        )}
-      </section>
-
-      <section className="rounded-[18px] border border-[#d2d2d7]/40 bg-white p-5">
         <h2 className="text-[16px] font-semibold">Zahlung</h2>
         <dl className="mt-3 grid grid-cols-1 gap-2 text-[14px] sm:grid-cols-2">
           <div>
@@ -656,10 +578,24 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
               <dd className="break-all text-[12px]">{order.stripeSessionId}</dd>
             </div>
           )}
+          {order.stripePaymentIntentId && (
+            <div>
+              <dt className="text-[#6e6e73]">Stripe PaymentIntent</dt>
+              <dd className="break-all text-[12px]">
+                {order.stripePaymentIntentId}
+              </dd>
+            </div>
+          )}
           {order.paypalOrderId && (
             <div>
               <dt className="text-[#6e6e73]">PayPal Order</dt>
               <dd className="break-all text-[12px]">{order.paypalOrderId}</dd>
+            </div>
+          )}
+          {order.paypalCaptureId && (
+            <div>
+              <dt className="text-[#6e6e73]">PayPal Capture</dt>
+              <dd className="break-all text-[12px]">{order.paypalCaptureId}</dd>
             </div>
           )}
         </dl>
@@ -667,55 +603,127 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
 
       <section className="rounded-[18px] border border-[#d2d2d7]/40 bg-white p-5">
         <h2 className="text-[16px] font-semibold">Versand</h2>
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label className="text-[13px] font-medium">
-            Versanddienstleister
-            <select
-              className="mt-1.5 w-full rounded-[12px] border border-[#d2d2d7] px-3 py-2.5 text-[14px]"
-              value={carrier}
-              onChange={(e) => setCarrier(e.target.value as ShippingCarrier)}
-              disabled={shippingBusy}
+
+        {emailSent ? (
+          <div className="mt-3 space-y-2">
+            <p className="text-[15px] font-semibold text-[#1d1d1f]">Versendet ✓</p>
+            <p className="text-[14px]">
+              {order.trackingCarrier ?? "—"}
+              {order.trackingNumber ? (
+                <>
+                  {" "}
+                  · <code className="text-[13px]">{order.trackingNumber}</code>
+                </>
+              ) : null}
+            </p>
+            <p className="text-[13px] text-[#6e6e73]">
+              Versandbestätigung gesendet: {formatDateTime(order.shippingEmailSentAt)}
+            </p>
+            {order.trackingUrl && (
+              <p className="text-[13px]">
+                <a
+                  href={order.trackingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-accent hover:underline"
+                >
+                  Tracking öffnen
+                </a>
+              </p>
+            )}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => void sendShippingData(true)}
+                disabled={shipState === "sending"}
+                className="rounded-full border border-[#d2d2d7] bg-white px-4 py-2 text-[13px] font-medium disabled:opacity-60"
+              >
+                {shipState === "sending" ? "Wird gesendet …" : "Erneut senden"}
+              </button>
+            </div>
+            {shipMessage && (
+              <p
+                className={`text-[13px] ${
+                  shipState === "error" ? "text-red-600" : "text-[#6e6e73]"
+                }`}
+              >
+                {shipMessage}
+              </p>
+            )}
+          </div>
+        ) : (
+          <>
+            {!isPaid && (
+              <p className="mt-3 rounded-[12px] border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-900">
+                Diese Bestellung ist noch nicht als bezahlt markiert. Nur bezahlte
+                Bestellungen können versendet werden.
+              </p>
+            )}
+            {isPaid && shippingBlockers.length > 0 && (
+              <div className="mt-3 rounded-[12px] border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-900">
+                <p className="font-medium">Vor dem Versand noch nötig:</p>
+                <ul className="mt-1 list-disc pl-5">
+                  {shippingBlockers.map((entry) => (
+                    <li key={entry}>{entry}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label className="text-[13px] font-medium">
+                Versanddienstleister
+                <select
+                  className="mt-1.5 w-full rounded-[12px] border border-[#d2d2d7] px-3 py-2.5 text-[14px]"
+                  value={carrier}
+                  onChange={(e) => setCarrier(e.target.value as ShippingCarrier)}
+                  disabled={shipState === "sending"}
+                >
+                  {SHIPPING_CARRIERS.map((entry) => (
+                    <option key={entry} value={entry}>
+                      {entry}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-[13px] font-medium">
+                Sendungsnummer
+                <input
+                  className="mt-1.5 w-full rounded-[12px] border border-[#d2d2d7] px-3 py-2.5 text-[14px]"
+                  value={trackingNumber}
+                  onChange={(e) => setTrackingNumber(e.target.value)}
+                  disabled={shipState === "sending"}
+                  placeholder="z. B. 00340434123456789012"
+                />
+              </label>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => void sendShippingData(false)}
+              disabled={sendDisabled}
+              className="btn-techbuy-primary mt-4 min-h-[44px] px-5 text-[14px] disabled:opacity-60"
             >
-              {SHIPPING_CARRIERS.map((entry) => (
-                <option key={entry} value={entry}>
-                  {entry}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-[13px] font-medium">
-            Sendungsnummer
-            <input
-              className="mt-1.5 w-full rounded-[12px] border border-[#d2d2d7] px-3 py-2.5 text-[14px]"
-              value={trackingNumber}
-              onChange={(e) => setTrackingNumber(e.target.value)}
-              disabled={shippingBusy}
-              placeholder="z. B. 00340434…"
-            />
-          </label>
-        </div>
-        {order.trackingUrl && (
-          <p className="mt-3 text-[13px]">
-            <a
-              href={order.trackingUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-accent hover:underline"
-            >
-              Tracking öffnen
-            </a>
-          </p>
-        )}
-        <button
-          type="button"
-          onClick={() => void markShipped()}
-          disabled={shippingBusy || !trackingNumber.trim()}
-          className="btn-techbuy-primary mt-4 min-h-[44px] px-5 text-[14px] disabled:opacity-60"
-        >
-          {shippingBusy ? "Speichern…" : "Als versendet markieren"}
-        </button>
-        {shippingMessage && (
-          <p className="mt-3 text-[13px] text-[#6e6e73]">{shippingMessage}</p>
+              {sendLabel}
+            </button>
+
+            {shipErrors.length > 0 && (
+              <ul className="mt-3 list-disc pl-5 text-[13px] text-red-600">
+                {shipErrors.map((entry) => (
+                  <li key={entry}>{entry}</li>
+                ))}
+              </ul>
+            )}
+            {shipMessage && shipErrors.length === 0 && (
+              <p
+                className={`mt-3 text-[13px] ${
+                  shipState === "error" ? "text-red-600" : "text-[#6e6e73]"
+                }`}
+              >
+                {shipMessage}
+              </p>
+            )}
+          </>
         )}
       </section>
     </div>

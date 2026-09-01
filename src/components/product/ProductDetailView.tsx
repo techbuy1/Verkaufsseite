@@ -323,9 +323,6 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
     selectedStorage ? ` ${selectedStorage}` : ""
   }${selectedColor.colorName ? ` ${selectedColor.colorName}` : ""}`;
 
-  const selectedConditionLabel =
-    conditionAvailability[selectedCondition]?.label ?? selectedCondition;
-
   const savingsHint =
     savingsVsNew > 0 ? (
       <p className="mt-1 text-[12px] font-medium text-accent">
@@ -349,14 +346,21 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
       <div className="bg-background pb-10 pt-[72px] md:pt-[76px]">
         <div className="mx-auto max-w-[1280px] px-5 md:px-8 lg:px-10">
           <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] lg:gap-8 xl:gap-12">
-            <aside className="lg:sticky lg:top-24 lg:self-start">
+            <aside className="lg:self-start">
               <div className="pt-3 lg:pt-4">
                 <ProductMediaPanel
                   images={product.images}
                   alt={product.name}
                   activeIndex={activeColorIndex >= 0 ? activeColorIndex : 0}
                   fallbackType={fallbackType}
+                  brand={product.brand}
+                  productSlug={product.slug}
                 />
+              </div>
+
+              <div className="mt-5 hidden space-y-4 lg:block">
+                <MemoProductInfo product={product} showHeading />
+                <MemoProductDeliveryCard items={product.deliveryContent} />
               </div>
             </aside>
 
@@ -389,9 +393,6 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
                     )}
                   </div>
                   {savingsHint}
-                  <p className="mt-1 text-[12px] text-text-secondary">
-                    {selectedConditionLabel} · inkl. MwSt.
-                  </p>
                 </div>
               </header>
 
@@ -428,7 +429,7 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
                 />
               </div>
 
-              <div className="mt-5 space-y-4 lg:mt-5">
+              <div className="mt-5 space-y-4 lg:hidden">
                 <MemoProductInfo product={product} showHeading />
                 <MemoProductDeliveryCard items={product.deliveryContent} />
               </div>

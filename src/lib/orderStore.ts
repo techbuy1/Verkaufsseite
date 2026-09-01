@@ -13,6 +13,8 @@ import type { PaymentProvider, PricedCheckoutLine } from "@/lib/serverCheckout";
 export interface ShopOrderDevice {
   id: string;
   imei?: string | null;
+  /** Zweite IMEI bei Dual-SIM-Geräten (optional). */
+  imei2?: string | null;
   serialNumber?: string | null;
   taxMode?: TaxMode | null;
   purchasePrice?: number | null;
@@ -240,6 +242,7 @@ export function mapPricedLinesToOrderItems(
       () => ({
         id: createId(),
         imei: null,
+        imei2: null,
         serialNumber: null,
         taxMode: productTaxHint ?? null,
         purchasePrice: null,
@@ -273,13 +276,16 @@ export function normalizeOrderItems(items: ShopOrderItem[]): ShopOrderItem[] {
     const devices: ShopOrderDevice[] = [];
     for (let i = 0; i < qty; i += 1) {
       devices.push(
-        existing[i] ?? {
-          id: createId(),
-          imei: null,
-          serialNumber: null,
-          taxMode: item.taxMode ?? null,
-          purchasePrice: null,
-        },
+        existing[i]
+          ? { imei2: null, ...existing[i] }
+          : {
+              id: createId(),
+              imei: null,
+              imei2: null,
+              serialNumber: null,
+              taxMode: item.taxMode ?? null,
+              purchasePrice: null,
+            },
       );
     }
     return { ...item, devices };

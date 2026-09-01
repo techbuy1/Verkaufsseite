@@ -31,8 +31,10 @@ function walkImages(dir: string, base = "images/products"): string[] {
 const registryPaths = new Set<string>();
 for (const colors of Object.values(PRODUCT_IMAGE_REGISTRY)) {
   for (const color of colors) {
-    registryPaths.add(color.file.normalize("NFC"));
-    registryPaths.add(color.file.normalize("NFD"));
+    for (const rel of [color.file, ...(color.angles ?? [])]) {
+      registryPaths.add(rel.normalize("NFC"));
+      registryPaths.add(rel.normalize("NFD"));
+    }
   }
 }
 

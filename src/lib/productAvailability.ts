@@ -595,7 +595,7 @@ export function validateCheckoutStock(
         productId: item.productId,
         message:
           validation.maxQuantity === 0
-            ? "Diese Variante ist leider nicht mehr verfügbar."
+            ? "Diese Variante ist derzeit nicht verfügbar. Bitte wähle eine andere Farbe oder Speichergröße."
             : validation.message ?? "Nicht genügend Bestand verfügbar.",
       });
     }

@@ -7,7 +7,7 @@ import {
   type Product,
   type ProductColorOption,
 } from "@/data/products";
-import { ProductImageSwitch } from "./ProductImageSwitch";
+import { ProductCardHoverImage } from "./ProductCardHoverImage";
 
 interface CategoryProductCardProps {
   product: Product;
@@ -26,7 +26,7 @@ export function CategoryProductCard({ product }: CategoryProductCardProps) {
   const productHref = `/products/${product.slug}`;
 
   return (
-    <article className="product-card-hover flex h-full min-w-0 flex-col rounded-[16px] border border-border bg-surface-card p-3 shadow-[var(--shadow-card)] sm:p-3.5">
+    <article className="product-card-hover group flex h-full min-w-0 flex-col rounded-[16px] border border-border bg-surface-card p-3 shadow-[var(--shadow-card)] sm:p-3.5">
       <div className="mb-1.5 min-w-0">
         {product.badge && (
           <span className="badge-techbuy mb-1 !px-1.5 !py-0 text-[9px]">{product.badge}</span>
@@ -45,12 +45,16 @@ export function CategoryProductCard({ product }: CategoryProductCardProps) {
         href={productHref}
         className="product-image-stage product-image-stage--on-card relative mb-2 block h-[140px] w-full sm:h-[150px]"
       >
-        <ProductImageSwitch
+        <ProductCardHoverImage
           src={imageSrc}
           alt={`${product.name}${selectedColor ? ` – ${selectedColor.label}` : ""}`}
           sizes="(max-width: 768px) 80vw, (max-width: 1024px) 40vw, 22vw"
-          className="object-contain p-2"
+          imageClassName="object-contain p-2"
           fallbackType={product.imageType}
+          slug={product.slug}
+          colorId={selectedColor?.id}
+          colorName={selectedColor?.label}
+          productId={product.id}
         />
       </Link>
 

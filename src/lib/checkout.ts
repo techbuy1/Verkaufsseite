@@ -1,14 +1,23 @@
 import type { CartItem } from "@/lib/cart";
 import type { DeviceUpsellSelectionInput } from "@/lib/checkoutUpsell";
 import type { CheckoutCustomerInput } from "@/lib/companySettings";
-import { validateCheckoutStock } from "@/lib/productAvailability";
-import { loadProducts } from "@/lib/productStore";
 
 export interface CheckoutResult {
   ok: boolean;
   message: string;
   redirected?: boolean;
+  /**
+   * true, wenn die Bestellung serverseitig an einer echten Produkt-/
+   * Bestandsprüfung gescheitert ist (Antwort 409/400). Die Kasse kann dann
+   * den Warenkorb zur Korrektur anbieten. Bei technischen Fehlern (5xx)
+   * bleibt dies `false`.
+   */
+  cartNeedsReview?: boolean;
 }
+
+/** Vom Server (validateAndPriceCart) für „Variante/Produkt ungültig" genutzt. */
+const VARIANT_UNAVAILABLE_FALLBACK =
+  "Diese Variante ist derzeit nicht verfügbar. Bitte wähle eine andere Farbe oder Speichergröße.";
 
 const PENDING_CHECKOUT_KEY = "techbuy-pending-checkout";
 
@@ -47,27 +56,14 @@ export async function initiateCheckout(
     return { ok: false, message: "Warenkorb ist leer." };
   }
 
-  const clientStockErrors = validateCheckoutStock(
-    items.map((item) => ({
-      productId: item.productId,
-      quantity: item.quantity,
-      colorId: item.color,
-      colorName: item.colorName,
-      storage: item.storage,
-      condition: item.condition,
-    })),
-    loadProducts(),
-  );
-
-  if (clientStockErrors.length > 0) {
-    return {
-      ok: false,
-      message:
-        clientStockErrors[0]?.message ??
-        "Diese Variante ist leider nicht mehr verfügbar.",
-    };
-  }
-
+  // Keine client-seitige Bestands-/Variantenprüfung mehr: früher hat
+  // `validateCheckoutStock(items, loadProducts())` hier gegen den im Browser
+  // gecachten Katalog (localStorage) geprüft und den Stripe-Checkout
+  // blockiert, während PayPal direkt an den Server ging und dieselbe
+  // Variante bezahlen ließ. Einzige Quelle der Wahrheit ist jetzt für beide
+  // Zahlungsarten die serverseitige `validateAndPriceCart` in
+  // `src/lib/serverCheckout.ts` (Produkt/Variante/Farbe/Speicher/Zustand/
+  // Bestand/Preis aus dem Server-Katalog).
   savePendingCheckout(items);
 
   const response = await fetch("/api/checkout", {
@@ -115,11 +111,22 @@ export async function initiateCheckout(
 
   clearPendingCheckout();
 
+  // 409 = echte Bestands-/Variantenprüfung fehlgeschlagen (identisch zu PayPal).
   if (response.status === 409) {
     return {
       ok: false,
-      message:
-        data?.message ?? "Diese Variante ist leider nicht mehr verfügbar.",
+      cartNeedsReview: true,
+      message: data?.message ?? VARIANT_UNAVAILABLE_FALLBACK,
+    };
+  }
+
+  // 400 = Warenkorb-/Kundendaten ungültig (z. B. altes Produkt/alte Variante,
+  // Preis nicht ermittelbar). Servernachricht anzeigen, Warenkorb prüfen lassen.
+  if (response.status === 400) {
+    return {
+      ok: false,
+      cartNeedsReview: true,
+      message: data?.message ?? "Bitte prüfe deinen Warenkorb.",
     };
   }
 
@@ -128,13 +135,14 @@ export async function initiateCheckout(
       ok: false,
       message:
         data?.message ??
-        "Stripe ist noch nicht konfiguriert. Bitte STRIPE_SECRET_KEY setzen.",
+        "Die Zahlung ist derzeit nicht verfügbar. Bitte versuche es später erneut.",
     };
   }
 
+  // 5xx / Netzwerk = technischer Fehler. NICHT als „nicht verfügbar" ausgeben.
   return {
     ok: false,
     message:
-      data?.message ?? "Checkout konnte nicht gestartet werden. Bitte erneut versuchen.",
+      "Der Checkout konnte aus einem technischen Grund nicht gestartet werden. Bitte versuche es erneut oder wähle eine andere Zahlungsmethode.",
   };
 }

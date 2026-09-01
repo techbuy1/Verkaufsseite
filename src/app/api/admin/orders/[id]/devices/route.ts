@@ -14,6 +14,7 @@ export const runtime = "nodejs";
 interface DevicePatch {
   id: string;
   imei?: string | null;
+  imei2?: string | null;
   serialNumber?: string | null;
   taxMode?: TaxMode | null;
   purchasePrice?: number | null;
@@ -46,6 +47,16 @@ export async function PATCH(
       {
         message:
           "Rechnung wurde bereits erstellt. Geräte-/Steuerdaten können nicht mehr geändert werden.",
+      },
+      { status: 409 },
+    );
+  }
+
+  if (order.shippedAt || order.orderStatus === "shipped") {
+    return NextResponse.json(
+      {
+        message:
+          "Bestellung wurde bereits versendet. Geräte-/Steuerdaten können nicht mehr geändert werden.",
       },
       { status: 409 },
     );
@@ -91,6 +102,10 @@ export async function PATCH(
           devicePatch.imei !== undefined
             ? devicePatch.imei?.trim() || null
             : device.imei ?? null,
+        imei2:
+          devicePatch.imei2 !== undefined
+            ? devicePatch.imei2?.trim() || null
+            : device.imei2 ?? null,
         serialNumber:
           devicePatch.serialNumber !== undefined
             ? devicePatch.serialNumber?.trim() || null

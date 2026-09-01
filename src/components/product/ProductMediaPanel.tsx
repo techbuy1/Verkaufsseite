@@ -10,6 +10,8 @@ interface ProductMediaPanelProps {
   alt: string;
   activeIndex: number;
   fallbackType?: ProductImageType;
+  brand?: string;
+  productSlug?: string;
 }
 
 export const ProductMediaPanel = memo(function ProductMediaPanel({
@@ -17,17 +19,21 @@ export const ProductMediaPanel = memo(function ProductMediaPanel({
   alt,
   activeIndex,
   fallbackType,
+  brand,
+  productSlug,
 }: ProductMediaPanelProps) {
+  // Kein zusätzlicher Rahmen mehr: die Bildbühne selbst trägt die
+  // farbabhängige Fläche, damit es keinen sichtbaren Kasten-Übergang gibt.
   return (
     <div className="w-full">
-      <div className="rounded-[28px] bg-[#f5f5f7] px-4 py-7 sm:px-6 sm:py-9 md:px-8 md:py-10">
-        <ProductGallery
-          images={images}
-          alt={alt}
-          activeIndex={activeIndex}
-          fallbackType={fallbackType}
-        />
-      </div>
+      <ProductGallery
+        images={images}
+        alt={alt}
+        activeIndex={activeIndex}
+        fallbackType={fallbackType}
+        brand={brand}
+        productSlug={productSlug}
+      />
     </div>
   );
 });

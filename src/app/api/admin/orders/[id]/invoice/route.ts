@@ -4,6 +4,7 @@ import { buildInvoiceDownloadUrl, sendInvoiceEmail } from "@/lib/email";
 import { createInvoiceForOrder, loadExistingInvoice } from "@/lib/invoice";
 import { getInvoiceReadiness } from "@/lib/invoiceValidation";
 import { findOrderById, updateOrder } from "@/lib/orderStore";
+import { readServerProducts } from "@/lib/serverProductCatalog";
 import { getSiteUrl } from "@/lib/stripe";
 
 export const runtime = "nodejs";
@@ -23,7 +24,8 @@ export async function POST(
     return NextResponse.json({ message: "Bestellung nicht gefunden." }, { status: 404 });
   }
 
-  const readiness = getInvoiceReadiness(order);
+  const { products } = await readServerProducts();
+  const readiness = getInvoiceReadiness(order, products);
   if (!readiness.ok) {
     return NextResponse.json(
       {
@@ -36,7 +38,7 @@ export async function POST(
   }
 
   try {
-    const invoice = await createInvoiceForOrder(order);
+    const invoice = await createInvoiceForOrder(order, products);
     const downloadUrl = invoice.order.invoiceAccessToken
       ? buildInvoiceDownloadUrl(
           getSiteUrl(request),

@@ -62,9 +62,15 @@ for (const [slug, colors] of Object.entries(PRODUCT_IMAGE_REGISTRY)) {
       continue;
     }
 
-    const brandHints = BRAND_PATH_HINTS[meta.brand] ?? [];
+    const brandHints = [...(BRAND_PATH_HINTS[meta.brand] ?? []), `images/products/${slug}/`];
     if (brandHints.length && !brandHints.some((hint) => rel.includes(hint))) {
       issues.push(`[cross_brand] ${slug}/${color.id}: ${color.file}`);
+    }
+
+    for (const angle of color.angles ?? []) {
+      if (!fileExists(normalizeRelPath(angle))) {
+        issues.push(`[missing_angle] ${slug}/${color.id}: ${angle}`);
+      }
     }
 
     const prev = seenPaths.get(rel);
@@ -80,7 +86,7 @@ for (const [slug, colors] of Object.entries(PRODUCT_IMAGE_REGISTRY)) {
 
 const registryPaths = new Set(
   Object.values(PRODUCT_IMAGE_REGISTRY).flatMap((colors) =>
-    colors.map((color) => normalizeRelPath(color.file)),
+    colors.flatMap((color) => [color.file, ...(color.angles ?? [])].map(normalizeRelPath)),
   ),
 );
 

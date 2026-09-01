@@ -35,6 +35,9 @@ yarn-error.log*
 # local runtime data (orders, locks, local catalog overrides)
 .data/
 
+# imagegen scratch output (raw renders before placement in public/images)
+/generated/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

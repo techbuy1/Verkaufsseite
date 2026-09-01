@@ -118,7 +118,6 @@ export function AccessoryDetailView({ product }: AccessoryDetailViewProps) {
               <p className="mt-4 text-[28px] font-semibold tracking-tight text-text-primary lg:text-[30px]">
                 {formatPrice(product.price)}
               </p>
-              <p className="mt-1 text-[12px] text-text-secondary">inkl. MwSt.</p>
             </header>
 
             {product.colors && product.colors.length > 1 && (

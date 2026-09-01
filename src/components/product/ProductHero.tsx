@@ -83,6 +83,8 @@ export function ProductHero({
             alt={product.name}
             activeIndex={activeColorIndex >= 0 ? activeColorIndex : 0}
             fallbackType={getImageTypeForCategory(product.category)}
+            brand={product.brand}
+            productSlug={product.slug}
           />
         </div>
 

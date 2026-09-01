@@ -71,6 +71,7 @@ export function CheckoutPageContent() {
   const productStore = useProductStoreOptional();
   const [customer, setCustomer] = useState<CheckoutCustomerInput>(EMPTY_CHECKOUT_CUSTOMER);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [cartNeedsReview, setCartNeedsReview] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("stripe");
@@ -135,6 +136,7 @@ export function CheckoutPageContent() {
   async function handleStripeCheckout() {
     if (!ensureCustomerValid()) return;
     setStatusMessage(null);
+    setCartNeedsReview(false);
     setIsCheckingOut(true);
 
     try {
@@ -145,13 +147,13 @@ export function CheckoutPageContent() {
       );
       if (!result.ok) {
         setCheckoutError(result.message);
+        setCartNeedsReview(Boolean(result.cartNeedsReview));
         setIsCheckingOut(false);
       }
-    } catch (error) {
+    } catch {
+      // Netzwerk-/Laufzeitfehler — kein „nicht verfügbar", sondern technisch.
       setCheckoutError(
-        error instanceof Error
-          ? error.message
-          : "Checkout ist derzeit nicht verfügbar.",
+        "Der Checkout konnte aus einem technischen Grund nicht gestartet werden. Bitte versuche es erneut oder wähle eine andere Zahlungsmethode.",
       );
       setIsCheckingOut(false);
     }
@@ -327,6 +329,14 @@ export function CheckoutPageContent() {
                   )}
                   {checkoutError && (
                     <p className="text-[13px] text-red-600">{checkoutError}</p>
+                  )}
+                  {cartNeedsReview && (
+                    <Link
+                      href="/cart"
+                      className="inline-block text-[13px] font-medium text-[#1d1d1f] underline"
+                    >
+                      Warenkorb prüfen und anpassen
+                    </Link>
                   )}
                 </div>
               )}

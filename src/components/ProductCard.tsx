@@ -6,7 +6,7 @@ import { Product, formatPrice } from "@/data/products";
 import { useShop } from "@/context/ShopContext";
 import { Button } from "./Button";
 import { HeartIcon } from "./Icons";
-import { ProductImageSwitch } from "./ProductImageSwitch";
+import { ProductCardHoverImage } from "./ProductCardHoverImage";
 
 interface ProductCardProps {
   product: Product;
@@ -81,13 +81,17 @@ export function ProductCard({
           href={productHref}
           className={`product-image-stage product-image-stage--on-card product-image-float relative mb-0.5 block w-full ${imageHeightClass}`}
         >
-          <ProductImageSwitch
+          <ProductCardHoverImage
             src={imageSrc}
             alt={`${product.name}${colorLabel ? ` – ${colorLabel}` : ""}`}
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             priority={priority}
-            className="object-contain"
+            imageClassName="object-contain"
             fallbackType={product.imageType}
+            slug={product.slug}
+            colorId={selectedColor?.id}
+            colorName={colorLabel ?? product.color}
+            productId={product.id}
           />
         </Link>
 
@@ -163,13 +167,17 @@ export function ProductCard({
         href={productHref}
         className={`product-image-stage product-image-stage--on-card product-image-float relative mb-5 block w-full ${imageHeightClass}`}
       >
-        <ProductImageSwitch
+        <ProductCardHoverImage
           src={imageSrc}
           alt={`${product.name}${colorLabel ? ` – ${colorLabel}` : ""}`}
           sizes="(max-width: 768px) 100vw, 33vw"
           priority={priority}
-          className="object-contain p-4"
+          imageClassName="object-contain p-4"
           fallbackType={product.imageType}
+          slug={product.slug}
+          colorId={selectedColor?.id}
+          colorName={colorLabel ?? product.color}
+          productId={product.id}
         />
       </Link>
 

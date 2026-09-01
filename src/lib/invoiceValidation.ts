@@ -1,6 +1,8 @@
 import { companySettings, isTaxMode, type TaxMode } from "@/lib/companySettings";
 import type { ShopOrder, ShopOrderDevice, ShopOrderItem } from "@/lib/orderStore";
 import { normalizeOrderItems } from "@/lib/orderStore";
+import type { PremiumProduct } from "@/types/product";
+import { orderItemRequiresDeviceId } from "@/lib/shipping";
 
 export interface InvoiceReadiness {
   ok: boolean;
@@ -15,9 +17,19 @@ function deviceLabel(item: ShopOrderItem, index: number): string {
   return item.quantity > 1 ? `${base} – Gerät ${index + 1}` : base;
 }
 
-export function getInvoiceReadiness(order: ShopOrder): InvoiceReadiness {
+export function getInvoiceReadiness(
+  order: ShopOrder,
+  /**
+   * Geräte-Katalog. Wird übergeben, damit die IMEI/Seriennummer-Pflicht nur
+   * für echte Geräte greift und nicht pauschal für jedes OrderItem (Zubehör).
+   * Ohne Liste bleibt das bisherige Verhalten (Kennung für alle Positionen).
+   */
+  products?: PremiumProduct[],
+): InvoiceReadiness {
   const missing: string[] = [];
   const items = normalizeOrderItems(order.items);
+  const requiresId = (item: ShopOrderItem): boolean =>
+    products ? orderItemRequiresDeviceId(item, products) : true;
 
   if (!order.customerEmail?.trim()) missing.push("Kunden-E-Mail fehlt.");
   if (!order.customerFirstName?.trim() || !order.customerLastName?.trim()) {
@@ -48,11 +60,14 @@ export function getInvoiceReadiness(order: ShopOrder): InvoiceReadiness {
   }
 
   for (const item of items) {
+    const needsId = requiresId(item);
     item.devices.forEach((device, index) => {
       const label = deviceLabel(item, index);
       const hasId =
-        Boolean(device.imei?.trim()) || Boolean(device.serialNumber?.trim());
-      if (!hasId) {
+        Boolean(device.imei?.trim()) ||
+        Boolean(device.imei2?.trim()) ||
+        Boolean(device.serialNumber?.trim());
+      if (needsId && !hasId) {
         missing.push(`${label}: IMEI oder Seriennummer fehlt.`);
       }
       if (!isTaxMode(device.taxMode)) {
