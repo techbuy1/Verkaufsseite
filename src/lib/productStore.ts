@@ -17,7 +17,7 @@ const LEGACY_STORAGE_KEYS = [
 ];
 
 /** Setzt Produkt-, Speicher- und Zustandsbestand auf 0 (Admin pflegt manuell). */
-export function zeroStorageStock(option: StorageOption): StorageOption {
+function zeroStorageStock(option: StorageOption): StorageOption {
   return {
     ...option,
     stock: 0,
@@ -25,7 +25,7 @@ export function zeroStorageStock(option: StorageOption): StorageOption {
   };
 }
 
-export function zeroProductStock(product: PremiumProduct): PremiumProduct {
+function zeroProductStock(product: PremiumProduct): PremiumProduct {
   return {
     ...product,
     stock: 0,

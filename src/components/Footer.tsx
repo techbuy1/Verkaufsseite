@@ -158,6 +158,20 @@ export function Footer() {
             </Link>
           </div>
         </div>
+
+        <div className="mt-5 border-t border-white/[0.06] pt-4 text-center">
+          <p className="text-[12px] text-[#7C7C78]">
+            Webdesign &amp; Entwicklung von{" "}
+            <Link
+              href="https://www.tbwebdesigne.de/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-[#9A9A96] underline-offset-4 transition-colors hover:text-accent hover:underline"
+            >
+              TB Webdesign
+            </Link>
+          </p>
+        </div>
       </div>
     </footer>
   );

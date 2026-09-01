@@ -2,10 +2,8 @@ import { mkdir, readFile, unlink, writeFile } from "fs/promises";
 import path from "path";
 import bundledServerCatalog from "@/data/server-catalog.json";
 import type { PremiumProduct } from "@/types/product";
-import { getSeedProducts, normalizeProduct, zeroProductStock } from "@/lib/productStore";
-import {
-  isEbayInventoryProduct,
-} from "@/lib/ebayInventorySync";
+import { getSeedProducts, normalizeProduct } from "@/lib/productStore";
+import { applyEbayInventoryOverlay } from "@/lib/ebayInventoryOverlay";
 import {
   getDefaultAvailableColorId,
   getDefaultAvailableConditionId,
@@ -56,19 +54,8 @@ export type ServerCatalogResult = {
   persisted: boolean;
 };
 
-function archiveSeedProduct(product: PremiumProduct): PremiumProduct {
-  return syncStockArchiveState({
-    ...zeroProductStock(product),
-    manualArchive: true,
-    stockArchived: true,
-  });
-}
-
 function mergeWithSeed(stored: PremiumProduct[]): PremiumProduct[] {
-  const hasEbayInventory = stored.some(isEbayInventoryProduct);
-  const seed = hasEbayInventory
-    ? getSeedProducts().map(archiveSeedProduct)
-    : getSeedProducts();
+  const seed = getSeedProducts();
   const byId = new Map(stored.map((product) => [product.id, product]));
   const bySlug = new Map(stored.map((product) => [product.slug, product]));
 
@@ -109,7 +96,10 @@ export async function readServerProducts(): Promise<ServerCatalogResult> {
       const parsed = JSON.parse(raw) as unknown;
       if (Array.isArray(parsed) && parsed.length > 0) {
         const normalized = (parsed as PremiumProduct[]).map(normalizeProduct);
-        return { products: mergeWithSeed(normalized), persisted: true };
+        return {
+          products: applyEbayInventoryOverlay(mergeWithSeed(normalized)),
+          persisted: true,
+        };
       }
     } catch {
       // Local override missing — use the bundled snapshot.
@@ -118,11 +108,11 @@ export async function readServerProducts(): Promise<ServerCatalogResult> {
 
   const bundled = catalogFromBundled();
   if (bundled) {
-    return { products: bundled, persisted: true };
+    return { products: applyEbayInventoryOverlay(bundled), persisted: true };
   }
 
   console.error("[catalog] bundled server catalog is missing");
-  return { products: getSeedProducts(), persisted: false };
+  return { products: applyEbayInventoryOverlay(getSeedProducts()), persisted: false };
 }
 
 export async function writeServerProducts(
