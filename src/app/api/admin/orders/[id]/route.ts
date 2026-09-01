@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
-import { verifyAdminSessionFromCookieHeader } from "@/lib/admin/auth";
+import {
+  verifyAdminSessionFromCookieHeader,
+  verifyAdminSessionFromRequest,
+} from "@/lib/admin/auth";
 import { getInvoiceReadiness } from "@/lib/invoiceValidation";
-import { findOrderById, normalizeOrderItems } from "@/lib/orderStore";
+import {
+  deleteOrder,
+  findOrderById,
+  normalizeOrderItems,
+  setOrderArchived,
+} from "@/lib/orderStore";
 import { readServerProducts } from "@/lib/serverProductCatalog";
 import {
   orderItemRequiresDeviceId,
@@ -52,4 +60,76 @@ export async function GET(
         !message.startsWith("Bitte einen gültigen Versanddienstleister"),
     ),
   });
+}
+
+/** Bestellung archivieren oder wieder aktiv setzen. Body: { archived: boolean } */
+export async function PATCH(
+  request: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  if (!(await verifyAdminSessionFromRequest(request))) {
+    return NextResponse.json({ message: "Nicht autorisiert." }, { status: 401 });
+  }
+
+  const { id } = await context.params;
+
+  let body: { archived?: boolean };
+  try {
+    body = (await request.json()) as { archived?: boolean };
+  } catch {
+    return NextResponse.json({ message: "Ungültige Anfrage." }, { status: 400 });
+  }
+
+  try {
+    const updated = await setOrderArchived(id, body.archived === true);
+    if (!updated) {
+      return NextResponse.json(
+        { message: "Bestellung nicht gefunden." },
+        { status: 404 },
+      );
+    }
+    return NextResponse.json({
+      ok: true,
+      id: updated.id,
+      archivedAt: updated.archivedAt ?? null,
+    });
+  } catch (error) {
+    console.error("[admin/orders] archive failed", { id, error });
+    return NextResponse.json(
+      {
+        message:
+          "Archivierung fehlgeschlagen. Bitte die Datenbank-Migration ausführen (npm run db:migrate-orders).",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+/** Bestellung endgültig löschen. */
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  if (!(await verifyAdminSessionFromRequest(request))) {
+    return NextResponse.json({ message: "Nicht autorisiert." }, { status: 401 });
+  }
+
+  const { id } = await context.params;
+
+  try {
+    const deleted = await deleteOrder(id);
+    if (!deleted) {
+      return NextResponse.json(
+        { message: "Bestellung nicht gefunden." },
+        { status: 404 },
+      );
+    }
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("[admin/orders] delete failed", { id, error });
+    return NextResponse.json(
+      { message: "Löschen fehlgeschlagen. Bitte erneut versuchen." },
+      { status: 500 },
+    );
+  }
 }

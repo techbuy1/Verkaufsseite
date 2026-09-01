@@ -92,6 +92,9 @@ export interface ShopOrder {
 
   accessoryUpsells?: PricedDeviceUpsell[];
   providerCustomerEmail?: string | null;
+
+  /** Gesetzt, wenn die Bestellung im Admin archiviert wurde. */
+  archivedAt?: string;
 }
 
 interface OrderRow {
@@ -136,6 +139,7 @@ interface OrderRow {
   shipping_email_sent_at: string | Date | null;
   invoice_email_sent_at: string | Date | null;
   provider_customer_email: string | null;
+  archived_at: string | Date | null;
   created_at: string | Date;
   updated_at: string | Date;
 }
@@ -224,6 +228,7 @@ function rowToOrder(row: OrderRow): ShopOrder {
     shippingEmailSentAt: asIso(row.shipping_email_sent_at),
     invoiceEmailSentAt: asIso(row.invoice_email_sent_at),
     providerCustomerEmail: row.provider_customer_email,
+    archivedAt: asIso(row.archived_at),
   };
 }
 
@@ -524,6 +529,38 @@ export async function updateOrder(
     orderNumber: existing.orderNumber,
     updatedAt: new Date().toISOString(),
   });
+}
+
+/**
+ * Bestellung archivieren bzw. wieder aktiv setzen. Eigene, gezielte UPDATE-
+ * Abfrage (nicht über {@link persistOrder}), damit die übrigen Bestellpfade
+ * nicht auf die `archived_at`-Spalte angewiesen sind.
+ */
+export async function setOrderArchived(
+  id: string,
+  archived: boolean,
+): Promise<ShopOrder | null> {
+  if (!id || !UUID_RE.test(id)) return null;
+  const sql = getSql();
+  const now = new Date().toISOString();
+  const rows = (await sql`
+    UPDATE orders
+       SET archived_at = ${archived ? now : null},
+           updated_at = ${now}
+     WHERE id = ${id}::uuid
+     RETURNING *
+  `) as OrderRow[];
+  return firstOrder(rows);
+}
+
+/** Bestellung endgültig löschen. */
+export async function deleteOrder(id: string): Promise<boolean> {
+  if (!id || !UUID_RE.test(id)) return false;
+  const sql = getSql();
+  const rows = (await sql`
+    DELETE FROM orders WHERE id = ${id}::uuid RETURNING id
+  `) as Array<{ id: string }>;
+  return rows.length > 0;
 }
 
 export async function markOrderPaid(input: {

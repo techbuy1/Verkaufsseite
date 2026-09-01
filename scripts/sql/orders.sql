@@ -50,5 +50,9 @@ CREATE TABLE IF NOT EXISTS orders (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Archivierung: Bestellungen ausblenden, ohne sie zu löschen.
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ;
+
 CREATE INDEX IF NOT EXISTS orders_created_at_idx ON orders (created_at DESC);
 CREATE INDEX IF NOT EXISTS orders_customer_email_idx ON orders (customer_email);
+CREATE INDEX IF NOT EXISTS orders_archived_at_idx ON orders (archived_at);

@@ -27,6 +27,7 @@ export async function GET(request: Request) {
       orderStatus: order.orderStatus,
       trackingNumber: order.trackingNumber ?? null,
       shippedAt: order.shippedAt ?? null,
+      archivedAt: order.archivedAt ?? null,
       itemCount: order.items.length,
     })),
   });
